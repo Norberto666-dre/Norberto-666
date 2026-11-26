@@ -6,6 +6,8 @@ import { UI } from './ui.js';
 import { AccountManager } from './accounts.js';
 import { Leaderboard } from './leaderboard.js';
 import { BALANCE } from './balance.js';
+import { initPWA } from './pwa.js';
+import { initDesktop } from './desktop.js';
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d', { alpha: false });
@@ -53,19 +55,19 @@ setTimeout(() => {
 const metrics = { fps: [], latency: [], audio: [] };
 const avg = arr => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
 
-// Panel opcional para medir en un Android real: abre el juego con ?qa=1.
+// Panel opcional para medir rendimiento: abre el juego con ?qa=1.
 const qaPanel = new URLSearchParams(location.search).has('qa') ? document.createElement('div') : null;
 if (qaPanel) {
   qaPanel.id = 'qa-panel';
   qaPanel.setAttribute('aria-live', 'off');
-  qaPanel.innerHTML = '<div class="qa-title">QA · ANDROID</div><pre id="qa-values">MIDIENDO…</pre>' +
+  qaPanel.innerHTML = '<div class="qa-title">QA · RENDIMIENTO</div><pre id="qa-values">MIDIENDO…</pre>' +
     '<button id="qa-copy" type="button">COPIAR MÉTRICAS</button>';
   document.body.appendChild(qaPanel);
   qaPanel.querySelector('#qa-copy').addEventListener('click', async () => {
     const data = JSON.stringify(getMetrics(), null, 2);
-    const bridge = window.OverclockAndroid;
+    const bridge = window.overclock;
     try {
-      if (bridge?.copyMetrics) bridge.copyMetrics(data);
+      if (bridge?.copyMetrics) await bridge.copyMetrics(data);
       else await navigator.clipboard.writeText(data);
       qaPanel.querySelector('#qa-copy').textContent = 'COPIADO';
     }
@@ -130,6 +132,11 @@ input.onPointer = (x, y, phase, info = {}) => {
   }
 };
 
+// Resaltado del hoyo bajo el cursor: solo con puntero fino y fuera de la partida no aplica.
+input.onHover = (x, y) => {
+  renderer.hoverHole = (x == null || game.screen !== 'playing') ? null : renderer.hitTest(x, y);
+};
+
 game.onEndCycle = () => {
   ui.captureRunState();
   ui.showScreen('results');
@@ -183,5 +190,10 @@ if (qaPanel) {
 
 // Exponer para debug y QA
 window.__OVERCLOCK = {
-  game, audio, input, renderer, ui, accounts, leaderboard, metrics, balance: BALANCE, getMetrics
+  game, audio, input, renderer, ui, accounts, leaderboard, metrics, balance: BALANCE, getMetrics,
+  desktop: !!window.overclock?.isDesktop
 };
+
+// PWA (navegador) e integración de escritorio (Electron).
+initPWA();
+initDesktop({ game, ui, audio });

@@ -1,0 +1,35 @@
+{
+  "id": "./",
+  "name": "OVERCLOCK 9",
+  "short_name": "OVERCLOCK 9",
+  "description": "Arcade de reflejos con voltaje como vida, jefes móviles y progresión roguelite.",
+  "lang": "es",
+  "dir": "ltr",
+  "start_url": "./?source=pwa",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#05050a",
+  "theme_color": "#05050a",
+  "categories": ["games", "entertainment"],
+  "icons": [
+    {
+      "src": "./icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

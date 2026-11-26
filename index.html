@@ -3,9 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="description" content="OVERCLOCK 9: arcade de reflejos con tableros 3x3, 4x3 y 5x4, voltaje como vida, jefes móviles, Falso Final y progresión roguelite. Juega en navegador y Android sin descargas." />
+  <meta name="description" content="OVERCLOCK 9: arcade de reflejos con tableros 3x3, 4x3 y 5x4, voltaje como vida, jefes móviles, Falso Final y progresión roguelite. Juega en PC y navegador." />
+  <meta name="theme-color" content="#05050a" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' http: https:; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'" />
   <title>OVERCLOCK 9 — Arcade de Reflejos</title>
-  <link rel="icon" href="data:," />
+  <link rel="icon" href="icons/favicon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <link rel="manifest" href="manifest.webmanifest" />
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
@@ -84,6 +88,9 @@
         <div id="launcher-error" class="auth-error" aria-live="polite" aria-atomic="true"></div>
 
         <div class="launcher-actions">
+          <button type="button" class="btn btn-secondary install-btn hidden" id="btn-install-launcher">
+            <svg class="icon" aria-hidden="true"><use href="#i-device"></use></svg><span class="install-label">INSTALAR APP</span>
+          </button>
           <button type="button" class="link-btn hidden" id="btn-link-folder">ELEGIR CARPETA DATASAVE</button>
           <button type="button" class="link-btn hidden" id="btn-folder-access">CONECTAR DATASAVE</button>
           <span class="folder-name hidden" id="folder-name"></span>
@@ -209,12 +216,20 @@
         <button class="menu-tool" id="btn-ajustes" aria-label="Ajustes" title="Ajustes"><svg class="icon" aria-hidden="true"><use href="#i-grid"></use></svg><span>AJUSTES</span></button>
         <button class="menu-tool" id="btn-cambiar-usuario" aria-label="Cambiar usuario" title="Cambiar usuario"><svg class="icon" aria-hidden="true"><use href="#i-device"></use></svg><span>USUARIO</span></button>
       </div>
+      <button type="button" class="btn btn-secondary install-btn hidden" id="btn-install-app">
+        <svg class="icon" aria-hidden="true"><use href="#i-device"></use></svg><span class="install-label">INSTALAR APP</span>
+      </button>
       <div class="menu-footer">
         <div class="menu-identity">
           <span class="menu-user"><span class="menu-avatar" id="menu-avatar" aria-hidden="true"></span>PERFIL: <span id="menu-user">—</span></span>
           <span class="menu-credits">CRÉDITOS: <span id="menu-credits">0</span></span>
         </div>
         <div class="ftue-hint">Toca el núcleo activo. Arrastra la X roja al borde: <strong>+1 V</strong>.</div>
+        <div class="desktop-hints" aria-hidden="true">
+          <span><kbd>Esc</kbd> pausa</span>
+          <span><kbd>M</kbd> sonido</span>
+          <span><kbd>F</kbd> pantalla completa</span>
+        </div>
       </div>
     </div>
 
@@ -386,6 +401,15 @@
           <input type="checkbox" id="setting-colorblind" />
         </label>
       </div>
+      <section class="settings-block hidden" id="desktop-datasave" aria-labelledby="desktop-datasave-title">
+        <div class="section-label" id="desktop-datasave-title">DATASAVE DEL EQUIPO</div>
+        <div class="settings-row-actions">
+          <button type="button" class="btn btn-secondary" id="btn-datasave-export">EXPORTAR</button>
+          <button type="button" class="btn btn-secondary" id="btn-datasave-import">IMPORTAR</button>
+          <button type="button" class="btn btn-secondary" id="btn-datasave-reveal">ABRIR CARPETA</button>
+        </div>
+        <p class="auth-note">Cuentas y partidas se guardan en la carpeta de datos de la app. Exporta un respaldo antes de cambiar de equipo.</p>
+      </section>
       <div class="settings-footer">
         <button class="btn btn-secondary" id="btn-volver-settings">VOLVER</button>
       </div>

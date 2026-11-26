@@ -237,7 +237,9 @@ async function idbSet(key, value) {
 
 export class AccountManager {
   constructor() {
-    this.supportsFs = typeof window !== 'undefined' && typeof window.showDirectoryPicker === 'function';
+    const desktop = typeof window !== 'undefined' && !!window.overclock?.isDesktop;
+    // En la app de escritorio el datasave vive en su carpeta interna: no se pide ninguna carpeta.
+    this.supportsFs = !desktop && typeof window !== 'undefined' && typeof window.showDirectoryPicker === 'function';
     this.directory = null;
     this.mode = 'fallback';
     this.needsPermission = false;
@@ -248,7 +250,7 @@ export class AccountManager {
   }
 
   async init() {
-    const handle = await idbGet(HANDLE_KEY);
+    const handle = this.supportsFs ? await idbGet(HANDLE_KEY) : null;
     if (handle) {
       this.directory = handle;
       this.mode = 'fs';
@@ -268,6 +270,7 @@ export class AccountManager {
     if (this.mode === 'fs') {
       return `DATASAVE · ${this.directory?.name || 'CARPETA'}${this.needsPermission ? ' · CONECTAR' : ''}`;
     }
+    if (typeof window !== 'undefined' && window.overclock?.isDesktop) return 'DATASAVE · EQUIPO';
     return 'DATASAVE · NAVEGADOR';
   }
 

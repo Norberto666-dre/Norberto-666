@@ -11,6 +11,7 @@ export class Renderer {
     this.width = 0;
     this.height = 0;
     this.board = { x: 0, y: 0, cell: 0, margin: 0 };
+    this.hoverHole = null;
     this.hud = document.getElementById('hud');
     this.hudBottom = 0;
     if (this.hud && typeof ResizeObserver !== 'undefined') {
@@ -56,8 +57,10 @@ export class Renderer {
     const availableH = Math.max(120, h - topReserve - bottomReserve);
 
     // La celda se calcula por columnas: 3×3, 4×3 y 5×4 caben sin recortar.
+    // En pantallas grandes el tablero no crece sin límite: se mantiene centrado y legible.
     const size = Math.min(w * 0.94, availableH * 0.92, availableH * cols / rows);
-    this.board.cell = size / cols;
+    const maxCell = w >= 900 ? 140 : 176;
+    this.board.cell = Math.min(size / cols, maxCell);
     this.board.rows = rows;
     this.board.cols = cols;
     this.board.width = this.board.cell * cols;
@@ -149,6 +152,31 @@ export class Renderer {
       this.drawHole(ctx, b, hole, i);
     });
     this.drawDrag(ctx);
+
+    // Resaltado del hoyo bajo el cursor (ratón o lápiz en PC y tablets).
+    if (this.game.screen === 'playing' && this.hoverHole) {
+      const index = this.game.holes.indexOf(this.hoverHole);
+      if (index >= 0) {
+        const col = index % b.cols;
+        const row = Math.floor(index / b.cols);
+        const pad = Math.max(3, b.cell * 0.07);
+        const radius = Math.max(6, b.cell * 0.16);
+        ctx.save();
+        ctx.strokeStyle = 'rgba(0,243,255,0.42)';
+        ctx.lineWidth = Math.max(1.2, b.cell * 0.018);
+        ctx.setLineDash([Math.max(3, b.cell * 0.11), Math.max(3, b.cell * 0.09)]);
+        ctx.beginPath();
+        ctx.roundRect(
+          b.x + col * b.cell + pad,
+          b.y + row * b.cell + pad,
+          b.cell - pad * 2,
+          b.cell - pad * 2,
+          radius
+        );
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
 
     // Apagón: el entorno se oscurece mientras el jefe sigue vivo.
     const boss = this.game.boss;

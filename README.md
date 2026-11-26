@@ -1,10 +1,10 @@
 # OVERCLOCK 9
 
-Arcade de reflejos y progresión roguelite, jugable en navegador y Android. Diseño code-only: Canvas 2D + Web Audio API, sin imágenes ni audio externo.
+Arcade de reflejos y progresión roguelite, con **app nativa de Windows** (Electron) y **versión web instalable** (PWA). Diseño code-only: Canvas 2D + Web Audio API, sin imágenes ni audio externo. El contenedor Android quedó archivado y se retomará en una fase posterior.
 
 ## Cómo jugar
 
-- **Tap** en un núcleo activo para golpearlo.
+- **Clic/tap** en un núcleo activo para golpearlo.
 - **Arrastra** un núcleo rojo hacia un borde (~60 px) para purgarlo y sumar **+1 V** (si está enlazado, también al compañero); tocarlo resta combo y voltaje.
 - El **voltaje es la vida**: drena con el tiempo; golpear recarga. Al llegar a 0 se cierra el ciclo y se liquidan créditos (`floor(puntuación / 10)`).
 - Llenar la barra sube un peldaño de multiplicador (`×1…×5`) y la barra vuelve al **15 %**. Si se vacía, el multiplicador baja un peldaño y la barra se recarga al **15 %** (`×3 → ×2 → ×1 → 0`); la run termina solo al vaciarse en `×0`.
@@ -15,64 +15,80 @@ Arcade de reflejos y progresión roguelite, jugable en navegador y Android. Dise
 
 Los núcleos aparecen cada vez más rápido: de `2.2 s` a `0.35 s` entre núcleos a lo largo de 180 s de run.
 
+## PC: ejecutable y compilación
+
+`OVERCLOCK9.exe` en la raíz es la app portátil de Windows: **doble clic y a jugar**, sin instalar ni abrir un navegador. En `dist/` también se generan `OVERCLOCK9-portable.exe` (idéntico) y `OVERCLOCK9-setup.exe` (instalador NSIS).
+
+```bat
+build.bat
+```
+
+Esa única orden verifica los archivos y la sintaxis, empaqueta el juego con Electron y copia el portable a la raíz. Vuelve a ejecutarla después de cualquier cambio en `index.html`, `css/` o `js/`: el `.exe` se regenera con la versión actual.
+
+| Orden | Qué hace |
+|---|---|
+| `build.bat` | Genera `OVERCLOCK9.exe`, `dist\OVERCLOCK9-portable.exe` y `dist\OVERCLOCK9-setup.exe`. |
+| `build.bat --dev` | Abre la app desde el código fuente sin empaquetar. `Ctrl+R` recarga. |
+| `build.bat --watch` | Como `--dev`, pero recarga sola al guardar cambios en `index.html`, `css/` o `js/`. |
+| `build.bat --check` | Prueba de humo: arranca el juego, vigila errores de consola y falla si aparece alguno. |
+| `build.bat --serve` | Servidor local `http://localhost:3000/` para probar la versión navegador. |
+| `build.bat --dir` | Empaquetado rápido en `dist\win-unpacked\`, sin instaladores. |
+
+Requisitos: Node.js 18 o superior en el `PATH`. La primera compilación instala `electron` y `electron-builder` en `node_modules/` (caché local en `.cache/npm`); las siguientes reutilizan lo ya descargado.
+
+El ejecutable **no está firmado digitalmente**: Windows SmartScreen puede avisar la primera vez. Pulsa *Más información → Ejecutar de todos modos*. Para distribuirlo sin avisos hace falta un certificado de código firmado.
+
+### Atajos y ventana
+
+- `F11` o `F` alternan pantalla completa; `M` silencia/activa el audio; `Esc` pausa y guarda.
+- Al perder el foco (por ejemplo, con `Alt+Tab`) la partida en curso se pausa y se guarda sola.
+- El tamaño, la posición y el estado de maximizado se recuerdan entre sesiones.
+- El menú nativo ofrece **Recargar**, zoom, **Abrir carpeta de datos** y **Acerca de**.
+- La app usa un esquema propio `app://overclock9/` con `contextIsolation`, `sandbox` y sin `nodeIntegration`; bloquea navegaciones externas y abre los enlaces web en el navegador del sistema.
+
+## Navegador y PWA
+
+```bat
+build.bat --serve
+```
+
+Abre `http://localhost:3000/` en Chrome o Edge. El botón **INSTALAR APP** (menú y launcher) instala OVERCLOCK 9 como aplicación independiente cuando el navegador lo permite; en Safari/iOS se abre una guía de *Añadir a pantalla de inicio*. Hay un aviso de **nueva versión** con botón **RECARGAR** cuando el service worker encuentra una actualización. Para QA, `?nosw=1` desregistra el service worker y borra sus cachés.
+
+La PWA funciona solo en origen seguro (`https://` o `localhost`), precarga todo el juego para jugar sin conexión y no almacena respuestas de dominios externos (la tabla online sigue siendo opcional).
+
 ## Cuentas y partidas
 
 El juego abre en un **launcher** con los perfiles ya vinculados. Solo se piden **nombre/nickname y contraseña**; la contraseña se guarda como hash PBKDF2-SHA256 con salt, nunca en texto plano. El alta puede incluir **foto de perfil** opcional.
 
-- En **Escritorio** (Chrome/Edge sobre `localhost` o HTTPS), pulsa **ELEGIR CARPETA DATASAVE** una vez. Se crean `accounts.json` y un `u_<id>.json` por jugador con su progreso, partida en curso y ajustes.
+- En la **app de Windows**, cuentas, ajustes y partidas viven en la carpeta de datos del usuario (`%APPDATA%\overclock9`). El panel **Ajustes → DATASAVE DEL EQUIPO** permite **EXPORTAR**, **IMPORTAR** y **ABRIR CARPETA** con diálogos nativos.
+- En **navegador**, pulsa **ELEGIR CARPETA DATASAVE** una vez para guardar `accounts.json` y un `u_<id>.json` por jugador (Chrome/Edge sobre `localhost` o HTTPS). En navegadores sin esa API se usa un *datasave virtual* en almacenamiento local, con el mismo formato.
 - El acceso a la carpeta se recuerda; si el navegador vuelve a pedir permiso, aparece **CONECTAR DATASAVE**.
-- En **Android/Firefox**, donde no existe la API de carpetas, el mismo formato se guarda en un *datasave virtual* dentro del almacenamiento del navegador.
 - **CAMBIAR USUARIO** guarda la partida y vuelve al launcher; **CONTINUAR** reanuda la run guardada de ese perfil.
-- **CRUD de cuentas**: en cada tarjeta del launcher puedes entrar, **editar** (nombre, color, foto y contraseña nueva) o **eliminar**. Guardar/borrar exige la contraseña actual y borrar necesita una segunda confirmación. Al borrar se eliminan también su `u_<id>.json`, su caché y su sesión.
-- La foto se recorta a `192×192`, se guarda como JPEG embebido (máx. `96 KB` decodificados) en `accounts.json` o en el datasave virtual. Nunca se sube a un servidor.
-- El botón **PAUSA** del HUD (o `Esc`) congela la partida, guarda una instantánea real del ciclo en el archivo del perfil y permite **GUARDAR AHORA**, **CONTINUAR** o **GUARDAR Y SALIR** sin perder el estado.
-- La barra de voltaje lleva una escalera `×1…×5` con icono: el peldaño activo se ilumina y los anteriores quedan marcados. Al vaciarse, la barra se muestra llena durante 0,6 s con el multiplicador perdido (`×3 → ×2`) antes de volver al margen del 15 %.
-- El menú agrupa las acciones en dos botones principales (**CAMPAÑA/CONTINUAR** y **RUN DIARIA**) y una fila de accesos rápidos con icono (**TABLA, MEJORAS, ARCHIVO, AJUSTES, USUARIO**).
-
-## Android con Android Studio
-
-`android/` es un proyecto Gradle real: ábrelo con `File → Open...` y pulsa **Run** para probarlo en el emulador o en el móvil por USB. Empaqueta el juego dentro de la app, así que no hace falta servidor ni conexión.
-
-```text
-D:\Mis_apps\juego2dinteracivo\android
-```
-
-- `minSdk 24`, `targetSdk 36`, WebView sin AndroidX ni dependencias externas.
-- Los archivos web se sirven desde `assets/web/` bajo `https://overclock9.local/`, lo que permite módulos ES y guardado local (en WebView no existe `showDirectoryPicker`, así que se usa el datasave virtual automáticamente).
-- La app abre con `?qa=1` y **COPIAR MÉTRICAS** usa el portapapeles nativo.
-- APK de depuración entregado en la raíz: `OVERCLOCK9-debug.apk` (copia de `android/app/build/outputs/apk/debug/app-debug.apk`). Detalles en `android/README.md`.
-- Desde la raíz, `build.bat` copia `index.html`, `css/` y `js/` a los assets, compila y deja el APK actualizado. `build.bat --watch` vigila cambios en el juego y en el código Android y reconstruye solo; `build.bat --install` además lo instala en el dispositivo USB conectado.
+- **CRUD de cuentas**: en cada tarjeta del launcher puedes entrar, **editar** (nombre, color, foto y contraseña nueva) o **eliminar**. Guardar/borrar exige la contraseña actual y borrar necesita una segunda confirmación.
+- La foto se recorta a `192×192`, se guarda como JPEG embebido (máx. `96 KB` decodificados) y nunca se sube a un servidor.
+- El botón **PAUSA** del HUD (o `Esc`) congela la partida, guarda una instantánea real del ciclo y permite **GUARDAR AHORA**, **CONTINUAR** o **GUARDAR Y SALIR**.
+- La barra de voltaje lleva una escalera `×1…×5` con icono: el peldaño activo se ilumina y los anteriores quedan marcados. Al vaciarse, se muestra llena 0,6 s con el multiplicador perdido (`×3 → ×2`) antes de volver al 15 %.
+- El menú agrupa **CAMPAÑA/CONTINUAR** y **RUN DIARIA** y una fila de accesos rápidos (**TABLA, MEJORAS, ARCHIVO, AJUSTES, USUARIO**).
 
 ## Diseño responsive
 
-- La interfaz usa `100dvh`, unidades fluidas y `env(safe-area-inset-*)` con `viewport-fit=cover`; no hay reglas por modelo de teléfono ni por alto de pantalla que recoloquen pantallas completas.
-- Los controles interactivos tienen un objetivo táctil mínimo de `44×44 px` y las pantallas crecen con scroll cuando el contenido no cabe, sin recortar el inicio.
-- El tablero se calcula en `js/render.js` con el **borde real del HUD**, no con un porcentaje fijo: si el HUD cambia de altura (tokens de jefe, fuentes, rotación), `ResizeObserver` y la sincronización por frame vuelven a ajustar la celda. Así el HUD nunca se sobrepone a los hoyos en móvil, landscape ni escritorio.
-- `resize`, `orientationchange` y `visualViewport` mantienen el canvas y el hit-test alineados con la vista disponible.
-- `tests/responsive-lab.html?w=390&h=844` abre un iframe con cualquier tamaño para repetir la verificación visual.
-- La interfaz funciona también con teclado: `Enter`/`Espacio` activan botones y opciones, `Esc` cierra el editor de cuenta y gestiona la pausa, y un único anuncio accesible informa de hitos sin leer el marcador cada frame.
-- Las fuentes son 100 % offline: no hay `@import` ni `preload` a Google Fonts; se usan copias locales si están instaladas y una pila del sistema como respaldo.
-- Abre el juego con `?qa=1` para ver un panel opcional con FPS, latencia y muestras; **COPIAR MÉTRICAS** exporta el resultado para medir en un Android real.
+- La interfaz usa `100dvh`, unidades fluidas y `env(safe-area-inset-*)`; los cambios de escritorio son aditivos (`@media (min-width: 900px)`, `(hover: hover)` y ventana baja), por lo que el layout móvil verificado no se toca.
+- Controles con objetivo táctil mínimo de `44×44 px`; las pantallas crecen con scroll cuando el contenido no cabe.
+- `Renderer.computeBoard()` mide el borde real del HUD y limita el tamaño de celda en pantallas grandes, de modo que el tablero queda centrado y el HUD nunca se superpone a los hoyos.
+- `resize`, `orientationchange` y `visualViewport` mantienen el canvas y el hit-test alineados. Con ratón hay hover sobre el hoyo objetivo y solo responde el botón primario.
+- Teclado: `Enter`/`Espacio` activan controles, `Esc` cierra diálogos y gestiona la pausa, y un único anuncio accesible informa de hitos sin leer el marcador cada frame.
+- Fuentes 100 % offline: sin `@import` ni `preload` a Google Fonts; se usan copias locales si están instaladas y una pila del sistema como respaldo.
 
 ## Campaña, run diaria y tabla
 
-- **CAMPAÑA** es el modo local: avanza por sectores y acumula récords personales (`bestScore`, `bestCombo`, mejor por tablero) antes de enfrentarte al reto diario.
-- **RUN DIARIA** es una sola partida por fecha con carga fija: `3×3`, `PULSO`, sin chips, sin mejoras, sin habilidades, sin jefe y sin núcleo blanco. La semilla depende de la fecha, así que todos los jugadores reciben el mismo reto. Al terminar no se puede repetir: se publica la puntuación y se abre la tabla.
-- **TABLA DIARIA** muestra dos columnas: `MUNDO · ONLINE` (mejor run de cada usuario) y `ESTE DISPOSITIVO · OFFLINE` (reconstruida de los archivos del datasave). Sin conexión se muestra la caché local y las run pendientes se reenvían al volver a abrir la tabla.
-- El endpoint es configurable en `js/online-config.js` o, sin tocar código, en `localStorage` con la clave `overclock9_online_config`:
+- **CAMPAÑA** es el modo local: avanza por sectores y acumula récords personales antes del reto diario.
+- **RUN DIARIA** es una sola partida por fecha con carga fija: `3×3`, `PULSO`, sin chips, sin mejoras, sin habilidades, sin jefe y sin núcleo blanco. La semilla depende de la fecha. Al terminar se publica la puntuación y se abre la tabla.
+- **TABLA DIARIA** muestra `MUNDO · ONLINE` y `ESTE DISPOSITIVO · OFFLINE`. Sin conexión se usa la caché local y las run pendientes se reenvían al volver a abrir la tabla.
+- El endpoint es configurable en `js/online-config.js` o en `localStorage` con la clave `overclock9_online_config`:
   ```json
   { "leaderboardUrl": "https://tu-servicio/daily", "token": "opcional", "timeoutMs": 5000 }
   ```
-  `GET <leaderboardUrl>?date=YYYY-MM-DD` devuelve un array (o `{ "entries": [...] }`) con `{ nickname, score, date, code }`. `POST <leaderboardUrl>` recibe esa misma firma. Sin URL no sale nada del dispositivo: solo tabla offline.
-
-## Ejecutar
-
-```bash
-python -m http.server 3000
-# abre http://localhost:3000/index.html
-```
-
-> La carpeta local requiere origen seguro. `http://localhost` cuenta como seguro; si abres el HTML con `file://`, se usa el datasave del navegador.
+  Sin URL no sale nada del dispositivo: solo tabla offline.
 
 ## Tableros
 
@@ -82,26 +98,30 @@ python -m http.server 3000
 | `4×3` | 100 000 puntos |
 | `5×4` | 1 000 000 puntos |
 
-## Pruebas
+## Pruebas y QA
 
 ```bash
-node --check js/balance.js   # y los otros módulos
-node --test tests/game.test.mjs tests/accounts.test.mjs tests/leaderboard.test.mjs
+npm test
+build.bat --check
 ```
 
-La suite (83 pruebas) cubre voltaje, subida y desincrementación de peldaños con su flash visual, purga de rojos con `+1 V`, escalones de combo, tableros, clústers, rotación de 10 jefes y sus efectos de entorno, estrés A3 + Espejo NV3, pausa/instantánea, Diario de run única, Nova de una explosión, ritmo de aparición, economía, CRUD de cuentas con foto/guardado por perfil y tabla online/offline.
+La suite (97 pruebas) cubre voltaje, peldaños, purga de rojos, combos, tableros, jefes y estrés NV3, economía, CRUD de cuentas, tabla online/offline, empaquetado Electron, seguridad del proceso principal, PWA y datasave. `build.bat --check` añade una prueba de humo real con captura de errores de consola.
+
+`?qa=1` muestra un panel opcional con FPS, latencia y muestras; **COPIAR MÉTRICAS** exporta el resultado. Las guías de QA de escritorio están en `tests/qa/` y las capturas en `docs/qa/`.
 
 ## Estructura
 
-- `js/balance.js` — todas las constantes iniciales y funciones de balance.
-- `js/accounts.js` — launcher: perfiles vinculados, hash de contraseña y guardado por usuario en `datasave`.
-- `js/leaderboard.js`, `js/online-config.js` — tabla diaria offline/online, cola de reenvío y endpoint configurable.
-- `js/game.js` — motor: voltaje, spawns, jefes, Nova, puntuación, instantánea de pausa e informe de run.
-- `js/render.js`, `js/input.js`, `js/ui.js`, `js/main.js`, `js/audio.js` — capa de presentación e interacción.
-- `js/content.js` — catálogo de 20 habilidades, 5 chips y 10 cursores.
-- `tests/` — suite Node, harness de viewport móvil `390×844`, laboratorio responsive con tamaño configurable y estrés `mirror-nv3`.
-- `docs/INCREMENTAL_DESIGN.md` — diseño incremental, fórmulas, ritmo y QA (Ciclo 11 en §10.7).
-- `docs/qa/` — capturas del Ciclo 11 pendientes de revisión humana.
-- `kotlin-skeleton/` — esqueleto Kotlin/Jetpack Compose (minSdk 24) alineado con las reglas v2.
+- `electron/` — proceso principal, preload seguro y persistencia de ventana.
+- `tools/build.mjs`, `build.bat` — empaquetado, modo desarrollo, vigilancia y QA.
+- `icons/`, `manifest.webmanifest`, `sw.js`, `js/pwa.js`, `js/desktop.js` — iconos, PWA e integración nativa.
+- `js/balance.js` — constantes de balance.
+- `js/accounts.js` — launcher, perfiles y datasave.
+- `js/leaderboard.js`, `js/online-config.js` — tabla diaria online/offline.
+- `js/game.js` — motor: voltaje, spawns, jefes, Nova y pausa.
+- `js/render.js`, `js/input.js`, `js/ui.js`, `js/main.js`, `js/audio.js` — presentación e interacción.
+- `js/content.js` — catálogo de habilidades, chips y cursores.
+- `tests/` — suite Node, servidor estático y guiones de QA.
+- `docs/INCREMENTAL_DESIGN.md` — diseño incremental, fórmulas, ritmo y QA.
+- `docs/qa/` — capturas de verificación (Ciclos 11 y 13).
 
-Sin IAP ni multijugador.
+Sin IAP ni multijugador. El contenedor Android se conserva en el tag `android-webview-v1` para cuando se retome.

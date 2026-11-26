@@ -9,12 +9,15 @@ export class InputManager {
     this.lastX = -100; // posición del cursor para la estela diegética
     this.lastY = -100;
     this.onPointer = null; // callback(x, y, phase, info)
+    this.onHover = null; // callback(x, y) o callback(null, null) al salir
+    this.hover = null;
 
     this.canvas.addEventListener('pointerdown', (e) => this.onDown(e));
     this.canvas.addEventListener('pointermove', (e) => this.onMove(e));
     this.canvas.addEventListener('pointerup', (e) => this.onUp(e));
     this.canvas.addEventListener('pointercancel', (e) => this.onUp(e));
-    this.canvas.addEventListener('pointerleave', (e) => this.onUp(e));
+    this.canvas.addEventListener('pointerleave', (e) => this.onLeave(e));
+    this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
     // Prevenir zoom/scroll en táctil
     this.canvas.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });
     this.canvas.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
@@ -44,6 +47,8 @@ export class InputManager {
   }
 
   onDown(e) {
+    // Ratón: solo el botón principal. Los botones laterales no disparan el juego.
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
     const r = this.getRect();
     const pts = e.changedTouches ? Array.from(e.changedTouches) : [e];
     pts.forEach(p => {
@@ -69,6 +74,8 @@ export class InputManager {
     pts.forEach(p => {
       const x = p.clientX - r.left;
       const y = p.clientY - r.top;
+      this.hover = { x, y };
+      if (this.onHover) this.onHover(x, y);
       const id = this.getId(p);
       const t = this.touches.get(id);
       if (!t) return;
@@ -78,6 +85,14 @@ export class InputManager {
       this.lastY = y;
       this.emit(x, y, 'move', p);
     });
+  }
+
+  onLeave(e) {
+    if (this.touches.size === 0) {
+      this.hover = null;
+      if (this.onHover) this.onHover(null, null);
+    }
+    this.onUp(e);
   }
 
   onUp(e) {

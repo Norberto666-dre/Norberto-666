@@ -867,3 +867,214 @@ canvas {
 
 /* Scrollbar oculta */
 ::-webkit-scrollbar { width: 0; height: 0; }
+/* ===== Robustez de ventana (PC y navegador) ===== */
+html, body { overscroll-behavior: none; }
+#gameCanvas { touch-action: none; }
+.screen { overscroll-behavior: contain; scrollbar-gutter: stable; }
+
+/* Botón de instalación PWA */
+.install-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; max-width: 360px; margin-top: 2px;
+  padding: 12px 18px; font-size: 12px; letter-spacing: 1.6px;
+}
+.install-btn .icon { width: 16px; height: 16px; color: currentColor; }
+
+/* Pistas de teclado: solo en escritorio con ratón. */
+.desktop-hints { display: none; }
+
+/* Aviso de nueva versión (PWA) */
+.pwa-update {
+  position: fixed;
+  right: max(16px, env(safe-area-inset-right));
+  bottom: max(16px, env(safe-area-inset-bottom));
+  z-index: 70;
+  display: flex; align-items: center; gap: 10px;
+  max-width: calc(100vw - 32px);
+  padding: 10px 12px;
+  background: rgba(12,12,26,0.96);
+  border: 1px solid rgba(0,243,255,0.5);
+  border-radius: 14px;
+  box-shadow: 0 18px 50px rgba(0,0,0,0.55);
+  font-family: var(--font-display);
+  font-size: 10px; letter-spacing: 1.4px; color: var(--cyan);
+}
+.pwa-update.hidden { display: none; }
+.pwa-update .btn { width: auto; min-height: 36px; padding: 8px 14px; font-size: 11px; }
+.pwa-update-later {
+  width: 32px; height: 32px; min-height: 0;
+  display: grid; place-items: center;
+  background: transparent; border: 1px solid var(--border); border-radius: 8px;
+  color: var(--dim); font-size: 18px; line-height: 1; cursor: pointer;
+}
+
+/* Guía de instalación manual */
+.guide-box { text-align: left; }
+.guide-box .pause-title { text-align: center; }
+.guide-steps {
+  margin: 18px 0 20px; padding-left: 20px;
+  display: flex; flex-direction: column; gap: 10px;
+  font-size: 14px; line-height: 1.5; color: var(--text);
+}
+.guide-steps strong { color: var(--cyan); }
+
+/* Datasave de escritorio */
+.settings-block {
+  width: 100%; max-width: 380px;
+  display: flex; flex-direction: column; gap: 8px;
+  margin-bottom: 24px;
+}
+.settings-row-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.settings-row-actions .btn { flex: 1 1 110px; min-height: 44px; padding: 10px 12px; font-size: 11px; letter-spacing: 1px; }
+.settings-block .auth-note { margin: 0; text-align: left; }
+
+/* Tablets y ventanas medianas: el título no debe desbordar. */
+@media (min-width: 401px) and (max-width: 899px) {
+  .screen-glitch { font-size: clamp(44px, 12vw, 92px); letter-spacing: -2px; line-height: 0.95; }
+  .menu-actions, .menu-tools, .menu-records, .install-btn { max-width: 460px; }
+  .launcher-shell { width: min(560px, 100%); }
+  .prep-grid, .prep-board-row, .prep-footer, .results-stats, .run-card,
+  .settings-list, .settings-block, .upgrade-list, .upgrade-section-title { max-width: 560px; }
+}
+
+/* ===== Escritorio: 900 px o más ===== */@media (min-width: 900px) {
+  .screen { padding: 32px 40px; gap: 18px; }
+  .screen-glitch { font-size: clamp(64px, 7.5vw, 128px); margin-bottom: 4px; }
+  .menu-subtitle { font-size: 15px; letter-spacing: 6px; margin-bottom: 22px; }
+
+  /* En PC las acciones principales van a ancho completo: la jerarquía se lee de un vistazo. */
+  .menu-actions { max-width: 640px; gap: 12px; grid-template-columns: 1fr; }
+  .menu-actions .btn { min-height: 56px; font-size: 15px; }
+  .menu-tools { max-width: 640px; gap: 10px; }
+  .menu-tool { min-height: 66px; gap: 6px; }
+  .menu-tool .icon { width: 20px; height: 20px; }
+  .menu-tool span { font-size: 10px; letter-spacing: 1px; }
+  .install-btn { max-width: 640px; min-height: 48px; font-size: 13px; }
+  .menu-records { max-width: 640px; gap: 10px; margin: -6px 0 12px; }
+  .menu-record { padding: 7px 13px; font-size: 12px; }
+  .menu-record strong { font-size: 12px; }
+  .menu-footer { margin-top: 20px; font-size: 13px; }
+  .ftue-hint { max-width: 640px; }
+
+  .desktop-hints {
+    display: flex; flex-wrap: wrap; justify-content: center; gap: 14px;
+    margin-top: 10px; font-size: 11px; letter-spacing: 1px; color: #4d4d70;
+  }
+  .desktop-hints kbd {
+    display: inline-block; min-width: 22px;
+    padding: 2px 6px; margin-right: 4px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border); border-bottom-width: 2px;
+    border-radius: 5px;
+    font: 700 10px var(--font-display); color: var(--text);
+  }
+
+  .launcher-shell { width: min(820px, 100%); padding: 34px; gap: 18px; border-radius: 24px; }
+  .launcher-title { font-size: 34px; }
+  .profile-grid { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; }
+  .auth-form { width: 100%; max-width: 560px; }
+  .launcher-actions { width: 100%; max-width: 560px; }
+  .launcher-actions .install-btn { max-width: none; }
+
+  .prep-grid, .prep-board-row, .prep-footer { max-width: 760px; }
+  .prep-title { font-size: 36px; }
+  .prep-chip { padding: 14px 18px; font-size: 14px; }
+  .prep-board-row .prep-chip { flex: 1 1 110px; padding: 12px 14px; }
+
+  .results-title { font-size: 40px; margin-bottom: 22px; }
+  .results-stats { max-width: 720px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .stat-value { font-size: 24px; }
+  .run-card { max-width: 720px; max-height: 34vh; }
+  .run-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px 20px; }
+
+  .archive-content { max-width: 760px; max-height: min(56vh, 520px); font-size: 15px; }
+  .settings-list, .settings-block { max-width: 640px; }
+  .setting-row { font-size: 15px; padding: 14px 18px; }
+  .settings-block .settings-row-actions .btn { flex: 1 1 160px; font-size: 12px; }
+  .settings-footer { max-width: 640px; }
+  .upgrade-list, .upgrade-section-title { max-width: 760px; }
+  .upgrade-row { font-size: 14px; padding: 14px 18px; }
+  #upgrade-abilities, #upgrade-cursors, #upgrade-chips-extra { max-height: 30vh; }
+  .board-grid { width: min(980px, 100%); }
+  .board-list { max-height: 48vh; }
+  .pause-box { width: min(440px, 100%); }
+
+  #hud {
+    padding-left: max(24px, calc((100vw - 1100px) / 2));
+    padding-right: max(24px, calc((100vw - 1100px) / 2));
+    gap: 10px;
+  }
+  .hud-metric { padding: 11px 16px; border-radius: 18px 20px 18px 22px; }
+  .hud-metric .icon { width: 19px; height: 19px; }
+  .hud-metric strong { font-size: 28px; }
+  .hud-k { font-size: 10px; letter-spacing: 2.4px; }
+  .hud-pause { width: 46px; height: 46px; }
+  .hud-voltage { padding: 10px 16px 12px; }
+  .hud-voltage-head { font-size: 11px; letter-spacing: 2px; }
+  .voltage-container { height: 12px; }
+  .voltage-tier { font-size: 10px; padding: 4px 0; }
+  .voltage-tier .icon { width: 11px; height: 11px; }
+  .hud-context { gap: 8px; }
+  .hud-token { padding: 6px 11px; font-size: 11px; }
+  .hud-token .icon { width: 13px; height: 13px; }
+
+  #screen-menu, #screen-prep, #screen-results, #screen-settings,
+  #screen-archive, #screen-upgrades, #screen-final, #screen-leaderboard {
+    background:
+      radial-gradient(circle at 18% 0%, rgba(0,243,255,0.07), transparent 46%),
+      radial-gradient(circle at 88% 12%, rgba(255,0,255,0.06), transparent 42%),
+      #05050a;
+  }
+}
+
+/* Pantallas muy anchas: el contenido no se estira sin límite. */
+@media (min-width: 1600px) {
+  .screen-glitch { font-size: clamp(96px, 6vw, 148px); }
+  .menu-actions, .menu-tools, .install-btn, .menu-records, .ftue-hint { max-width: 700px; }
+}
+
+/* Portátil apaisado o ventana baja: HUD y menús compactos. */
+@media (min-width: 700px) and (max-height: 560px) {
+  .screen { padding: 14px 28px; gap: 8px; }
+  .screen-glitch { font-size: 44px; margin-bottom: 0; }
+  .menu-subtitle { margin-bottom: 8px; letter-spacing: 3px; font-size: 12px; }
+  .menu-records { margin: -4px 0 6px; }
+  .menu-actions { gap: 8px; }
+  .menu-actions .btn { min-height: 44px; padding: 10px 12px; font-size: 12px; }
+  .menu-tools { gap: 6px; }
+  .menu-tool { min-height: 44px; padding: 4px; }
+  .menu-tool .icon { width: 15px; height: 15px; }
+  .menu-tool span { font-size: 8px; }
+  .install-btn { display: none; }
+  .menu-footer { margin-top: 6px; font-size: 11px; }
+  .desktop-hints { display: none; }
+  #hud { gap: 6px; padding-top: 8px; }
+  .hud-metric { padding: 7px 11px; }
+  .hud-metric strong { font-size: 18px; }
+  .hud-voltage { padding: 6px 10px 8px; }
+  .hud-context { gap: 5px; }
+  .pause-box { max-height: 92vh; overflow-y: auto; }
+  .launcher-shell { padding: 18px; gap: 10px; }
+  .launcher-title { font-size: 22px; }
+  .prep-header { margin-bottom: 10px; }
+  .prep-title { font-size: 24px; }
+  .prep-grid { margin-bottom: 10px; }
+  .results-title { font-size: 26px; margin-bottom: 12px; }
+  .results-stats { margin-bottom: 12px; }
+  .run-card { max-height: 30vh; margin-bottom: 12px; }
+}
+
+/* Ratón y teclado: estados de interacción que no aplican en táctil. */
+@media (hover: hover) and (pointer: fine) {
+  #gameCanvas { cursor: crosshair; }
+  .btn:hover { filter: brightness(1.12); box-shadow: 0 0 26px rgba(0,243,255,0.45); }
+  .btn-secondary:hover { filter: brightness(1.22); }
+  .hud-metric:hover { border-color: rgba(0,243,255,0.35); }
+  #hud, .btn, .menu-tool, .hud-pause, .profile-card, .prep-chip,
+  .menu-records, .menu-identity, .ftue-hint, .desktop-hints {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  .screen { -webkit-user-select: none; user-select: none; }
+  .field input, .archive-content, .run-card, .auth-note { -webkit-user-select: text; user-select: text; }
+}

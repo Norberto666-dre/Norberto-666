@@ -1,0 +1,64 @@
+{
+  "name": "overclock9",
+  "productName": "OVERCLOCK 9",
+  "version": "2.0.0",
+  "description": "Arcade de reflejos con voltaje como vida, jefes móviles y progresión roguelite.",
+  "private": true,
+  "type": "module",
+  "author": "Norberto",
+  "license": "UNLICENSED",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "start": "node tools/build.mjs --dev",
+    "dev": "node tools/build.mjs --dev",
+    "serve": "node tests/serve.mjs",
+    "check": "node tools/build.mjs --check",
+    "dist": "node tools/build.mjs",
+    "test": "node --test tests/game.test.mjs tests/accounts.test.mjs tests/leaderboard.test.mjs tests/mirror-nv3.test.mjs tests/pwa.test.mjs tests/desktop.test.mjs"
+  },
+  "devDependencies": {
+    "electron": "38.1.2",
+    "electron-builder": "26.18.0"
+  },
+  "build": {
+    "appId": "com.overclock9.desktop",
+    "productName": "OVERCLOCK 9",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "index.html",
+      "css/**/*",
+      "js/**/*",
+      "icons/**/*",
+      "manifest.webmanifest",
+      "sw.js",
+      "electron/**/*",
+      "package.json"
+    ],
+    "win": {
+      "icon": "icons/icon.ico",
+      "target": [
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        },
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "portable": {
+      "artifactName": "OVERCLOCK9-portable.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "shortcutName": "OVERCLOCK 9",
+      "artifactName": "OVERCLOCK9-setup.${ext}"
+    }
+  }
+}

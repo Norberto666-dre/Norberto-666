@@ -1,10 +1,16 @@
-# APK generado (se entrega con build.bat, no se versiona)
-OVERCLOCK9-debug.apk
+# Dependencias y artefactos de compilación
+node_modules/
+dist/
+.cache/
+
+# Ejecutables generados (se regeneran con build.bat)
+/OVERCLOCK9.exe
+/OVERCLOCK9-portable.exe
+/OVERCLOCK9-setup.exe
 *.apk
 *.ap_
 *.log
 
-# Salidas de herramientas
-node_modules/
+# Sistema
 .DS_Store
 Thumbs.db
