@@ -54,7 +54,7 @@ const metrics = { fps: [], latency: [], audio: [] };
 const avg = arr => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
 
 // Conectar input con hit-test del renderizador.
-// Los núcleos rojos esperan al pointerup: si se arrastran ≥60 px se purgan sin castigo.
+// Los núcleos rojos esperan al pointerup: si se arrastran ≥60 px se purgan y suman +1 V.
 const pendingRed = new Map();
 const recordLatency = () => {
   if (game.lastInputLatency) metrics.latency.push(game.lastInputLatency);

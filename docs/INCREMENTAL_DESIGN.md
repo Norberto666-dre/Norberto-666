@@ -73,7 +73,9 @@ El Diario además fuerza `pulso / sin chips / sin mejoras / sin habilidades`, si
 
 | Elemento | Intención | Criterio de salida |
 |---|---|---|
-| HUD diegético | Cabina/terminal: `puntos → combo → voltaje → contexto`. Iconos SVG inline para reducir texto; chips/jefe/congelación/reglas aparecen solo cuando aplican. | En `390×844` y escritorio se leen los cuatro bloques sin solapes; el botón de pausa es alcanzable con el pulgar. |
+| HUD diegético | Cabina/terminal: `puntos → combo → voltaje → contexto`. Iconos SVG inline para reducir texto; la barra incluye la escalera `×1…×5` con el peldaño activo iluminado. Chips/jefe/congelación/reglas aparecen solo cuando aplican. | En `390×844` y escritorio se leen los cuatro bloques sin solapes; el botón de pausa es alcanzable con el pulgar. |
+| Desincrementación legible | Al vaciarse, la barra se llena durante `0,6 s` con el multiplicador perdido (`×3 → ×2`) y después vuelve al margen del 15 %. Es un flash visual: la economía y la regla `×3 → ×2 → ×1 → 0` no cambian. | Se ve el peldaño anterior antes de que la barra vuelva al 15 % y la run sigue viva hasta vaciarse en `×0`. |
+| Menú compacto | Dos acciones principales y una fila de cinco accesos rápidos con icono; `CONTINUAR` sustituye a `CAMPAÑA` cuando hay partida guardada, que pasa a ser `NUEVA CAMPAÑA`. | Todas las funciones siguen accesibles con el mismo número de toques o menos, sin desbordamiento en `390×844`. |
 | Pausa con guardado | `Esc` o el botón del HUD capturan `Game.getResumeState()` (run, ciclo, voltaje, hoyos, jefe, carga y opciones) y lo escriben en el datasave antes de mostrar el overlay. | Salir en pausa y pulsar **CONTINUAR PARTIDA** restaura el mismo ciclo, no una run nueva. |
 | Tabla diaria | `datasave` para la columna offline; endpoint configurable con token para la columna mundial. Sin red se sirve caché y se encola la publicación. | La mejor run de cualquier usuario se muestra sin backend real; al configurar la URL se publica y sincroniza la cola. |
 
@@ -269,7 +271,7 @@ Las secciones 2–4 describen el diseño incremental original (15 nodos, 15 Chip
 - El combo es el multiplicador dominante: `1 + min(combo,50)·0.04`, aplicado **después** de puntuar cada golpe (primer golpe ×1). `Sincronía` conserva una fracción del combo, pero nunca lo crea desde cero.
 - Nova sigue siendo recompensa: rara, nunca en Jackpot, limpia solo los núcleos presentes en la explosión, paga su valor real, no cuenta como bomba y conserva el combo. `SURGE NOVA` / `Resonancia Nova` aumentan pago y radio y añaden un tercer anillo visual.
 
-**Criterio de salida del catálogo:** 64/64 tests (`game` + `accounts`), `node --check` limpio en los 9 módulos, 0 errores de consola en navegador, compras y persistencia verificadas tras recarga, listas visibles y desplazables a 390×844, cuentas separadas por perfil en `datasave`, desincrementación `×3→×2→×1→0` verificada en motor y HUD, y latencia input→SFX < 100 ms con evento humano confiable.
+**Criterio de salida del catálogo:** 75/75 tests (`game` + `accounts` + `leaderboard`), `node --check` limpio en todos los módulos, 0 errores de consola en navegador, compras y persistencia verificadas tras recarga, listas visibles y desplazables a 390×844, cuentas separadas por perfil en `datasave`, desincrementación `×3→×2→×1→0` verificada en motor y HUD, purga de rojo con `+1 V`, y latencia input→SFX < 100 ms con evento humano confiable.
 
 ---
 
@@ -281,7 +283,7 @@ La implementación reside en `js/balance.js` (constantes), `js/game.js` (motor y
 
 | Regla | Valor inicial | Criterio de salida |
 |---|---:|---|
-| Voltaje máximo/inicial | `100 / 100` | El HUD muestra barra y `V×n · Cn/999`, nunca un cronómetro |
+| Voltaje máximo/inicial | `100 / 100` | El HUD muestra barra, escalera `×1…×5` y `Cn/999`, nunca un cronómetro |
 | Drenaje base | `3.0/s + 0.4/s por sector` | Un ciclo sin golpes termina en ~33 s (menos en sectores altos) |
 | Drenaje con jefe | `×0.8` | El jefe no castiga doblemente por ocupar un hoyo |
 | Ganancia | normal `+2`, Perfecto `+3`, enlazado `+4`, jefe `0` | Golpear al jefe jamás recarga la barra |
@@ -293,7 +295,7 @@ La implementación reside en `js/balance.js` (constantes), `js/game.js` (motor y
 ### 10.2 Núcleos rojos y clústers
 
 - Tocar un rojo: `−1` combo (`−2` si enlazado), `−8` V y RNG de error; **no** crea combo.
-- Arrastrar `≥60 px` hacia un borde: purga sin castigo; si está enlazado, purga también al compañero.
+- Arrastrar `≥60 px` hacia un borde: purga y suma `+1 V`; si está enlazado, purga también al compañero con el mismo bonus.
 - Dejar escapar un rojo: `−10` V, pero **no** rompe el combo.
 - Clúster: ventana de `1.2 s`; el primer golpe trampa y amplía `+0.6 s` la vida de los demás; limpiarlos suma `+1` combo por extra, `+20` puntos por núcleo y conexión visual.
 - Aegis absorbe el primer rojo del ciclo sin penalización.
@@ -322,7 +324,7 @@ La implementación reside en `js/balance.js` (constantes), `js/game.js` (motor y
 | Viewport `390×844` (iframe real) | Launcher sin desbordamiento y tablero `5×4` centrado, 20 hoyos, HUD sin solapamiento, 0 errores de consola |
 | Cuentas | Launcher con perfiles vinculados; registro/login con hash PBKDF2, sin contraseña en texto plano; dos perfiles con progreso y run independientes |
 | Selector de tablero | Los tres `div[data-board]` responden a `pointerdown`; `boardId` persiste en `localStorage` |
-| Tap / arrastre rojo | Tap resta combo y V; arrastre `70 px` purga sin castigo, también en clúster |
+| Tap / arrastre rojo | Tap resta combo y V; arrastre `70 px` purga y suma `+1 V`, también en clúster |
 | Falso Final | Congela 5 s, activa Pesadilla, termina solo y **no** se dispara dos veces |
 | Jefe | Golpe sin voltaje, teletransporte real, derrota notifica una vez, `5 %` por golpe y 20 impactos |
 | Rotación de jefes | 10 tipos únicos; el ordinal 11 vuelve a Gólem en `NV2` |

@@ -31,7 +31,7 @@
     <div id="fx-layer"></div>
 
     <!-- Canvas principal del tablero -->
-    <canvas id="gameCanvas" tabindex="0" role="img" aria-label="Tablero de hoyos. Toca el núcleo que brille para ganar voltaje. Arrastra los núcleos rojos hacia un borde para purgarlos sin castigo; el núcleo blanco activa el Falso Final."></canvas>
+    <canvas id="gameCanvas" tabindex="0" role="img" aria-label="Tablero de hoyos. Toca el núcleo que brille para ganar voltaje. Arrastra los núcleos rojos hacia un borde para purgarlos y ganar +1 de voltaje; el núcleo blanco activa el Falso Final."></canvas>
 
     <!-- Pantalla: Launcher / cuentas locales -->
     <div id="screen-launcher" class="screen hidden" aria-labelledby="launcher-title">
@@ -123,6 +123,14 @@
         <div class="voltage-container">
           <div class="voltage-bar" id="voltage-bar"></div>
           <div class="voltage-glow" id="voltage-glow"></div>
+          <div class="voltage-demote" id="voltage-demote" aria-hidden="true"><span>×0</span></div>
+        </div>
+        <div class="voltage-tiers" id="voltage-tiers" aria-label="Multiplicadores de voltaje">
+          <span class="voltage-tier" data-tier="1"><svg class="icon" aria-hidden="true"><use href="#i-bolt"></use></svg>×1</span>
+          <span class="voltage-tier" data-tier="2"><svg class="icon" aria-hidden="true"><use href="#i-bolt"></use></svg>×2</span>
+          <span class="voltage-tier" data-tier="3"><svg class="icon" aria-hidden="true"><use href="#i-bolt"></use></svg>×3</span>
+          <span class="voltage-tier" data-tier="4"><svg class="icon" aria-hidden="true"><use href="#i-bolt"></use></svg>×4</span>
+          <span class="voltage-tier" data-tier="5"><svg class="icon" aria-hidden="true"><use href="#i-bolt"></use></svg>×5</span>
         </div>
       </div>
 
@@ -141,21 +149,25 @@
       <div class="screen-glitch" id="menu-glitch">OVERCLOCK<span class="blink">9</span></div>
       <div class="menu-subtitle" id="menu-sector">Cabina de Reflejos · Sector 1</div>
       <div class="menu-records" id="menu-records" aria-label="Récords locales de campaña"></div>
-      <div class="menu-btns">
+      <div class="menu-actions">
         <button class="btn btn-primary" id="btn-jugar">CAMPAÑA</button>
-        <button class="btn btn-secondary hidden" id="btn-resume-save">CONTINUAR PARTIDA</button>
-        <button class="btn btn-secondary" id="btn-daily">RUN DIARIA</button>
-        <button class="btn btn-secondary" id="btn-board">TABLA DIARIA</button>
-        <button class="btn btn-secondary hidden" id="btn-ascend">ASCENDER</button>
-        <button class="btn btn-secondary" id="btn-mejoras">MEJORAS</button>
-        <button class="btn btn-secondary" id="btn-archivo">ARCHIVO</button>
-        <button class="btn btn-secondary" id="btn-ajustes">AJUSTES</button>
-        <button class="btn btn-secondary" id="btn-cambiar-usuario">CAMBIAR USUARIO</button>
+        <button class="btn btn-primary hidden" id="btn-resume-save">CONTINUAR</button>
+        <button class="btn btn-secondary btn-wide" id="btn-daily">RUN DIARIA</button>
+        <button class="btn btn-secondary btn-wide hidden" id="btn-ascend">ASCENDER</button>
+      </div>
+      <div class="menu-tools" aria-label="Herramientas del perfil">
+        <button class="menu-tool" id="btn-board" aria-label="Tabla diaria" title="Tabla diaria"><svg class="icon" aria-hidden="true"><use href="#i-globe"></use></svg><span>TABLA</span></button>
+        <button class="menu-tool" id="btn-mejoras" aria-label="Mejoras" title="Mejoras"><svg class="icon" aria-hidden="true"><use href="#i-bolt"></use></svg><span>MEJORAS</span></button>
+        <button class="menu-tool" id="btn-archivo" aria-label="Archivo" title="Archivo"><svg class="icon" aria-hidden="true"><use href="#i-save"></use></svg><span>ARCHIVO</span></button>
+        <button class="menu-tool" id="btn-ajustes" aria-label="Ajustes" title="Ajustes"><svg class="icon" aria-hidden="true"><use href="#i-grid"></use></svg><span>AJUSTES</span></button>
+        <button class="menu-tool" id="btn-cambiar-usuario" aria-label="Cambiar usuario" title="Cambiar usuario"><svg class="icon" aria-hidden="true"><use href="#i-device"></use></svg><span>USUARIO</span></button>
       </div>
       <div class="menu-footer">
-        <div class="menu-user">PERFIL: <span id="menu-user">—</span></div>
-        <div class="menu-credits">CRÉDITOS: <span id="menu-credits">0</span></div>
-        <div class="ftue-hint">Toque el núcleo que brille y suba el voltaje. Arrastre la X roja al borde: el núcleo blanco congela la barra 5 s.</div>
+        <div class="menu-identity">
+          <span class="menu-user">PERFIL: <span id="menu-user">—</span></span>
+          <span class="menu-credits">CRÉDITOS: <span id="menu-credits">0</span></span>
+        </div>
+        <div class="ftue-hint">Toca el núcleo activo. Arrastra la X roja al borde: <strong>+1 V</strong>.</div>
       </div>
     </div>
 

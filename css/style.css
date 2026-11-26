@@ -76,9 +76,24 @@ canvas {
 .screen-glitch .blink { animation: blink 1.2s infinite; }
 @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
-.menu-subtitle { font-size: 14px; letter-spacing: 4px; color: var(--magenta); text-transform: uppercase; margin-bottom: 32px; opacity: 0.8; }
+.menu-subtitle { font-size: 14px; letter-spacing: 4px; color: var(--magenta); text-transform: uppercase; margin-bottom: 22px; opacity: 0.8; }
 
-.menu-btns { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 320px; }
+/* Dos acciones principales + una fila compacta de herramientas: menos menú, mismas funciones. */
+.menu-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; width: 100%; max-width: 360px; }
+.menu-actions .btn { padding: 14px 10px; font-size: 13px; letter-spacing: 1.2px; }
+.menu-actions .btn-wide { grid-column: 1 / -1; }
+.menu-tools { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; width: 100%; max-width: 360px; margin-top: 2px; }
+.menu-tool {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  min-height: 54px; padding: 6px 2px;
+  background: rgba(10,10,22,0.72); border: 1px solid var(--border); border-radius: 11px;
+  color: var(--dim); cursor: pointer;
+  transition: border-color 140ms, background 140ms, transform 140ms;
+}
+.menu-tool:hover { border-color: var(--cyan); background: rgba(0,243,255,0.08); }
+.menu-tool:active { transform: scale(0.95); }
+.menu-tool .icon { width: 16px; height: 16px; color: var(--cyan); }
+.menu-tool span { font-family: 'Orbitron', sans-serif; font-size: 8px; letter-spacing: 0.6px; white-space: nowrap; }
 .btn {
   width: 100%;
   padding: 16px 24px;
@@ -102,8 +117,8 @@ canvas {
 .btn-secondary { background: #c000c0; color: #fff; box-shadow: 0 0 20px rgba(192,0,192,0.35); }
 .btn:focus-visible, .prep-chip:focus-visible, .setting-row input:focus-visible,
 .field input:focus-visible, .auth-tab:focus-visible, .profile-card:focus-visible,
-.link-btn:focus-visible, .hud-pause:focus-visible, #gameCanvas:focus-visible,
-.archive-content:focus-visible {
+.link-btn:focus-visible, .hud-pause:focus-visible, .menu-tool:focus-visible,
+#gameCanvas:focus-visible, .archive-content:focus-visible {
   outline: 3px solid var(--amber);
   outline-offset: 3px;
   box-shadow: 0 0 0 1px #000, 0 0 18px rgba(255,204,0,0.55);
@@ -115,7 +130,7 @@ canvas {
 
 .menu-records {
   display: flex; flex-wrap: wrap; justify-content: center; gap: 6px;
-  max-width: 320px; margin: -16px 0 4px;
+  max-width: 360px; margin: -10px 0 10px;
 }
 .menu-record {
   display: inline-flex; align-items: center; gap: 5px;
@@ -127,9 +142,10 @@ canvas {
 }
 .menu-record .icon { width: 12px; height: 12px; color: var(--amber); }
 .menu-record strong { color: var(--text); font-family: 'Orbitron', sans-serif; font-size: 10px; }
-.menu-footer { margin-top: 20px; font-size: 12px; color: var(--dim); letter-spacing: 1px; text-align: center; }
-.menu-user { font-family: 'Orbitron', sans-serif; color: var(--cyan); font-size: 11px; letter-spacing: 2px; margin-bottom: 6px; }
-.menu-credits { font-family: 'Orbitron', sans-serif; color: var(--amber); font-size: 13px; letter-spacing: 2px; margin-bottom: 8px; text-shadow: 0 0 10px rgba(255,204,0,0.5); }
+.menu-footer { margin-top: 16px; font-size: 12px; color: var(--dim); letter-spacing: 1px; text-align: center; }
+.menu-identity { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; margin-bottom: 6px; }
+.menu-user { font-family: 'Orbitron', sans-serif; color: var(--cyan); font-size: 11px; letter-spacing: 2px; }
+.menu-credits { font-family: 'Orbitron', sans-serif; color: var(--amber); font-size: 12px; letter-spacing: 2px; text-shadow: 0 0 10px rgba(255,204,0,0.5); }
 .ftue-hint { font-style: italic; }
 
 /* ===== Launcher / cuentas ===== */
@@ -346,6 +362,31 @@ canvas {
 .voltage-bar.voltage-frozen {
   background: linear-gradient(90deg, #ffffff, var(--magenta));
   box-shadow: 0 0 16px #ffffff, 0 0 30px var(--magenta);
+}
+/* Al perder un peldaño la barra se muestra llena con el multiplicador anterior. */
+.voltage-demote {
+  position: absolute; inset: 0;
+  display: none; align-items: center; justify-content: center;
+  background: repeating-linear-gradient(90deg, var(--amber) 0 8px, var(--magenta) 8px 16px);
+  color: #05050c; font-family: 'Orbitron', sans-serif;
+  font-size: 9px; font-weight: 900; letter-spacing: 2px;
+  animation: demoteGhost 600ms ease-out forwards;
+}
+.voltage-demote.show { display: flex; }
+@keyframes demoteGhost { from { opacity: 1; } to { opacity: 0.28; } }
+.voltage-tiers { display: flex; gap: 4px; margin-top: 6px; }
+.voltage-tier {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 3px;
+  padding: 3px 0; border: 1px solid #202044; border-radius: 6px;
+  background: rgba(4,4,12,0.78); color: var(--dim);
+  font-family: 'Orbitron', sans-serif; font-size: 9px; line-height: 1;
+  transition: color 140ms, background 140ms, border-color 140ms;
+}
+.voltage-tier .icon { width: 10px; height: 10px; color: currentColor; }
+.voltage-tier.done { color: var(--amber); border-color: rgba(255,204,0,0.42); }
+.voltage-tier.active {
+  color: #05050c; background: var(--cyan); border-color: var(--cyan);
+  font-weight: 900; box-shadow: 0 0 12px rgba(0,243,255,0.45);
 }
 
 .hud-context { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -658,8 +699,12 @@ canvas {
 @media (max-width: 400px) {
   .screen { padding: 12px; gap: 10px; }
   .menu-subtitle { margin-bottom: 8px; letter-spacing: 2px; }
-  .menu-records { margin: -6px 0 2px; }
-  .menu-footer { margin-top: 16px; }
+  .menu-records { margin: -6px 0 4px; }
+  .menu-actions, .menu-tools { max-width: 100%; gap: 5px; }
+  .menu-actions .btn { padding: 12px 6px; font-size: 12px; }
+  .menu-tool { min-height: 48px; }
+  .menu-tool span { font-size: 7px; }
+  .menu-footer { margin-top: 12px; }
   .archive-content { max-height: 46vh; padding: 14px; font-size: 13px; }
   .launcher-shell { padding: 16px; gap: 12px; border-radius: 16px; }
   .profile-grid { grid-template-columns: repeat(auto-fit, minmax(76px, 1fr)); gap: 8px; }
@@ -671,6 +716,9 @@ canvas {
   .hud-metric strong { font-size: 16px; }
   .hud-pause { width: 44px; height: 44px; border-radius: 15px; }
   .hud-voltage { padding: 7px 10px 9px; }
+  .voltage-tiers { gap: 3px; margin-top: 5px; }
+  .voltage-tier { font-size: 8px; gap: 2px; }
+  .voltage-tier .icon { width: 9px; height: 9px; }
   .hud-context { gap: 5px; }
   .hud-token { padding: 4px 7px; font-size: 9px; }
   .board-grid { grid-template-columns: 1fr; }

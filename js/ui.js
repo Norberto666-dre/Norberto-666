@@ -42,6 +42,8 @@ export class UI {
       voltage: document.getElementById('hud-voltage-value'),
       bar: document.getElementById('voltage-bar'),
       glow: document.getElementById('voltage-glow'),
+      demote: document.getElementById('voltage-demote'),
+      tiers: [...document.querySelectorAll('#voltage-tiers .voltage-tier')],
       mode: document.getElementById('hud-mode'),
       sector: document.getElementById('hud-sector'),
       cursor: document.getElementById('hud-cursor'),
@@ -357,10 +359,12 @@ export class UI {
     if (resume) {
       resume.classList.toggle('hidden', !this.runState);
       if (this.runState) {
-        const next = Math.min(999, (Number(this.runState.cyclesDone) || 0) + 1);
-        resume.textContent = `CONTINUAR PARTIDA · C${next}`;
+        const done = Number(this.runState.run?.cyclesDone ?? this.runState.cyclesDone) || 0;
+        resume.textContent = `CONTINUAR · C${Math.min(999, done + 1)}`;
       }
     }
+    const campaign = document.getElementById('btn-jugar');
+    if (campaign) campaign.textContent = this.runState ? 'NUEVA CAMPAÑA' : 'CAMPAÑA';
   }
 
   escapeHtml(value) {
@@ -1525,6 +1529,20 @@ export class UI {
       bar.classList.toggle('voltage-frozen', g.voltageFrozen > 0);
     }
     if (glow) glow.classList.toggle('active', !!g.nightmare || g.voltageFrozen > 0);
+
+    const showDemote = g.demoteFlash > 0 && g.demoteFromTier > 0;
+    if (n.demote) {
+      n.demote.classList.toggle('show', showDemote);
+      if (showDemote) {
+        const label = n.demote.querySelector('span');
+        if (label) label.textContent = `×${g.demoteFromTier} → ×${g.voltageTier}`;
+      }
+    }
+    n.tiers?.forEach((el, i) => {
+      const tier = i + 1;
+      el.classList.toggle('active', tier === g.voltageTier);
+      el.classList.toggle('done', tier < g.voltageTier);
+    });
 
     const tokenText = (node, text) => {
       if (!node) return;

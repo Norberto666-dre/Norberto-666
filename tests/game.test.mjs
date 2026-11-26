@@ -235,6 +235,22 @@ test('Vaciarse desincrementa ×3 → ×2 → ×1 → 0 y recarga el 15 % en cada
   assert.equal(callbacks, 1);
 });
 
+test('Al bajar de peldaño la barra muestra el multiplicador anterior y luego se apaga', () => {
+  const g = start(makeGame());
+  g.spawnTimer = 10;
+  g.voltageTier = 3;
+  g.run.tier = 3;
+  g.voltage = 0.001;
+  g.update(0.1);
+  assert.equal(g.voltageTier, 2);
+  assert.equal(g.demoteFromTier, 3);
+  assert.ok(g.demoteFlash > 0);
+  g.voltage = 90;
+  for (let i = 0; i < 8; i++) g.update(0.1);
+  assert.equal(g.demoteFlash, 0);
+  assert.equal(g.demoteFromTier, null);
+});
+
 test('Después de vaciarse, llenar la barra recupera el peldaño perdido', () => {
   const g = start(makeGame());
   g.spawnTimer = 10;
@@ -424,7 +440,7 @@ test('Tocar un rojo enlazado resta 2 de combo', () => {
   assert.equal(g.score.combo, 3);
 });
 
-test('Purgar arrastrando no castiga y limpia también el rojo enlazado', () => {
+test('Purgar arrastrando suma +1 V y limpia también el rojo enlazado', () => {
   const g = start(makeGame());
   g.score.combo = 5;
   g.voltage = 50;
@@ -435,7 +451,7 @@ test('Purgar arrastrando no castiga y limpia también el rojo enlazado', () => {
   assert.equal(g.holes[0].state, HoleState.EMPTY);
   assert.equal(g.holes[1].state, HoleState.EMPTY);
   assert.equal(g.score.combo, 5);
-  near(g.voltage, 50);
+  near(g.voltage, 50 + BALANCE.voltage.gain.purge);
   assert.equal(g.links[0].done, true);
 });
 

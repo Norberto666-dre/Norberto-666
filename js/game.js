@@ -476,6 +476,8 @@ export class Game {
     this.voltageTier = 1;
     this.voltageArmed = false;
     this.voltageFrozen = 0;
+    this.demoteFlash = 0;
+    this.demoteFromTier = null;
     this.nightmare = false;
     this.nightmareTimer = 0;
     this.whiteUsed = false;
@@ -681,6 +683,8 @@ export class Game {
     this.voltage = Math.min(BALANCE.voltage.max, BALANCE.voltage.start + this.startVoltage);
     this.voltageArmed = false;
     this.voltageFrozen = 0;
+    this.demoteFlash = 0;
+    this.demoteFromTier = null;
     this.nightmare = false;
     this.nightmareTimer = 0;
     this.whiteUsed = false;
@@ -761,6 +765,8 @@ export class Game {
       voltageTier: this.voltageTier,
       voltageArmed: this.voltageArmed,
       voltageFrozen: this.voltageFrozen,
+      demoteFlash: this.demoteFlash,
+      demoteFromTier: this.demoteFromTier,
       elapsed: this.elapsed,
       score: { ...this.score },
       holes: this.holes.map(h => ({
@@ -805,6 +811,8 @@ export class Game {
     this.voltage = Math.min(BALANCE.voltage.max, Math.max(0, Number(s.voltage) || 0));
     this.voltageArmed = !!s.voltageArmed;
     this.voltageFrozen = Math.max(0, Number(s.voltageFrozen) || 0);
+    this.demoteFlash = Math.max(0, Number(s.demoteFlash) || 0);
+    this.demoteFromTier = this.demoteFlash > 0 ? (Number(s.demoteFromTier) || null) : null;
     this.elapsed = Math.max(0, Number(s.elapsed) || 0);
     if (s.score) Object.assign(this.score, s.score);
     this.spawnTimer = Math.max(0, Number(s.spawnTimer) || 0);
@@ -903,6 +911,10 @@ export class Game {
         if (this.nightmareTimer <= 0) this.endNightmare();
       }
       if (this.voltageFrozen > 0) this.voltageFrozen = Math.max(0, this.voltageFrozen - realDt);
+      if (this.demoteFlash > 0) {
+        this.demoteFlash = Math.max(0, this.demoteFlash - realDt);
+        if (this.demoteFlash === 0) this.demoteFromTier = null;
+      }
 
       // Voltaje como vida: drena con el tiempo. El Falso Final congela solo la barra.
       if (this.voltageFrozen <= 0) {
@@ -1393,7 +1405,7 @@ export class Game {
     }
   }
 
-  // Núcleos rojos: tocar castiga; arrastrar ≥60 px los purga sin castigo.
+  // Núcleos rojos: tocar castiga; arrastrar ≥60 px los purga y suma +1 V.
   hitRedCore(hole, pan = 0) {
     if (this.bombIgnoresLeft > 0) {
       this.bombIgnoresLeft--;
@@ -1439,7 +1451,8 @@ export class Game {
       this.spawnParticles(h.x, h.y, '#ff3355', 18, { streak: true, speed: 1.6 });
       h.reset();
     });
-    this.spawnPopup(hole.x, hole.y - 26, `PURGADO ×${targets.length}`, '#00f3ff');
+    this.addVoltage(BALANCE.voltage.gain.purge);
+    this.spawnPopup(hole.x, hole.y - 26, `PURGADO ×${targets.length} · +${BALANCE.voltage.gain.purge} V`, '#00f3ff');
     this.audio.playVoltageFill();
     this.triggerShake(6);
     return true;
@@ -1471,11 +1484,13 @@ export class Game {
 
   /**
    * Al vaciarse la barra se desincrementa el multiplicador y se recarga un 15 %
-   * de margen: ×3 → ×2 → ×1 → 0. Devuelve false solo cuando llega a 0 y el
-   * llamador debe cerrar la run.
+   * de margen: ×3 → ×2 → ×1 → 0. Durante el flash la HUD muestra la barra llena
+   * con el peldaño perdido. Devuelve false solo cuando llega a 0 y el llamador
+   * debe cerrar la run.
    */
   demoteVoltageTier() {
     if (this.voltage > 0) return true;
+    const previousTier = this.voltageTier;
     this.voltageTier = Math.max(0, this.voltageTier - 1);
     this.run.tier = this.voltageTier;
     this.audio.playGlitch(false);
@@ -1488,9 +1503,11 @@ export class Game {
     }
     this.voltage = BALANCE.voltage.max * BALANCE.voltage.emptyRefill;
     this.voltageArmed = true; // permite recuperar el peldaño al volver a llenar
+    this.demoteFromTier = previousTier;
+    this.demoteFlash = BALANCE.voltage.demoteFlashSeconds;
     this.triggerFlash(0.25);
     this.triggerShake(8);
-    this.spawnPopupAtCenter(`VOLTAJE ×${this.voltageTier} · MARGEN 15 %`, '#ffcc00');
+    this.spawnPopupAtCenter(`VOLTAJE ×${previousTier} → ×${this.voltageTier} · MARGEN 15 %`, '#ffcc00');
     return true;
   }
 

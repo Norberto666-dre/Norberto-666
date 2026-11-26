@@ -5,7 +5,7 @@ Arcade de reflejos y progresión roguelite, jugable en navegador y Android. Dise
 ## Cómo jugar
 
 - **Tap** en un núcleo activo para golpearlo.
-- **Arrastra** un núcleo rojo hacia un borde (~60 px) para purgarlo sin castigo; tocarlo resta combo y voltaje.
+- **Arrastra** un núcleo rojo hacia un borde (~60 px) para purgarlo y sumar **+1 V** (si está enlazado, también al compañero); tocarlo resta combo y voltaje.
 - El **voltaje es la vida**: drena con el tiempo; golpear recarga. Al llegar a 0 se cierra el ciclo y se liquidan créditos (`floor(puntuación / 10)`).
 - Llenar la barra sube un peldaño de multiplicador (`×1…×5`) y la barra vuelve al **15 %**. Si se vacía, el multiplicador baja un peldaño y la barra se recarga al **15 %** (`×3 → ×2 → ×1 → 0`); la run termina solo al vaciarse en `×0`.
 - Cada núcleo paga **20 puntos base** como mínimo (Crono 40, Nova 60, blanco 100). Los combos y jefes siguen siendo el multiplicador dominante.
@@ -24,6 +24,8 @@ El juego abre en un **launcher** con los perfiles ya vinculados. Solo se piden *
 - En **Android/Firefox**, donde no existe la API de carpetas, el mismo formato se guarda en un *datasave virtual* dentro del almacenamiento del navegador.
 - **CAMBIAR USUARIO** guarda la partida y vuelve al launcher; **CONTINUAR PARTIDA** reanuda la run guardada de ese perfil.
 - El botón **PAUSA** del HUD (o `Esc`) congela la partida, guarda una instantánea real del ciclo en el archivo del perfil y permite **GUARDAR AHORA**, **CONTINUAR** o **GUARDAR Y SALIR** sin perder el estado.
+- La barra de voltaje lleva una escalera `×1…×5` con icono: el peldaño activo se ilumina y los anteriores quedan marcados. Al vaciarse, la barra se muestra llena durante 0,6 s con el multiplicador perdido (`×3 → ×2`) antes de volver al margen del 15 %.
+- El menú agrupa las acciones en dos botones principales (**CAMPAÑA/CONTINUAR** y **RUN DIARIA**) y una fila de accesos rápidos con icono (**TABLA, MEJORAS, ARCHIVO, AJUSTES, USUARIO**).
 
 ## Campaña, run diaria y tabla
 
@@ -60,7 +62,7 @@ node --check js/balance.js   # y los otros módulos
 node --test tests/game.test.mjs tests/accounts.test.mjs tests/leaderboard.test.mjs
 ```
 
-La suite (74 pruebas) cubre voltaje, subida y desincrementación de peldaños, escalones de combo, tableros, rojos, clústers, rotación de 10 jefes y sus efectos de entorno, pausa/instantánea, Diario de run única, Nova de una explosión, ritmo de aparición, economía, cuentas/guardado por perfil y tabla online/offline.
+La suite (75 pruebas) cubre voltaje, subida y desincrementación de peldaños con su flash visual, purga de rojos con `+1 V`, escalones de combo, tableros, clústers, rotación de 10 jefes y sus efectos de entorno, pausa/instantánea, Diario de run única, Nova de una explosión, ritmo de aparición, economía, cuentas/guardado por perfil y tabla online/offline.
 
 ## Estructura
 

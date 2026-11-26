@@ -20,9 +20,10 @@ export const BALANCE = {
     maxTier: 5,
     tierRefill: VOLTAGE_MARGIN, // al subir de ×N, la barra se reinicia con margen
     emptyRefill: VOLTAGE_MARGIN, // al vaciarse: baja un peldaño y recarga el mismo margen
-    gain: { normal: 2, perfect: 3, connected: 4, boss: 0, crono: 4, nova: 6 },
+    gain: { normal: 2, perfect: 3, connected: 4, boss: 0, crono: 4, nova: 6, purge: 1 },
     red: { drainPerSec: 5, tapPenalty: 8, escapePenalty: 10, tapCombo: 1, tapComboLinked: 2, dragThresholdPx: 60 },
-    freezeSeconds: 5
+    freezeSeconds: 5,
+    demoteFlashSeconds: 0.6 // la barra muestra el peldaño perdido antes de volver al 15 %
   },
   credits: { perScore: 0.1 },
   run: { maxCycles: 999, bossEvery: 5, bossKillScore: 5000 },
