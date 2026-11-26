@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="OVERCLOCK 9: arcade de reflejos con tableros 3x3, 4x3 y 5x4, voltaje como vida, jefes móviles, Falso Final y progresión roguelite. Juega en navegador y Android sin descargas." />
+  <title>OVERCLOCK 9 — Arcade de Reflejos</title>
+  <link rel="icon" href="data:," />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="preload" as="font" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600;700&display=swap" />
+</head>
+<body>
+  <div id="app">
+    <!-- Capa de efectos visuales (screen shake, flash) -->
+    <div id="fx-layer"></div>
+
+    <!-- Canvas principal del tablero -->
+    <canvas id="gameCanvas" tabindex="0" role="img" aria-label="Tablero de hoyos. Toca el núcleo que brille para ganar voltaje. Arrastra los núcleos rojos hacia un borde para purgarlos sin castigo; el núcleo blanco activa el Falso Final."></canvas>
+
+    <!-- HUD superpuesto (diegético: cabina) -->
+    <div id="hud" class="hidden">
+      <div class="hud-row">
+        <div class="hud-pill" id="hud-time" aria-label="Nivel de voltaje y ciclo">V×1 · C1/999</div>
+        <div class="hud-pill" id="hud-score">0</div>
+        <div class="hud-pill" id="hud-combo">COMBO x1</div>
+      </div>
+      <div class="hud-row">
+        <div class="hud-label">VOLTAJE</div>
+        <div class="voltage-container">
+          <div class="voltage-bar" id="voltage-bar"></div>
+          <div class="voltage-glow" id="voltage-glow"></div>
+        </div>
+        <div class="hud-pill" id="hud-loadout">PULSO · CHIP · CHIP</div>
+      </div>
+    </div>
+
+    <!-- Pantalla: Menú principal -->
+    <div id="screen-menu" class="screen active">
+      <div class="screen-glitch" id="menu-glitch">OVERCLOCK<span class="blink">9</span></div>
+      <div class="menu-subtitle" id="menu-sector">Cabina de Reflejos · Sector 1</div>
+      <div class="menu-btns">
+        <button class="btn btn-primary" id="btn-jugar">JUGAR</button>
+        <button class="btn btn-secondary" id="btn-daily">CICLO DIARIO</button>
+        <button class="btn btn-secondary" id="btn-endless">MODO ∞</button>
+        <button class="btn btn-secondary hidden" id="btn-ascend">ASCENDER</button>
+        <button class="btn btn-secondary" id="btn-mejoras">MEJORAS</button>
+        <button class="btn btn-secondary" id="btn-archivo">ARCHIVO</button>
+        <button class="btn btn-secondary" id="btn-ajustes">AJUSTES</button>
+      </div>
+      <div class="menu-footer">
+        <div class="menu-credits">CRÉDITOS: <span id="menu-credits">0</span></div>
+        <div class="ftue-hint">Toque el núcleo que brille y suba el voltaje. Arrastre la X roja al borde: el núcleo blanco congela la barra 5 s.</div>
+      </div>
+    </div>
+
+    <!-- Pantalla: Preparación (loadout) -->
+    <div id="screen-prep" class="screen hidden">
+      <div class="prep-header">
+        <div class="prep-title">PREPARACIÓN</div>
+        <div class="prep-sector" id="prep-sector">SECTOR 1</div>
+        <div class="prep-rules hidden" id="prep-rules"></div>
+      </div>
+      <div class="prep-grid">
+        <div class="prep-col">
+          <div class="prep-label">CURSOR (10)</div>
+          <div class="prep-options" id="prep-hammers"></div>
+        </div>
+        <div class="prep-col">
+          <div class="prep-label" id="prep-chip-label">CHIPS (2)</div>
+          <div class="prep-options" id="prep-chips"></div>
+        </div>
+      </div>
+      <div class="prep-board-row">
+        <div class="prep-label" id="prep-board-label">TABLERO · SE DESBLOQUEA CON RÉCORD</div>
+        <div class="prep-options" id="prep-boards"></div>
+      </div>
+      <div class="prep-footer">
+        <button class="btn btn-primary" id="btn-iniciar">INICIAR CICLO</button>
+        <button class="btn btn-secondary" id="btn-boss">MODO JEFE</button>
+        <button class="btn btn-secondary" id="btn-volver-menu">VOLVER</button>
+      </div>
+    </div>
+
+    <!-- Pantalla: Resultados -->
+    <div id="screen-results" class="screen hidden">
+      <div class="results-title">RESULTADOS</div>
+      <div class="record-badge" id="res-record" style="display:none;">¡NUEVO RÉCORD!</div>
+      <div class="results-meta" id="res-meta">SECTOR 1</div>
+      <div class="results-stats">
+        <div class="stat"><span class="stat-label">PUNTUACIÓN</span><span class="stat-value" id="res-score">0</span></div>
+        <div class="stat"><span class="stat-label">COMBO MÁX.</span><span class="stat-value" id="res-combo">0</span></div>
+        <div class="stat"><span class="stat-label">GOLPES PERFECTOS</span><span class="stat-value" id="res-perfect">0</span></div>
+        <div class="stat"><span class="stat-label">CRÉDITOS</span><span class="stat-value" id="res-credits">0</span></div>
+      </div>
+      <div class="run-card" id="res-run-card" aria-live="polite"></div>
+      <div class="results-btns">
+        <button class="btn btn-primary" id="btn-reintentar">REINTENTAR</button>
+        <button class="btn btn-secondary" id="btn-continuar" style="display:none;">CONTINUAR</button>
+        <button class="btn btn-secondary" id="btn-final" style="display:none;">VER DESENLACE</button>
+        <button class="btn btn-secondary" id="btn-menu-results">MENÚ</button>
+      </div>
+    </div>
+
+    <!-- Pantalla: Archivo -->
+    <div id="screen-archive" class="screen hidden">
+      <div class="settings-title">ARCHIVO</div>
+      <div class="archive-content" id="archive-content">
+        <p>No hay registros aún. Juega un ciclo para generar logs.</p>
+      </div>
+      <div class="settings-footer">
+        <button class="btn btn-secondary" id="btn-volver-archive">VOLVER</button>
+      </div>
+    </div>
+
+    <!-- Pantalla: Mejoras -->
+    <div id="screen-upgrades" class="screen hidden">
+      <div class="settings-title">MEJORAS</div>
+      <div class="upgrade-credits">CRÉDITOS: <span id="upgrade-credits">0</span></div>
+      <div class="upgrade-list">
+        <div class="upgrade-row">
+          <span>Desbloquear RAYO MAESTRO</span>
+          <button class="btn btn-secondary" id="upgrade-unlock-chain">3000</button>
+        </div>
+        <div class="upgrade-row">
+          <span>Desbloquear ESPEJO (anula inversión)</span>
+          <button class="btn btn-secondary" id="upgrade-unlock-mirror">5000</button>
+        </div>
+        <div class="upgrade-row">
+          <span>Desbloquear REFLEJO (réplica horizontal)</span>
+          <button class="btn btn-secondary" id="upgrade-unlock-reflejo">7000</button>
+        </div>
+        <div class="upgrade-row">
+          <span>Desbloquear CRIOGENIA (hielo ≤1 s)</span>
+          <button class="btn btn-secondary" id="upgrade-unlock-crio">9000</button>
+        </div>
+        <div class="upgrade-row">
+          <span>Desbloquear NÚCLEO (+20% daño al jefe)</span>
+          <button class="btn btn-secondary" id="upgrade-unlock-nucleo">11000</button>
+        </div>
+        <div class="upgrade-row">
+          <span>Mejorar Pulso (+5% ventana)</span>
+          <button class="btn btn-secondary" id="upgrade-pulso">1000</button>
+        </div>
+        <div class="upgrade-row">
+          <span>Mejorar Tesla (+5% voltaje)</span>
+          <button class="btn btn-secondary" id="upgrade-tesla">1000</button>
+        </div>
+      </div>
+      <div class="upgrade-section-title">20 HABILIDADES · ÁRBOL DE REFLEJOS</div>
+      <div class="upgrade-list" id="upgrade-abilities"></div>
+      <div class="upgrade-section-title">10 CURSORES · HABILIDAD ÚNICA</div>
+      <div class="upgrade-list" id="upgrade-cursors"></div>
+      <div class="upgrade-section-title">5 CHIPS NUEVOS</div>
+      <div class="upgrade-list" id="upgrade-chips-extra"></div>
+      <div class="settings-footer">
+        <button class="btn btn-secondary" id="btn-volver-upgrades">VOLVER</button>
+      </div>
+    </div>
+
+    <!-- Pantalla: Desenlace -->
+    <div id="screen-final" class="screen hidden">
+      <div class="settings-title">DESENLACE</div>
+      <div class="archive-content" id="final-content"></div>
+      <div class="settings-footer">
+        <button class="btn btn-primary" id="btn-final-accept">ACEPTAR EL SISTEMA</button>
+        <button class="btn btn-primary" id="btn-final-reject">RECHAZAR EL SISTEMA</button>
+        <button class="btn btn-secondary hidden" id="btn-ascend-final">ASCENDER</button>
+        <button class="btn btn-secondary" id="btn-final-endless">MODO INFINITO</button>
+        <button class="btn btn-secondary" id="btn-final-menu">MENÚ</button>
+      </div>
+    </div>
+
+    <!-- Pantalla: Ajustes -->
+    <div id="screen-settings" class="screen hidden">
+      <div class="settings-title">AJUSTES</div>
+      <div class="settings-list">
+        <label class="setting-row">
+          <span>Audio</span>
+          <input type="checkbox" id="setting-audio" checked />
+        </label>
+        <label class="setting-row">
+          <span>Vibración</span>
+          <input type="checkbox" id="setting-haptic" checked />
+        </label>
+        <label class="setting-row">
+          <span>Reducir destellos</span>
+          <input type="checkbox" id="setting-reduce-flash" />
+        </label>
+        <label class="setting-row">
+          <span>Modo daltónico (forma + sonido)</span>
+          <input type="checkbox" id="setting-colorblind" />
+        </label>
+      </div>
+      <div class="settings-footer">
+        <button class="btn btn-secondary" id="btn-volver-settings">VOLVER</button>
+      </div>
+    </div>
+
+    <!-- Overlay de pausa -->
+    <div id="overlay-pause" class="overlay hidden">
+      <div class="pause-box">
+        <div class="pause-title">PAUSA</div>
+        <button class="btn btn-primary" id="btn-resume">REANUDAR</button>
+        <button class="btn btn-secondary" id="btn-exit-pause">SALIR AL MENÚ</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
