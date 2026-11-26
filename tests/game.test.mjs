@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   Game, Boss, BOSS_BY_SECTOR, BOSS_STYLE, Hole, ScoreManager, Director,
-  HoleState, CoreType, makeRng, dailyCode, endlessHpBonus, ascensionRuleNames,
+  HoleState, CoreType, makeRng, dailyCode, SCREEN, ascensionRuleNames,
   comboMultiplier, nextComboMilestone
 } from '../js/game.js';
 import {
@@ -116,14 +116,12 @@ test('Director: presión alta aumenta probabilidad de bomba', () => {
   assert.equal(pick.core, CoreType.BOMB);
 });
 
-test('PRNG diario, código compartible y curva del infinito', () => {
+test('PRNG diario y código compartible', () => {
   const a = makeRng(12345);
   const b = makeRng(12345);
   assert.equal(a(), b());
   assert.equal(a(), b());
   assert.match(dailyCode(12345, 5000, '2026-11-25'), /^O9-261125-\w+-\w+$/);
-  assert.ok(endlessHpBonus(1) < endlessHpBonus(10));
-  assert.ok(endlessHpBonus(100) <= 1.5);
   assert.deepEqual(ascensionRuleNames(2), ['DOBLE BOMBA', 'NÚCLEOS PARTIDOS']);
 });
 
@@ -321,6 +319,53 @@ test('Diario fuerza 3×3, sin jefe, sin núcleo blanco y con carga fija', () => 
   assert.equal(g.loadout.chips.length, 0);
   advance(g, 5);
   assert.equal(g.fakeEndings, 0);
+});
+
+test('Pausa congela la simulación y resume sin perder la partida', () => {
+  const g = makeGame();
+  start(g);
+  tap(g, active(g.holes[0]));
+  const score = g.score.score;
+  g.pause();
+  assert.equal(g.screen, SCREEN.PAUSED);
+  advance(g, 1);
+  assert.equal(g.score.score, score);
+  g.resume();
+  assert.equal(g.screen, SCREEN.PLAYING);
+});
+
+test('La instantánea guardada restaura ciclo, voltaje, carga y núcleos', () => {
+  const g = makeGame();
+  start(g);
+  g.run.tier = 2;
+  g.voltageTier = 2;
+  g.run.cyclesDone = 3;
+  g.voltage = 42;
+  tap(g, active(g.holes[0]));
+  const snap = g.getResumeState();
+  assert.equal(snap.version, 1);
+  assert.equal(snap.options.board, '3x3');
+  assert.equal(snap.holes.length, g.holes.length);
+
+  const restored = makeGame();
+  restored.startCycle({ hammer: 'pulso', chips: [] }, {
+    ...snap.options, continueRun: true, run: snap.run, resumeState: snap
+  });
+  assert.equal(restored.screen, SCREEN.PLAYING);
+  assert.equal(restored.voltageTier, 2);
+  assert.equal(restored.voltage, snap.voltage);
+  assert.equal(restored.run.cyclesDone, 3);
+  assert.equal(restored.score.score, snap.score.score);
+});
+
+test('El informe de run no expone campos del modo infinito', () => {
+  const g = makeGame();
+  start(g);
+  const report = g.getRunReport();
+  assert.equal('endless' in report, false);
+  assert.equal('endlessRounds' in report, false);
+  assert.equal('endlessMistakes' in report, false);
+  assert.equal(report.daily, false);
 });
 
 // ---------- Tableros dinámicos ----------

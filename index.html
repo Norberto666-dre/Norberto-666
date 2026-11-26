@@ -10,6 +10,22 @@
   <link rel="preload" as="font" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600;700&display=swap" />
 </head>
 <body>
+  <!-- Iconos del sistema: SVG en código, sin assets externos -->
+  <svg class="icon-sprite" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+    <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8z" fill="currentColor"/></symbol>
+    <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3" fill="currentColor"/></symbol>
+    <symbol id="i-combo" viewBox="0 0 24 24"><path d="M4 7h16M4 12h10M4 17h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1.5" fill="currentColor"/><rect x="14" y="5" width="4" height="14" rx="1.5" fill="currentColor"/></symbol>
+    <symbol id="i-grid" viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6" rx="1.5" fill="none" stroke="currentColor" stroke-width="2"/><rect x="14" y="4" width="6" height="6" rx="1.5" fill="none" stroke="currentColor" stroke-width="2"/><rect x="4" y="14" width="6" height="6" rx="1.5" fill="none" stroke="currentColor" stroke-width="2"/><rect x="14" y="14" width="6" height="6" rx="1.5" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="i-boss" viewBox="0 0 24 24"><path d="M12 2 4 5v7c0 5 3.4 8.6 8 10 4.6-1.4 8-5 8-10V5l-8-3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 12h6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-snow" viewBox="0 0 24 24"><path d="M12 2v20M4 7l16 10M20 7 4 17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-trophy" viewBox="0 0 24 24"><path d="M7 4h10v5a5 5 0 0 1-10 0V4zM7 6H4v2a4 4 0 0 0 4 4M17 6h3v2a4 4 0 0 1-4 4M10 19h4M12 14v5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+    <symbol id="i-device" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M10 18h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-save" viewBox="0 0 24 24"><path d="M5 3h12l2 2v16H5V3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M8 3v6h8V3M8 21v-7h8v7" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="i-ascend" viewBox="0 0 24 24"><path d="M12 20V5M6 11l6-6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  </svg>
+
   <div id="app">
     <!-- Capa de efectos visuales (screen shake, flash) -->
     <div id="fx-layer"></div>
@@ -70,20 +86,53 @@
       </div>
     </div>
 
-    <!-- HUD superpuesto (diegético: cabina) -->
-    <div id="hud" class="hidden">
-      <div class="hud-row">
-        <div class="hud-pill" id="hud-time" aria-label="Nivel de voltaje y ciclo">V×1 · C1/999</div>
-        <div class="hud-pill" id="hud-score">0</div>
-        <div class="hud-pill" id="hud-combo">COMBO x1</div>
+    <!-- HUD superpuesto: jerarquía puntos → combo → voltaje → contexto -->
+    <div id="hud" class="hidden" aria-label="Panel de partida">
+      <div class="hud-top">
+        <div class="hud-metrics">
+          <div class="hud-metric hud-metric-score">
+            <svg class="icon" aria-hidden="true"><use href="#i-target"></use></svg>
+            <span class="hud-metric-body">
+              <span class="hud-k">PUNTOS</span>
+              <strong id="hud-score">0</strong>
+            </span>
+          </div>
+          <div class="hud-metric hud-metric-combo">
+            <svg class="icon" aria-hidden="true"><use href="#i-combo"></use></svg>
+            <span class="hud-metric-body">
+              <span class="hud-k">COMBO</span>
+              <strong id="hud-combo">×1</strong>
+              <small id="hud-combo-next"></small>
+            </span>
+          </div>
+        </div>
+        <button type="button" class="hud-pause" id="btn-pause" aria-label="Pausar y guardar partida" title="Pausar (Esc)">
+          <svg class="icon" aria-hidden="true"><use href="#i-pause"></use></svg>
+        </button>
       </div>
-      <div class="hud-row">
-        <div class="hud-label">VOLTAJE</div>
+
+      <div class="hud-voltage">
+        <div class="hud-voltage-head">
+          <span class="hud-voltage-name">
+            <svg class="icon" aria-hidden="true"><use href="#i-bolt"></use></svg>VOLTAJE
+          </span>
+          <span class="hud-tier" id="hud-tier">×1</span>
+          <span class="hud-cycle" id="hud-cycle">C1/999</span>
+          <span class="hud-voltage-value" id="hud-voltage-value">100 %</span>
+        </div>
         <div class="voltage-container">
           <div class="voltage-bar" id="voltage-bar"></div>
           <div class="voltage-glow" id="voltage-glow"></div>
         </div>
-        <div class="hud-pill" id="hud-loadout">PULSO · CHIP · CHIP</div>
+      </div>
+
+      <div class="hud-context" id="hud-context" aria-label="Contexto de la partida">
+        <span class="hud-token" id="hud-mode"><svg class="icon" aria-hidden="true"><use href="#i-trophy"></use></svg><span>CAMPAÑA</span></span>
+        <span class="hud-token" id="hud-sector"><svg class="icon" aria-hidden="true"><use href="#i-grid"></use></svg><span>S1 · 3×3</span></span>
+        <span class="hud-token" id="hud-cursor"><svg class="icon" aria-hidden="true"><use href="#i-bolt"></use></svg><span>PULSO</span></span>
+        <span class="hud-token hidden" id="hud-boss"><svg class="icon" aria-hidden="true"><use href="#i-boss"></use></svg><span></span></span>
+        <span class="hud-token hidden" id="hud-freeze"><svg class="icon" aria-hidden="true"><use href="#i-snow"></use></svg><span></span></span>
+        <span class="hud-token hidden" id="hud-rules"><svg class="icon" aria-hidden="true"><use href="#i-ascend"></use></svg><span></span></span>
       </div>
     </div>
 
@@ -91,11 +140,12 @@
     <div id="screen-menu" class="screen active">
       <div class="screen-glitch" id="menu-glitch">OVERCLOCK<span class="blink">9</span></div>
       <div class="menu-subtitle" id="menu-sector">Cabina de Reflejos · Sector 1</div>
+      <div class="menu-records" id="menu-records" aria-label="Récords locales de campaña"></div>
       <div class="menu-btns">
-        <button class="btn btn-primary" id="btn-jugar">JUGAR</button>
+        <button class="btn btn-primary" id="btn-jugar">CAMPAÑA</button>
         <button class="btn btn-secondary hidden" id="btn-resume-save">CONTINUAR PARTIDA</button>
-        <button class="btn btn-secondary" id="btn-daily">CICLO DIARIO</button>
-        <button class="btn btn-secondary" id="btn-endless">MODO ∞</button>
+        <button class="btn btn-secondary" id="btn-daily">RUN DIARIA</button>
+        <button class="btn btn-secondary" id="btn-board">TABLA DIARIA</button>
         <button class="btn btn-secondary hidden" id="btn-ascend">ASCENDER</button>
         <button class="btn btn-secondary" id="btn-mejoras">MEJORAS</button>
         <button class="btn btn-secondary" id="btn-archivo">ARCHIVO</button>
@@ -152,6 +202,7 @@
         <button class="btn btn-primary" id="btn-reintentar">REINTENTAR</button>
         <button class="btn btn-secondary" id="btn-continuar" style="display:none;">CONTINUAR</button>
         <button class="btn btn-secondary" id="btn-final" style="display:none;">VER DESENLACE</button>
+        <button class="btn btn-secondary hidden" id="btn-results-board">VER TABLA DIARIA</button>
         <button class="btn btn-secondary" id="btn-menu-results">MENÚ</button>
       </div>
     </div>
@@ -164,6 +215,36 @@
       </div>
       <div class="settings-footer">
         <button class="btn btn-secondary" id="btn-volver-archive">VOLVER</button>
+      </div>
+    </div>
+
+    <!-- Pantalla: Tabla de la run diaria -->
+    <div id="screen-leaderboard" class="screen hidden" aria-labelledby="board-title">
+      <div class="board-head">
+        <div class="settings-title" id="board-title">RUN DIARIA</div>
+        <div class="board-date" id="board-date">—</div>
+      </div>
+      <div class="board-summary" id="board-summary" aria-live="polite"></div>
+      <div class="board-grid">
+        <section class="board-panel" aria-labelledby="board-world-label">
+          <div class="board-panel-head">
+            <svg class="icon" aria-hidden="true"><use href="#i-globe"></use></svg>
+            <span id="board-world-label">MUNDO · ONLINE</span>
+            <small id="board-online-state">—</small>
+          </div>
+          <div class="board-list" id="board-online"></div>
+        </section>
+        <section class="board-panel" aria-labelledby="board-local-label">
+          <div class="board-panel-head">
+            <svg class="icon" aria-hidden="true"><use href="#i-device"></use></svg>
+            <span id="board-local-label">ESTE DISPOSITIVO · OFFLINE</span>
+            <small>DATASAVE</small>
+          </div>
+          <div class="board-list" id="board-offline"></div>
+        </section>
+      </div>
+      <div class="settings-footer">
+        <button class="btn btn-secondary" id="btn-board-back">VOLVER</button>
       </div>
     </div>
 
@@ -220,7 +301,7 @@
         <button class="btn btn-primary" id="btn-final-accept">ACEPTAR EL SISTEMA</button>
         <button class="btn btn-primary" id="btn-final-reject">RECHAZAR EL SISTEMA</button>
         <button class="btn btn-secondary hidden" id="btn-ascend-final">ASCENDER</button>
-        <button class="btn btn-secondary" id="btn-final-endless">MODO INFINITO</button>
+        <button class="btn btn-secondary" id="btn-final-board">VER TABLA DIARIA</button>
         <button class="btn btn-secondary" id="btn-final-menu">MENÚ</button>
       </div>
     </div>
@@ -252,11 +333,20 @@
     </div>
 
     <!-- Overlay de pausa -->
-    <div id="overlay-pause" class="overlay hidden">
+    <div id="overlay-pause" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="pause-title">
       <div class="pause-box">
-        <div class="pause-title">PAUSA</div>
-        <button class="btn btn-primary" id="btn-resume">REANUDAR</button>
-        <button class="btn btn-secondary" id="btn-exit-pause">SALIR AL MENÚ</button>
+        <div class="pause-glyph" aria-hidden="true">
+          <svg class="icon"><use href="#i-pause"></use></svg>
+        </div>
+        <div class="pause-title" id="pause-title">PAUSA</div>
+        <div class="pause-subtitle" id="pause-save-status">PARTIDA GUARDADA</div>
+        <div class="pause-actions">
+          <button class="btn btn-primary" id="btn-resume">CONTINUAR</button>
+          <button class="btn btn-secondary" id="btn-save-pause">
+            <svg class="icon" aria-hidden="true"><use href="#i-save"></use></svg>GUARDAR AHORA
+          </button>
+          <button class="btn btn-secondary" id="btn-exit-pause">GUARDAR Y SALIR</button>
+        </div>
       </div>
     </div>
   </div>

@@ -4,6 +4,7 @@ import { Game } from './game.js';
 import { Renderer } from './render.js';
 import { UI } from './ui.js';
 import { AccountManager } from './accounts.js';
+import { Leaderboard } from './leaderboard.js';
 import { BALANCE } from './balance.js';
 
 const canvas = document.getElementById('gameCanvas');
@@ -19,7 +20,8 @@ renderer.game = game;
 
 const accounts = new AccountManager();
 await accounts.init();
-const ui = new UI({ game, audio, input, renderer, accounts });
+const leaderboard = new Leaderboard({ accounts });
+const ui = new UI({ game, audio, input, renderer, accounts, leaderboard });
 
 // Garantizar que el AudioContext se resume en la primera interacción de usuario
 // Solo un evento confiable habilita háptica/audio: los eventos sintéticos no cuentan
@@ -109,7 +111,7 @@ input.onPointer = (x, y, phase, info = {}) => {
 };
 
 game.onEndCycle = () => {
-  ui.runState = { ...game.run };
+  ui.captureRunState();
   ui.showScreen('results');
 };
 
@@ -139,7 +141,7 @@ requestAnimationFrame(loop);
 
 // Exponer para debug y QA
 window.__OVERCLOCK = {
-  game, audio, input, renderer, ui, accounts, metrics, balance: BALANCE,
+  game, audio, input, renderer, ui, accounts, leaderboard, metrics, balance: BALANCE,
   getMetrics: () => ({
     board: game.boardId,
     voltage: Math.round(game.voltage),

@@ -11,7 +11,10 @@ export const CoreType = {
   WHITE: 'white', BOSS: 'boss'
 };
 
-export const SCREEN = { MENU: 'menu', PREP: 'prep', PLAYING: 'playing', RESULTS: 'results', SETTINGS: 'settings' };
+export const SCREEN = {
+  MENU: 'menu', PREP: 'prep', PLAYING: 'playing',
+  PAUSED: 'paused', RESULTS: 'results', SETTINGS: 'settings'
+};
 export { comboMultiplier, nextComboMilestone };
 
 // PRNG determinista para el Ciclo Diario (misma semilla → misma partida)
@@ -34,11 +37,6 @@ export function ascensionRuleNames(level) {
   const n = Math.max(0, Number(level) || 0);
   return ASCENSION_RULES.slice(1, Math.min(n, ASCENSION_RULES.length - 1) + 1)
     .filter(Boolean).map(r => r.name);
-}
-
-export function endlessHpBonus(wave) {
-  const w = Math.max(1, Number(wave) || 1);
-  return Math.min(1.5, 0.45 * Math.log2(1 + w * 1.6));
 }
 
 export function dailyCode(seed, score, date) {
@@ -656,12 +654,9 @@ export class Game {
       ? Math.max(1, Math.ceil((this.run.cyclesDone || 0) / BALANCE.run.bossEvery))
       : 1;
     this.bossLevel = 1 + Math.floor((bossOrdinal - 1) / BOSS_ROTATION.length);
-    this.bossType = this.run.nextBoss && !options.bossMode
+    this.bossType = options.bossType || (this.run.nextBoss && !options.bossMode
       ? BOSS_ROTATION[(bossOrdinal - 1) % BOSS_ROTATION.length]
-      : (BOSS_BY_SECTOR[this.sector] || 'golem');
-    this.endless = !!options.endless;
-    this.endlessRounds = 0;
-    this.endlessMistakes = 0;
+      : (BOSS_BY_SECTOR[this.sector] || 'golem'));
     this.daily = !!options.daily;
     this.dailyDate = options.date || null;
     this.dailySeedValue = options.seed != null ? Number(options.seed) >>> 0 : null;
@@ -728,13 +723,130 @@ export class Game {
       : null;
     this.bossVictoryTimer = 0;
 
+    if (options.resumeState) this.applyResumeState(options.resumeState);
+
     this.audio.init();
     this.audio.startMusic();
     this.trySpawn();
   }
 
-  pause() { if (this.screen === SCREEN.PLAYING) { this.screen = 'paused'; } }
-  resume() { if (this.screen === 'paused') { this.screen = SCREEN.PLAYING; } }
+  /**
+   * Instantánea de la partida en curso. La UI la guarda en el archivo del usuario
+   * al pausar, para que "Continuar partida" restaure el mismo ciclo.
+   */
+  getResumeState() {
+    const copy = value => value == null ? null : JSON.parse(JSON.stringify(value));
+    const bossKeys = [
+      'type', 'level', 'maxHp', 'hp', 'phase', 'defeated', 'holeIndex',
+      'teleportTimer', 'vanishing', 'arriving', 'hitsSinceTeleport', 'slamTimers',
+      'slammedRows', 'blockedCols', 'blockTimer', 'invertTimer', 'invertRemaining',
+      'overloadTimer', 'crioTimer', 'halves', 'damageFlash'
+    ];
+    const boss = this.boss
+      ? Object.fromEntries(bossKeys.filter(k => k in this.boss).map(k => [k, copy(this.boss[k])]))
+      : null;
+    return {
+      version: 1,
+      run: copy(this.run),
+      options: {
+        board: this.boardId, sector: this.sector, daily: !!this.daily,
+        date: this.dailyDate || null, seed: this.dailySeedValue ?? null,
+        ascension: this.ascension || 0, bossMode: !!this.bossMode,
+        bossType: this.bossType || null, bossLevel: this.bossLevel || 1
+      },
+      loadout: copy(this.loadout),
+      sector: this.sector,
+      boardId: this.boardId,
+      voltage: this.voltage,
+      voltageTier: this.voltageTier,
+      voltageArmed: this.voltageArmed,
+      voltageFrozen: this.voltageFrozen,
+      elapsed: this.elapsed,
+      score: { ...this.score },
+      holes: this.holes.map(h => ({
+        state: h.state, core: h.core, timer: h.timer, lifetime: h.lifetime,
+        linkId: h.linkId, trapped: h.trapped, trapTimer: h.trapTimer
+      })),
+      boss,
+      bossVictoryTimer: this.bossVictoryTimer,
+      spawnTimer: this.spawnTimer,
+      spawnInterval: this.spawnInterval,
+      nightmare: !!this.nightmare,
+      nightmareTimer: this.nightmareTimer,
+      whiteUsed: this.whiteUsed,
+      fakeEndings: this.fakeEndings,
+      novaDetonations: this.novaDetonations,
+      novaCoresCleared: this.novaCoresCleared,
+      novaPoints: this.novaPoints,
+      redTapped: this.redTapped,
+      redPurged: this.redPurged,
+      redEscaped: this.redEscaped,
+      clustersCleared: this.clustersCleared,
+      sectorCleared: 0 // la UI lo sobrescribe con su propio valor
+    };
+  }
+
+  /** Restaura una instantánea después de que startCycle haya preparado el tablero. */
+  applyResumeState(s) {
+    if (!s || s.version !== 1) return false;
+    if (s.run) this.run = { ...this.freshRun(), ...s.run };
+    this.voltageTier = Math.max(1, Number(this.run.tier) || 1);
+    this.run.tier = this.voltageTier;
+    this.sector = s.sector || this.sector;
+    if (s.options) {
+      this.daily = !!s.options.daily;
+      this.dailyDate = s.options.date || null;
+      this.dailySeedValue = s.options.seed != null ? Number(s.options.seed) >>> 0 : null;
+      this.ascension = Math.max(0, Number(s.options.ascension) || 0);
+      this.bossMode = !!s.options.bossMode;
+      if (s.options.bossType) this.bossType = s.options.bossType;
+      if (s.options.bossLevel) this.bossLevel = s.options.bossLevel;
+    }
+    this.voltage = Math.min(BALANCE.voltage.max, Math.max(0, Number(s.voltage) || 0));
+    this.voltageArmed = !!s.voltageArmed;
+    this.voltageFrozen = Math.max(0, Number(s.voltageFrozen) || 0);
+    this.elapsed = Math.max(0, Number(s.elapsed) || 0);
+    if (s.score) Object.assign(this.score, s.score);
+    this.spawnTimer = Math.max(0, Number(s.spawnTimer) || 0);
+    this.spawnInterval = Math.max(0.2, Number(s.spawnInterval) || BALANCE.spawn.startInterval);
+    this.nightmare = !!s.nightmare;
+    this.nightmareTimer = Math.max(0, Number(s.nightmareTimer) || 0);
+    this.whiteUsed = !!s.whiteUsed;
+    this.fakeEndings = Math.max(0, Number(s.fakeEndings) || 0);
+    this.novaDetonations = Math.max(0, Number(s.novaDetonations) || 0);
+    this.novaCoresCleared = Math.max(0, Number(s.novaCoresCleared) || 0);
+    this.novaPoints = Math.max(0, Number(s.novaPoints) || 0);
+    this.redTapped = Math.max(0, Number(s.redTapped) || 0);
+    this.redPurged = Math.max(0, Number(s.redPurged) || 0);
+    this.redEscaped = Math.max(0, Number(s.redEscaped) || 0);
+    this.clustersCleared = Math.max(0, Number(s.clustersCleared) || 0);
+    this.bossVictoryTimer = Math.max(0, Number(s.bossVictoryTimer) || 0);
+
+    this.holes.forEach((h, i) => {
+      const saved = s.holes?.[i];
+      if (saved) Object.assign(h, saved);
+      else h.reset();
+    });
+
+    if (s.boss) {
+      if (!this.boss || this.boss.type !== s.boss.type) {
+        this.boss = this.spawnBoss(s.boss.type, 0, s.boss.level || 1);
+      }
+      Object.assign(this.boss, s.boss);
+      this.boss.rng = this.rng;
+      this.boss.cols = this.cols;
+      this.boss.rows = this.rows;
+      if (this.boss.holeIndex != null) this.holes[this.boss.holeIndex]?.reset();
+      if (!this.boss.defeated) this.placeBossCore(this.boss.holeIndex);
+    } else {
+      this.boss = null;
+    }
+    this.screen = SCREEN.PLAYING;
+    return true;
+  }
+
+  pause() { if (this.screen === SCREEN.PLAYING) { this.screen = SCREEN.PAUSED; } }
+  resume() { if (this.screen === SCREEN.PAUSED) { this.screen = SCREEN.PLAYING; } }
 
   spawnBoss(type, extra = 0, level = 1) {
     const boss = this.scaleBoss(new Boss(type, level), extra);
@@ -860,13 +972,8 @@ export class Game {
       if (this.boss && this.boss.defeated && this.bossVictoryTimer > 0) {
         this.bossVictoryTimer -= realDt;
         if (this.bossVictoryTimer <= 0) {
-          if (this.endless) {
-            this.boss = null;
-            this.spawnInterval = Math.max(0.28, this.spawnInterval - 0.08);
-          } else {
-            this.endCycle();
-            return;
-          }
+          this.endCycle();
+          return;
         }
       }
 
@@ -971,7 +1078,6 @@ export class Game {
           this.score.onMiss(this.comboKeep);
           this.director.registerMiss();
           this.sessionMisses++;
-          if (this.endless && ++this.endlessMistakes >= 3) this.endCycle();
         }
       }
     }
@@ -1559,16 +1665,6 @@ export class Game {
     return boss;
   }
 
-  spawnEndlessBoss() {
-    const wave = Math.max(1, Math.ceil(this.endlessRounds / 3));
-    const type = BOSS_ROTATION[(wave - 1) % BOSS_ROTATION.length];
-    const level = 1 + Math.floor((wave - 1) / BOSS_ROTATION.length);
-    this.boss = this.spawnBoss(type, endlessHpBonus(wave), level);
-    this.bossVictoryTimer = 0;
-    this.spawnPopupAtCenter(`JEFE ∞ · NV${level} · ${this.boss.name}`, '#ffcc00');
-    this.triggerFlash(0.3);
-  }
-
   // Vida del jefe: exactamente el 5 % de la vida máxima por golpe válido (20 golpes).
   // Los bonuses de "Rompejefes" afectan a los puntos, nunca a la barra.
   damageBoss(percent = BALANCE.boss.hitPercent) {
@@ -1644,9 +1740,6 @@ export class Game {
       daily: !!this.daily,
       dailyDate: this.dailyDate || null,
       dailySeed: this.dailySeedValue || null,
-      endless: !!this.endless,
-      endlessRounds: this.endlessRounds || 0,
-      endlessMistakes: this.endlessMistakes || 0,
       creditsGained: this.creditsGained,
       creditsTotal: this.credits,
       ascension: this.ascension || 0,
@@ -1671,11 +1764,6 @@ export class Game {
     this.run.clustersCleared = (this.run.clustersCleared || 0) + this.clustersCleared;
     if (this.run.cyclesDone >= BALANCE.run.maxCycles) this.runComplete = true;
     if (this.run.cyclesDone % BALANCE.run.bossEvery === 0) this.run.nextBoss = true;
-    if (this.endless) {
-      const bonus = this.endlessRounds * 50;
-      this.score.score += bonus;
-      this.run.scoreTotal += bonus;
-    }
     const gain = Math.floor(this.score.score * BALANCE.credits.perScore *
       this.creditMultiplier * this.creditAbilityMult);
     this.credits += gain;

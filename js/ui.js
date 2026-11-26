@@ -1,4 +1,5 @@
 import { dailyCode, ascensionRuleNames, ASCENSION_RULES } from './game.js';
+import { dailyKey as todayKey } from './leaderboard.js';
 import { ABILITIES, abilityCost, CHIPS_EXTRA, CURSORS } from './content.js';
 import { BALANCE, BOARDS, boardById, comboMultiplier, nextComboMilestone } from './balance.js';
 
@@ -9,12 +10,13 @@ const LEGACY_PRICES = {
 };
 
 export class UI {
-  constructor({ game, audio, input, renderer, accounts }) {
+  constructor({ game, audio, input, renderer, accounts, leaderboard }) {
     this.game = game;
     this.audio = audio;
     this.input = input;
     this.renderer = renderer;
     this.accounts = accounts;
+    this.leaderboard = leaderboard;
 
     this.screens = {
       launcher: document.getElementById('screen-launcher'),
@@ -25,11 +27,28 @@ export class UI {
       settings: document.getElementById('screen-settings'),
       archive: document.getElementById('screen-archive'),
       upgrades: document.getElementById('screen-upgrades'),
-      final: document.getElementById('screen-final')
+      final: document.getElementById('screen-final'),
+      leaderboard: document.getElementById('screen-leaderboard')
     };
 
     this.hud = document.getElementById('hud');
     this.pauseOverlay = document.getElementById('overlay-pause');
+    this.hudNodes = {
+      score: document.getElementById('hud-score'),
+      combo: document.getElementById('hud-combo'),
+      comboNext: document.getElementById('hud-combo-next'),
+      tier: document.getElementById('hud-tier'),
+      cycle: document.getElementById('hud-cycle'),
+      voltage: document.getElementById('hud-voltage-value'),
+      bar: document.getElementById('voltage-bar'),
+      glow: document.getElementById('voltage-glow'),
+      mode: document.getElementById('hud-mode'),
+      sector: document.getElementById('hud-sector'),
+      cursor: document.getElementById('hud-cursor'),
+      boss: document.getElementById('hud-boss'),
+      freeze: document.getElementById('hud-freeze'),
+      rules: document.getElementById('hud-rules')
+    };
 
     this.selectedHammer = 'pulso';
     this.selectedChips = new Set(['volc_bomb']);
@@ -72,7 +91,7 @@ export class UI {
     return {
       credits: 0, bestScore: 0, bestCombo: 0, sector: 1,
       upgrades: {}, unlocked: [], bossDefeated: [],
-      cycles: 0, endlessBest: 0, ending: false,
+      cycles: 0, ending: false,
       ascension: 0, endingChoice: null,
       dailyBest: {}, dailyRuns: {}, dailyStreak: 0, endingReward: null,
       abilities: {}, ownedCursors: ['pulso'],
@@ -99,7 +118,6 @@ export class UI {
     data.unlocked = Array.isArray(data.unlocked) ? data.unlocked : [];
     data.bossDefeated = Array.isArray(data.bossDefeated) ? data.bossDefeated : [];
     data.cycles = Number(data.cycles) || 0;
-    data.endlessBest = Number(data.endlessBest) || 0;
     data.ending = !!data.ending;
     data.ascension = Number(data.ascension) || 0;
     data.endingChoice = data.endingChoice === 'accept' || data.endingChoice === 'reject' ? data.endingChoice : null;
@@ -228,13 +246,44 @@ export class UI {
     this.showScreen('launcher');
   }
 
+  /** Instantánea de la partida actual, lista para escribirse en el datasave. */
+  captureRunState() {
+    if (!this.game?.run) return null;
+    const snapshot = this.game.getResumeState
+      ? this.game.getResumeState()
+      : { version: 1, run: JSON.parse(JSON.stringify(this.game.run)) };
+    snapshot.options = { ...(this.lastOptions || {}), ...(snapshot.options || {}) };
+    snapshot.sectorCleared = this.sectorCleared;
+    this.runState = snapshot;
+    return snapshot;
+  }
+
+  /** Pausa y guarda antes de mostrar el overlay: salir en pausa nunca pierde el ciclo. */
+  async pauseAndSave() {
+    if (this.game.screen !== 'playing' && this.game.screen !== 'paused') return false;
+    this.game.pause();
+    this.captureRunState();
+    this.showPause(true, 'GUARDANDO…');
+    const ok = await this.persist();
+    this.showPause(true, ok ? 'PARTIDA GUARDADA' : 'NO SE PUDO GUARDAR');
+    return ok;
+  }
+
   resumeSavedRun() {
-    if (!this.runState) return;
-    this.startCycle({
+    const snap = this.runState;
+    if (!snap) return;
+    if (snap.version !== 1) {
+      this.startCycle({ ...(this.lastOptions || {}), continueRun: true, run: snap });
+      return;
+    }
+    const options = {
       ...(this.lastOptions || {}),
+      ...(snap.options || {}),
       continueRun: true,
-      run: this.runState
-    });
+      run: snap.run,
+      resumeState: snap
+    };
+    this.startCycle(options, snap.loadout || null);
   }
 
   setLauncherError(message) {
@@ -435,10 +484,9 @@ export class UI {
     this.onClick('btn-jugar', () => { this.runState = null; this.lastOptions = null; this.persist(); this.showScreen('prep'); });
     this.onClick('btn-resume-save', () => this.resumeSavedRun());
     this.onClick('btn-cambiar-usuario', () => this.logoutToLauncher());
-    this.onClick('btn-daily', () => this.startCycle({
-      daily: true, seed: this.dailySeed(), date: this.dailyKey(), sector: 1, board: '3x3'
-    }));
-    this.onClick('btn-endless', () => this.startCycle({ endless: true }));
+    this.onClick('btn-daily', () => this.startDaily());
+    this.onClick('btn-board', () => this.showScreen('leaderboard'));
+    this.onClick('btn-board-back', () => this.showScreen('menu'));
     this.onClick('btn-ascend', () => this.ascend());
     this.onClick('btn-mejoras', () => this.showScreen('upgrades'));
     this.onClick('btn-archivo', () => this.showScreen('archive'));
@@ -502,16 +550,20 @@ export class UI {
     });
 
     // Resultados
-    this.onClick('btn-reintentar', () => this.startCycle({
-      ...(this.lastOptions || {}), continueRun: true, run: this.runState
-    }));
+    this.onClick('btn-reintentar', () => {
+      if (this.game.daily) { this.showScreen('leaderboard'); return; }
+      this.startCycle({
+        ...(this.lastOptions || {}), continueRun: true, run: this.runState
+      });
+    });
     this.onClick('btn-menu-results', () => this.showScreen('menu'));
     this.onClick('btn-final', () => this.showScreen('final'));
     this.onClick('btn-final-accept', () => this.chooseEnding('accept'));
     this.onClick('btn-final-reject', () => this.chooseEnding('reject'));
     this.onClick('btn-ascend-final', () => this.ascend());
     this.onClick('btn-final-menu', () => this.showScreen('menu'));
-    this.onClick('btn-final-endless', () => this.startCycle({ endless: true }));
+    this.onClick('btn-final-board', () => this.showScreen('leaderboard'));
+    this.onClick('btn-results-board', () => this.showScreen('leaderboard'));
     this.onClick('btn-continuar', () => {
       // Avanzar según el jefe derrotado y conservar la run (tier de voltaje y rondas)
       const next = Math.min(5, (this.sectorCleared || this.progress.sector || 1) + 1);
@@ -542,16 +594,21 @@ export class UI {
       this.setSetting('colorblind', e.target.checked);
     });
 
-    // Pausa
+    // Pausa: botón del HUD, guardado explícito y salida sin perder la partida.
+    this.onClick('btn-pause', () => this.pauseAndSave());
     this.onClick('btn-resume', () => { this.game.resume(); this.showPause(false); });
-    this.onClick('btn-exit-pause', () => { this.persist(); this.game.startMenu(); this.showScreen('menu'); });
+    this.onClick('btn-save-pause', () => this.pauseAndSave());
+    this.onClick('btn-exit-pause', async () => {
+      await this.pauseAndSave();
+      this.game.startMenu();
+      this.showScreen('menu');
+    });
 
     // Tecla ESC para pausa
     window.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        if (this.game.screen === 'playing') { this.game.pause(); this.showPause(true); }
-        else if (this.game.screen === 'paused') { this.game.resume(); this.showPause(false); }
-      }
+      if (e.key !== 'Escape') return;
+      if (this.game.screen === 'playing') this.pauseAndSave();
+      else if (this.game.screen === 'paused') { this.game.resume(); this.showPause(false); }
     });
   }
 
@@ -563,8 +620,7 @@ export class UI {
   // ---------- Ciclo Diario / Ascensión / Desenlace ----------
 
   dailyKey() {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    return todayKey();
   }
 
   dailySeed() {
@@ -575,6 +631,22 @@ export class UI {
       h = Math.imul(h, 16777619);
     }
     return h >>> 0;
+  }
+
+  /** Una sola run oficial por día; una partida pausada de hoy se reanuda. */
+  startDaily() {
+    const key = this.dailyKey();
+    const saved = this.runState;
+    if (saved?.options?.daily && saved.options.date === key) {
+      this.resumeSavedRun();
+      return;
+    }
+    if (this.progress.dailyRuns?.[key]) {
+      this.showToast('YA JUGASTE LA RUN DIARIA · CONSULTA LA TABLA');
+      this.showScreen('leaderboard');
+      return;
+    }
+    this.startCycle({ daily: true, seed: this.dailySeed(), date: key, sector: 1, board: '3x3' });
   }
 
   dateShift(key, days) {
@@ -603,19 +675,42 @@ export class UI {
     const g = this.game;
     if (!g.daily || !g.dailyDate) return null;
     const runs = this.progress.dailyRuns || (this.progress.dailyRuns = {});
+    const seed = g.dailySeedValue != null ? g.dailySeedValue : this.dailySeed();
+    const prev = runs[g.dailyDate];
     const run = {
       score: g.score.score,
-      seed: g.dailySeedValue != null ? g.dailySeedValue : this.dailySeed(),
+      seed,
+      nickname: this.currentAccount?.nickname || null,
       loadout: { hammer: g.loadout.hammer, chips: Array.from(g.loadout.chips || []) },
-      code: dailyCode(g.dailySeedValue != null ? g.dailySeedValue : this.dailySeed(), g.score.score, g.dailyDate),
-      ts: Date.now()
+      code: dailyCode(seed, g.score.score, g.dailyDate),
+      ts: Date.now(),
+      published: false
     };
-    const prev = runs[g.dailyDate];
-    if (!prev || run.score >= (prev.score || 0)) runs[g.dailyDate] = run;
+    if (prev && (prev.score || 0) >= run.score) return prev;
+    runs[g.dailyDate] = run;
     const best = this.progress.dailyBest || (this.progress.dailyBest = {});
-    best[g.dailyDate] = Math.max(best[g.dailyDate] || 0, g.score.score);
+    best[g.dailyDate] = Math.max(best[g.dailyDate] || 0, run.score);
     this.progress.dailyStreak = this.computeDailyStreak();
-    return runs[g.dailyDate];
+    return run;
+  }
+
+  /** Publica la mejor run diaria; sin backend queda encolada para la tabla offline. */
+  async publishDailyRun(run) {
+    if (!run || run.published || !this.leaderboard) return;
+    try {
+      const result = await this.leaderboard.submit({
+        ...run,
+        date: this.game.dailyDate,
+        nickname: run.nickname || this.currentAccount?.nickname
+      });
+      run.published = true;
+      run.publishState = result.ok ? 'sent' : (result.reason || 'queued');
+      this.writeProgress(false);
+    } catch (e) {
+      run.published = true;
+      run.publishState = 'error';
+      this.writeProgress(false);
+    }
   }
 
   ascend() {
@@ -708,7 +803,13 @@ export class UI {
       }
       const dailyBtn = document.getElementById('btn-daily');
       const streak = this.computeDailyStreak();
-      if (dailyBtn) dailyBtn.textContent = `CICLO DIARIO${streak ? ` · RACHA ${streak}` : ''}`;
+      const played = !!this.progress.dailyRuns?.[this.dailyKey()];
+      if (dailyBtn) {
+        dailyBtn.textContent = played
+          ? `RUN DIARIA · YA JUGADA${streak ? ` · RACHA ${streak}` : ''}`
+          : `RUN DIARIA${streak ? ` · RACHA ${streak}` : ''}`;
+      }
+      this.refreshMenuRecords();
     } else if (name === 'prep') {
       this.renderPrep();
       this.screens.prep.classList.remove('hidden');
@@ -733,16 +834,50 @@ export class UI {
     } else if (name === 'settings') {
       this.screens.settings.classList.remove('hidden');
       this.screens.settings.classList.add('active');
+    } else if (name === 'leaderboard') {
+      this.screens.leaderboard.classList.remove('hidden');
+      this.screens.leaderboard.classList.add('active');
+      this.renderLeaderboard();
+      this.leaderboard?.syncPending?.();
     }
   }
 
-  showPause(show) {
+  showPause(show, status) {
     this.pauseOverlay.classList.toggle('hidden', !show);
+    if (show && status) {
+      const el = document.getElementById('pause-save-status');
+      if (el) {
+        el.textContent = status;
+        el.classList.toggle('saved', status === 'PARTIDA GUARDADA');
+      }
+    }
+  }
+
+  refreshMenuRecords() {
+    const root = document.getElementById('menu-records');
+    if (!root) return;
+    const p = this.progress;
+    const best = p.bestScore || 0;
+    const combo = p.bestCombo || 0;
+    const today = p.dailyBest?.[this.dailyKey()] || 0;
+    root.innerHTML = `
+      <span class="menu-record"><svg class="icon" aria-hidden="true"><use href="#i-trophy"></use></svg>MEJOR <strong>${best.toLocaleString('es-ES')}</strong></span>
+      <span class="menu-record"><svg class="icon" aria-hidden="true"><use href="#i-combo"></use></svg>COMBO <strong>×${combo}</strong></span>
+      <span class="menu-record"><svg class="icon" aria-hidden="true"><use href="#i-globe"></use></svg>DIARIO <strong>${today.toLocaleString('es-ES')}</strong></span>
+    `;
   }
 
   // ---------- Ciclo ----------
 
-  startCycle(options = {}) {
+  startCycle(options = {}, loadoutOverride = null) {
+    if (options.daily && !options.resumeState) {
+      const key = options.date || this.dailyKey();
+      if (this.progress.dailyRuns?.[key]) {
+        this.showToast('YA JUGASTE LA RUN DIARIA · CONSULTA LA TABLA');
+        this.showScreen('leaderboard');
+        return false;
+      }
+    }
     this.audio.init();
     this.sectorCleared = 0;
     this.progress.cycles = (this.progress.cycles || 0) + 1;
@@ -766,9 +901,9 @@ export class UI {
     };
     const board = options.daily ? '3x3' : (options.board || this.selectedBoard);
     const runOptions = { ...options, board, ascension: this.progress.ascension || 0 };
-    if (options.continueRun && this.runState) {
+    if (options.continueRun) {
       runOptions.continueRun = true;
-      runOptions.run = this.runState;
+      runOptions.run = options.run || this.runState?.run || this.runState;
     }
     let hammer = this.selectedHammer;
     let chips = Array.from(this.selectedChips);
@@ -796,14 +931,17 @@ export class UI {
       reward.consumed = true;
       this.writeProgress(false);
     }
-    this.lastOptions = { ...runOptions, creditMultiplier: 1 };
-    this.game.startCycle({ hammer, chips, upgrades, abilities }, gameOptions);
+    const { resumeState, run, ...storedOptions } = runOptions;
+    this.lastOptions = { ...storedOptions, creditMultiplier: 1 };
+    const loadout = loadoutOverride || options.resumeState?.loadout || { hammer, chips, upgrades, abilities };
+    this.game.startCycle(loadout, gameOptions);
     this.renderer.resize();
     this.game.setCanvasSize(this.renderer.drawW, this.renderer.drawH, this.renderer.board);
     this.hud.classList.remove('hidden');
     // Ocultar todas las pantallas de menú; el juego se dibuja en el canvas
     Object.values(this.screens).forEach(s => { if (s) { s.classList.add('hidden'); s.classList.remove('active'); } });
     this.pauseOverlay.classList.add('hidden');
+    return true;
   }
 
   // ---------- Preparación ----------
@@ -1125,9 +1263,6 @@ export class UI {
   // ---------- Resultados ----------
 
   renderResults() {
-    if (this.game.endless && this.game.endlessRounds > (this.progress.endlessBest || 0)) {
-      this.progress.endlessBest = this.game.endlessRounds;
-    }
     if (this.game.fakeEndings > 0) {
       this.progress.fakeEndings = (this.progress.fakeEndings || 0) + this.game.fakeEndings;
     }
@@ -1135,6 +1270,13 @@ export class UI {
       this.progress.bossKills = this.game.run.bossesKilled;
     }
     const dailyRun = this.recordDailyRun();
+    if (dailyRun) this.publishDailyRun(dailyRun);
+    if (this.game.daily) {
+      this.runState = null; // la run diaria es única: no se puede reanudar tras el desenlace
+      this.persist();
+    } else {
+      this.captureRunState();
+    }
     const prevBest = this.progress.bestScore || 0;
     const isRecord = this.game.score.score > prevBest;
     this.saveProgress();
@@ -1145,14 +1287,10 @@ export class UI {
     document.getElementById('res-credits').textContent = this.game.credits;
 
     const up = this.progress.upgrades || {};
-    // Usar la carga real del ciclo: en Diario o desenlace puede diferir de la selección de UI.
     const chips = Array.from(this.game.loadout.chips || []).join(', ') || 'SIN CHIPS';
     const cursorName = (CURSORS.find(c => c.id === this.game.loadout.hammer) || {}).name || 'PULSO';
     const abilityCount = Object.values(this.game.abilities || {}).filter(l => l > 0).length;
     const build = `PULSO NV ${up.pulso || 0} · TESLA NV ${up.tesla || 0} · ${cursorName} · ${abilityCount} HAB · ${chips}`;
-    const endlessTag = this.game.endless
-      ? ` · ∞ ${this.game.endlessRounds} RONDAS · ${this.game.endlessMistakes} FALLOS`
-      : '';
     const dailyTag = dailyRun
       ? ` · DIARIO ${this.game.dailyDate} · RACHA ${this.progress.dailyStreak || 0} · ${dailyRun.code}`
       : '';
@@ -1165,20 +1303,29 @@ export class UI {
         (this.game.run.bossesKilled ? ` · ${this.game.run.bossesKilled} JEFES` : '')
       : '';
     document.getElementById('res-meta').textContent =
-      `SECTOR ${this.game.sector} · ${this.game.boardId.toUpperCase()} · ${build}` + endlessTag +
+      `SECTOR ${this.game.sector} · ${this.game.boardId.toUpperCase()} · ${build}` +
       dailyTag + ascTag + runTag +
       (this.sectorCleared ? ` · JEFE ${this.sectorCleared} VENCIDO` : '') +
       (this.game.creditsGained ? ` · +${this.game.creditsGained} CR` : '') +
       (this.game.runComplete ? ' · RUN COMPLETADA' : '');
 
+    const retry = document.getElementById('btn-reintentar');
+    const boardBtn = document.getElementById('btn-results-board');
+    if (retry) {
+      retry.classList.toggle('hidden', !!this.game.daily);
+      retry.textContent = this.game.daily ? 'VER TABLA DIARIA' : 'REINTENTAR';
+      if (!this.game.daily) retry.classList.remove('hidden');
+    }
+    if (boardBtn) boardBtn.classList.toggle('hidden', !this.game.daily);
+
     const continuar = document.getElementById('btn-continuar');
     if (continuar) {
-      const canAdvance = this.sectorCleared > 0 && this.sectorCleared < 5;
+      const canAdvance = !this.game.daily && this.sectorCleared > 0 && this.sectorCleared < 5;
       continuar.style.display = canAdvance ? 'inline-block' : 'none';
       continuar.textContent = canAdvance ? `CONTINUAR A SECTOR ${this.sectorCleared + 1}` : 'CAMPAÑA COMPLETA';
     }
     const finalBtn = document.getElementById('btn-final');
-    if (finalBtn) finalBtn.style.display = this.sectorCleared === 5 ? 'inline-block' : 'none';
+    if (finalBtn) finalBtn.style.display = !this.game.daily && this.sectorCleared === 5 ? 'inline-block' : 'none';
 
     this.renderRunCard();
   }
@@ -1194,9 +1341,7 @@ export class UI {
       ? (this.progress.dailyRuns?.[this.game.dailyDate]?.code || '—') : null;
     const mode = r.daily
       ? `DIARIO${r.dailyDate ? ` · ${r.dailyDate}` : ''}${dailyCode ? ` · ${dailyCode}` : ''}${r.dailySeed != null ? ` · SEMILLA ${r.dailySeed}` : ''}`
-      : r.endless
-        ? `INFINITO · ${n(r.endlessRounds)} RONDAS / ${n(r.endlessMistakes)} FALLOS`
-        : 'CAMPAÑA';
+      : 'CAMPAÑA · RÉCORDS LOCALES';
     const up = this.progress.upgrades || {};
     const chips = Array.from(this.game.loadout?.chips || []).join(' · ') || 'NINGUNO';
     const cursorName = (CURSORS.find(c => c.id === this.game.loadout?.hammer) || {}).name || 'PULSO';
@@ -1299,8 +1444,8 @@ export class UI {
         <p><strong>Desenlace:</strong> ${ending}</p>
         <p><strong>Chips desbloqueados:</strong> ${chips}</p>
         <p><strong>Mejoras:</strong> ${upgrades}</p>
-        <p><strong>Récord infinito:</strong> ${p.endlessBest || 0} rondas</p>
-        <p><strong>Ciclo diario:</strong> ${daily}</p>
+        <p><strong>Campaña:</strong> mejor ${p.bestScore || 0} pts · combo máx ${p.bestCombo || 0}</p>
+        <p><strong>Run diaria:</strong> ${daily}</p>
         <p><strong>Racha diaria:</strong> ${dailyStreak} día${dailyStreak === 1 ? '' : 's'}</p>
         <p><strong>Créditos acumulados:</strong> ${this.game.credits}</p>
         <p><em>EL SISTEMA: "No fue un fallo, fue una decisión creativa."</em></p>
@@ -1310,50 +1455,106 @@ export class UI {
     }
   }
 
+  // ---------- Tabla de la run diaria ----------
+
+  async renderLeaderboard() {
+    const date = this.dailyKey();
+    const dateEl = document.getElementById('board-date');
+    const onlineEl = document.getElementById('board-online');
+    const offlineEl = document.getElementById('board-offline');
+    const stateEl = document.getElementById('board-online-state');
+    const summaryEl = document.getElementById('board-summary');
+    if (dateEl) dateEl.textContent = date;
+    const mine = this.progress.dailyBest?.[date] || 0;
+    if (summaryEl) {
+      summaryEl.innerHTML = `TU MEJOR RUN DE HOY · <strong>${mine.toLocaleString('es-ES')}</strong> PUNTOS`;
+    }
+    if (!this.leaderboard) {
+      if (stateEl) stateEl.textContent = 'SIN SERVICIO';
+      if (onlineEl) onlineEl.innerHTML = '<div class="board-empty">Tabla no disponible.</div>';
+      if (offlineEl) offlineEl.innerHTML = '<div class="board-empty">Tabla no disponible.</div>';
+      return;
+    }
+    try {
+      const data = await this.leaderboard.load(date);
+      if (stateEl) stateEl.textContent = data.onlineState || '—';
+      const rows = entries => entries.length
+        ? entries.slice(0, 20).map((entry, i) => `
+            <div class="board-row${i === 0 ? ' top' : ''}">
+              <span class="board-rank">${i + 1}</span>
+              <span class="board-who">
+                <span class="board-name">${this.escapeHtml(entry.nickname)}</span>
+                <span class="board-code">${this.escapeHtml(entry.code || '—')}</span>
+              </span>
+              <span class="board-score">${entry.score.toLocaleString('es-ES')}</span>
+            </div>`).join('')
+        : '<div class="board-empty">Sin registros para hoy.</div>';
+      if (onlineEl) onlineEl.innerHTML = rows(data.online || []);
+      if (offlineEl) offlineEl.innerHTML = rows(data.offline || []);
+    } catch (e) {
+      if (stateEl) stateEl.textContent = 'SIN CONEXIÓN';
+      if (onlineEl) onlineEl.innerHTML = '<div class="board-empty">No se pudo cargar la tabla mundial.</div>';
+      if (offlineEl) offlineEl.innerHTML = '<div class="board-empty">No se pudo leer el datasave.</div>';
+    }
+  }
+
   // ---------- HUD ----------
 
   updateHUD(dt) {
     if (this.game.screen !== 'playing') return;
+    const g = this.game;
+    const n = this.hudNodes;
+    const cycle = (g.run?.cyclesDone || 0) + 1;
 
-    const cycle = (this.game.run?.cyclesDone || 0) + 1;
-    const timer = document.getElementById('hud-time');
-    timer.textContent = `V×${this.game.voltageTier} · C${cycle}/${BALANCE.run.maxCycles}`;
-    timer.setAttribute('aria-label', `Nivel de voltaje ${this.game.voltageTier}, ciclo ${cycle} de ${BALANCE.run.maxCycles}`);
-    document.getElementById('hud-score').textContent = this.game.score.score.toString();
-    const milestone = nextComboMilestone(this.game.score.combo);
-    document.getElementById('hud-combo').textContent =
-      `COMBO ${this.game.score.combo} · ×${comboMultiplier(this.game.score.combo)}` +
-      (milestone ? ` → ${milestone}` : '');
+    if (n.score) n.score.textContent = g.score.score.toLocaleString('es-ES');
+    if (n.combo) n.combo.textContent = `×${comboMultiplier(g.score.combo)}`;
+    if (n.comboNext) {
+      const next = nextComboMilestone(g.score.combo);
+      n.comboNext.textContent = next ? `SIG. ${next}` : '';
+    }
+    if (n.tier) n.tier.textContent = `×${g.voltageTier}`;
+    if (n.cycle) n.cycle.textContent = `C${cycle}/${BALANCE.run.maxCycles}`;
+    if (n.voltage) n.voltage.textContent = `${Math.round(g.voltage)} %`;
 
-    const bar = document.getElementById('voltage-bar');
-    const glow = document.getElementById('voltage-glow');
-    bar.style.width = `${Math.max(0, Math.min(100, this.game.voltage))}%`;
-    const nightmare = !!this.game.nightmare;
-    bar.classList.toggle('overdrive', nightmare);
-    glow.classList.toggle('active', nightmare || this.game.voltageFrozen > 0);
-    bar.classList.toggle('voltage-high', this.game.voltage >= 80);
-    bar.classList.toggle('voltage-frozen', this.game.voltageFrozen > 0);
+    const bar = n.bar;
+    const glow = n.glow;
+    if (bar) {
+      bar.style.width = `${Math.max(0, Math.min(100, g.voltage))}%`;
+      bar.classList.toggle('overdrive', !!g.nightmare);
+      bar.classList.toggle('voltage-high', g.voltage >= 80);
+      bar.classList.toggle('voltage-frozen', g.voltageFrozen > 0);
+    }
+    if (glow) glow.classList.toggle('active', !!g.nightmare || g.voltageFrozen > 0);
 
-    const chipNames = {
-      volc_bomb: 'BOMBAS→VOLTAJE',
-      chrono_x3: 'CRONO×3',
-      perfect_window: 'VENTANA×1.5',
-      chain_master: 'RAYO MAESTRO',
-      mirror_core: 'ESPEJO',
-      reflejo: 'REFLEJO',
-      criogenia: 'CRIOGENIA(h≤1s)',
-      nucleo: 'NÚCLEO(+20%)'
+    const tokenText = (node, text) => {
+      if (!node) return;
+      const span = node.querySelector('span');
+      if (span) span.textContent = text;
     };
-    const endlessTag = this.game.endless ? ` · ∞ R${this.game.endlessRounds}` : '';
-    const ruleShorts = ASCENSION_RULES.slice(1, Math.min(this.game.ascension || 0, ASCENSION_RULES.length - 1) + 1)
+    const daily = !!g.daily;
+    if (n.mode) {
+      n.mode.querySelector('use')?.setAttribute('href', daily ? '#i-globe' : '#i-trophy');
+      tokenText(n.mode, daily ? `DIARIO${g.dailyDate ? ` ${g.dailyDate}` : ''}` : 'CAMPAÑA');
+    }
+    tokenText(n.sector, `S${g.sector} · ${String(g.boardId || '3x3').toUpperCase()}`);
+    const cursorName = (CURSORS.find(c => c.id === g.loadout?.hammer) || {}).name || 'PULSO';
+    tokenText(n.cursor, cursorName.toUpperCase());
+
+    const bossActive = !!g.boss && !g.boss.defeated;
+    n.boss?.classList.toggle('hidden', !bossActive);
+    if (bossActive) {
+      const hp = Math.max(0, Math.ceil((g.boss.hp / g.boss.maxHp) * 100));
+      tokenText(n.boss, `${g.boss.name} ${hp} %`);
+    }
+    const frozen = g.voltageFrozen > 0;
+    n.freeze?.classList.toggle('hidden', !frozen);
+    if (frozen) tokenText(n.freeze, `CRIO ${g.voltageFrozen.toFixed(1)}s`);
+
+    const ruleShorts = ASCENSION_RULES.slice(1, Math.min(g.ascension || 0, ASCENSION_RULES.length - 1) + 1)
       .filter(Boolean).map(r => r.short);
-    const modeTag = this.game.daily
-      ? ` · DIARIO R${this.progress.dailyStreak || 0}`
-      : (this.game.ascension ? ` · A${this.game.ascension}${ruleShorts.length ? `[${ruleShorts.join('/')}]` : ''}` : '');
-    const chipsLabel = Array.from(this.game.loadout.chips || []).map(c => chipNames[c] || c).join(' · ') || 'SIN CHIPS';
-    const bossTag = this.game.boss ? ` · ${this.game.boss.name}` : '';
-    const freezeTag = this.game.voltageFrozen > 0 ? ` · PESADILLA ${this.game.voltageFrozen.toFixed(1)}s` : '';
-    document.getElementById('hud-loadout').textContent =
-      `S${this.game.sector} · ${this.game.boardId.toUpperCase()} · ${(this.game.loadout.hammer || 'pulso').toUpperCase()} · ${chipsLabel}${bossTag}${endlessTag}${modeTag}${freezeTag}`;
+    const rulesText = daily ? 'CARGA FIJA'
+      : (g.ascension ? `A${g.ascension}${ruleShorts.length ? ` ${ruleShorts.join('/')}` : ''}` : '');
+    n.rules?.classList.toggle('hidden', !rulesText);
+    if (rulesText) tokenText(n.rules, rulesText);
   }
 }

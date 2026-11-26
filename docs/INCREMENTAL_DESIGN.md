@@ -67,7 +67,15 @@ creditos    = floor(cycleScore × 0.1)
 | `4×3` | 100 000 | Preferido en teléfono/Android |
 | `5×4` | 1 000 000 | Máxima visibilidad en móvil; Nova y clústers lucen aquí |
 
-El Diario además fuerza `pulso / sin chips / sin mejoras / sin habilidades`, sin jefe y sin núcleo blanco, con semilla derivada de la fecha.
+El Diario además fuerza `pulso / sin chips / sin mejoras / sin habilidades`, sin jefe y sin núcleo blanco, con semilla derivada de la fecha. Es **una sola run oficial por fecha**: al terminar se publica la puntuación y el botón de reintento se sustituye por la tabla. La campaña queda como espacio de práctica y récords locales; no hay modo infinito.
+
+### 1.3 HUD, pausa y tabla diaria
+
+| Elemento | Intención | Criterio de salida |
+|---|---|---|
+| HUD diegético | Cabina/terminal: `puntos → combo → voltaje → contexto`. Iconos SVG inline para reducir texto; chips/jefe/congelación/reglas aparecen solo cuando aplican. | En `390×844` y escritorio se leen los cuatro bloques sin solapes; el botón de pausa es alcanzable con el pulgar. |
+| Pausa con guardado | `Esc` o el botón del HUD capturan `Game.getResumeState()` (run, ciclo, voltaje, hoyos, jefe, carga y opciones) y lo escriben en el datasave antes de mostrar el overlay. | Salir en pausa y pulsar **CONTINUAR PARTIDA** restaura el mismo ciclo, no una run nueva. |
+| Tabla diaria | `datasave` para la columna offline; endpoint configurable con token para la columna mundial. Sin red se sirve caché y se encola la publicación. | La mejor run de cualquier usuario se muestra sin backend real; al configurar la URL se publica y sincroniza la cola. |
 
 **Resonancia Nova (bomba de recompensa)**
 
@@ -204,9 +212,9 @@ Reemplazan a los Martillos. Todos tienen estela, partículas y SFX propios; ning
 |---|---|
 | Auto-tap / macro | Solo eventos `PointerEvent.isTrusted`; intervals <80 ms o desviación <5 ms se ignoran y muestran aviso |
 | Bot de lectura perfecta | La ventana Perfecto depende del tiempo de reacción humano; se exige variabilidad mínima entre 5 toques |
-| Eco infinito | Tope 4 h, 50 % de eficiencia y requisito de partida activa en 24 h |
+| Eco offline | Tope 4 h, 50 % de eficiencia y requisito de partida activa en 24 h |
 | Jefe pereza | Los jefes solo bajan vida con impactos válidos; Nova quita un `5 %`, nunca remata |
-| Multi-cuenta | Sin IAP ni multijugador; el diario usa firma local `O9-...`, no servidor |
+| Multi-cuenta | Sin IAP ni multijugador; el diario publica una sola run por fecha y usa firma `O9-...`; el servidor es opcional y configurable |
 | Compra de ventaja | Cursores son cosmetic+mecánica, pero todos se obtienen jugando o con FN |
 
 ---
