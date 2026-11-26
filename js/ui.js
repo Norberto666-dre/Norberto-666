@@ -27,6 +27,8 @@ export class UI {
     this.pauseOpener = null;
     this.lastTierAnnounced = null;
     this.lastBossAnnounced = false;
+    this.lastBarLabel = '';
+    this.lastFeedbackAnnounced = { jackpot: false, clutch: false, invert: false, nightmare: false };
 
     this.screens = {
       launcher: document.getElementById('screen-launcher'),
@@ -61,6 +63,9 @@ export class UI {
       freeze: document.getElementById('hud-freeze'),
       rules: document.getElementById('hud-rules')
     };
+    // Marcas de la barra derivadas del balance: no endurecer 15 / 95 en la UI.
+    this.hud?.style.setProperty('--mark-low', `${Math.round(BALANCE.voltage.max * BALANCE.voltage.emptyRefill)}%`);
+    this.hud?.style.setProperty('--mark-arm', `${BALANCE.voltage.rearmBelow}%`);
 
     this.selectedHammer = 'pulso';
     this.selectedChips = new Set(['volc_bomb']);
@@ -632,6 +637,7 @@ export class UI {
     window.__hapticsEnabled = s.haptic !== false;
     window.__reduceFlash = !!s.reduceFlash;
     window.__colorblind = !!s.colorblind;
+    document.documentElement.classList.toggle('colorblind', !!s.colorblind);
     this.audio.setEnabled(s.audio !== false);
   }
 
@@ -909,6 +915,7 @@ export class UI {
     });
     document.getElementById('setting-colorblind').addEventListener('change', (e) => {
       window.__colorblind = e.target.checked;
+      document.documentElement.classList.toggle('colorblind', e.target.checked);
       this.setSetting('colorblind', e.target.checked);
     });
 
@@ -2200,10 +2207,12 @@ export class UI {
       ? ` · RUN ${this.game.run.cyclesDone}/${BALANCE.run.maxCycles} · V×${this.game.voltageTier}` +
         (this.game.run.bossesKilled ? ` · ${this.game.run.bossesKilled} JEFES` : '')
       : '';
+    const nextBoss = !this.game.daily && !!this.game.run?.nextBoss && !this.game.runComplete;
     document.getElementById('res-meta').textContent =
       `SECTOR ${this.game.sector} · ${this.game.boardId.toUpperCase()} · ${build}` +
       dailyTag + ascTag + runTag +
       (this.sectorCleared ? ` · JEFE ${this.sectorCleared} VENCIDO` : '') +
+      (nextBoss ? ' · PRÓXIMO CICLO: JEFE' : '') +
       (this.game.creditsGained ? ` · +${this.game.creditsGained} CR` : '') +
       (this.game.runComplete ? ' · RUN COMPLETADA' : '');
 
@@ -2228,7 +2237,8 @@ export class UI {
     this.renderRunCard();
     this.announce(`Resultados: ${this.game.score.score.toLocaleString('es-ES')} puntos, ` +
       `combo máximo ${this.game.score.maxCombo}` +
-      (isRecord ? ', nuevo récord' : '') + '.');
+      (isRecord ? ', nuevo récord' : '') +
+      (nextBoss ? '. Próximo ciclo: jefe' : '') + '.');
   }
 
   /** Tarjeta de resultados con todos los datos disponibles de la run. */
@@ -2406,24 +2416,41 @@ export class UI {
     const g = this.game;
     const n = this.hudNodes;
     const cycle = (g.run?.cyclesDone || 0) + 1;
+    const runTotal = (g.run?.scoreTotal || 0) + g.score.score;
+    const runTotalText = runTotal.toLocaleString('es-ES');
 
-    if (n.score) n.score.textContent = g.score.score.toLocaleString('es-ES');
+    if (n.score) {
+      n.score.textContent = g.score.score.toLocaleString('es-ES');
+      const label = `Puntos del ciclo: ${g.score.score.toLocaleString('es-ES')}. Puntos de la run: ${runTotalText}`;
+      if (n.score.title !== label) n.score.title = label;
+      if (n.score.getAttribute('aria-label') !== label) n.score.setAttribute('aria-label', label);
+    }
     if (n.combo) n.combo.textContent = `×${comboMultiplier(g.score.combo)}`;
     if (n.comboNext) {
       const next = nextComboMilestone(g.score.combo);
       n.comboNext.textContent = next ? `SIG. ${next}` : '';
     }
     if (n.tier) n.tier.textContent = `×${g.voltageTier}`;
-    if (n.cycle) n.cycle.textContent = `C${cycle}/${BALANCE.run.maxCycles}`;
+    if (n.cycle) n.cycle.textContent = `C${cycle}/${BALANCE.run.maxCycles} · RUN ${runTotalText}`;
     if (n.voltage) n.voltage.textContent = `${Math.round(g.voltage)} %`;
 
     const bar = n.bar;
     const glow = n.glow;
     if (bar) {
+      const rounded = Math.max(0, Math.min(100, Math.round(g.voltage)));
+      const low = Math.round(BALANCE.voltage.max * BALANCE.voltage.emptyRefill);
       bar.style.width = `${Math.max(0, Math.min(100, g.voltage))}%`;
       bar.classList.toggle('overdrive', !!g.nightmare);
       bar.classList.toggle('voltage-high', g.voltage >= 80);
       bar.classList.toggle('voltage-frozen', g.voltageFrozen > 0);
+      bar.classList.toggle('armed', !!g.voltageArmed);
+      const label = `Voltaje ${rounded} %. Margen ${low} %. Rearmado por debajo de ${BALANCE.voltage.rearmBelow} %. ` +
+        (g.voltageArmed ? 'Listo para subir de peldaño.' : 'Pendiente de rearmar.');
+      if (label !== this.lastBarLabel) {
+        this.lastBarLabel = label;
+        bar.setAttribute('aria-label', label);
+        bar.setAttribute('aria-valuenow', String(rounded));
+      }
     }
     if (glow) glow.classList.toggle('active', !!g.nightmare || g.voltageFrozen > 0);
 
@@ -2432,7 +2459,10 @@ export class UI {
       n.demote.classList.toggle('show', showDemote);
       if (showDemote) {
         const label = n.demote.querySelector('span');
-        if (label) label.textContent = `×${g.demoteFromTier} → ×${g.voltageTier}`;
+        if (label) {
+          const low = Math.round(BALANCE.voltage.max * BALANCE.voltage.emptyRefill);
+          label.textContent = `×${g.demoteFromTier} → ×${g.voltageTier} · MARGEN ${low} %`;
+        }
       }
     }
     n.tiers?.forEach((el, i) => {
@@ -2463,7 +2493,7 @@ export class UI {
     }
     const frozen = g.voltageFrozen > 0;
     n.freeze?.classList.toggle('hidden', !frozen);
-    if (frozen) tokenText(n.freeze, `CRIO ${g.voltageFrozen.toFixed(1)}s`);
+    if (frozen) tokenText(n.freeze, `CONGELADO ${g.voltageFrozen.toFixed(1)}s`);
 
     const ruleShorts = ASCENSION_RULES.slice(1, Math.min(g.ascension || 0, ASCENSION_RULES.length - 1) + 1)
       .filter(Boolean).map(r => r.short);
@@ -2482,5 +2512,24 @@ export class UI {
       this.announce(bossActive ? `Jefe: ${g.boss.name}` : 'Jefe derrotado');
     }
     this.lastBossAnnounced = bossActive;
+
+    // Solo transiciones de estado: los popups siguen siendo visuales para no saturar al lector.
+    const feedback = {
+      jackpot: !!g.jackpotActive,
+      clutch: !!g.clutchActive,
+      invert: g.globalInvertRemaining > 0,
+      nightmare: !!g.nightmare
+    };
+    const feedbackNames = {
+      jackpot: 'Frenesí',
+      clutch: 'Cámara lenta',
+      invert: 'Lectura invertida',
+      nightmare: 'Pesadilla'
+    };
+    Object.keys(feedback).forEach((key) => {
+      if (feedback[key] === this.lastFeedbackAnnounced[key]) return;
+      this.announce(`${feedbackNames[key]} ${feedback[key] ? 'activado' : 'finalizado'}`);
+      this.lastFeedbackAnnounced[key] = feedback[key];
+    });
   }
 }

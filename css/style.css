@@ -1379,3 +1379,52 @@ html, body { overscroll-behavior: none; }
   .up-tree-svg line { animation: none; }
   .up-cursor-card, .up-chip-card, .up-node { transition: none; }
 }
+
+/* ===== Ciclo 16: HUD más legible y accesibilidad aditiva ===== */
+/* Marcas persistentes: margen del 15 % y rearmado por debajo del 95 %. */
+.voltage-container::before,
+.voltage-container::after {
+  content: ''; position: absolute; top: 0; bottom: 0;
+  width: 1px; pointer-events: none; z-index: 2;
+}
+.voltage-container::before { left: var(--mark-low, 15%); background: var(--amber); }
+.voltage-container::after { left: var(--mark-arm, 95%); background: var(--cyan); }
+.voltage-demote { z-index: 3; }
+.voltage-bar.armed { box-shadow: inset 0 0 0 1px rgba(255,204,0,0.9); }
+#hud-cycle { white-space: nowrap; }
+
+/* Texto pequeño con contraste AA sobre superficies oscuras. */
+.hud-k, .hud-metric small, .hud-voltage-head, .voltage-tier, .hud-token,
+.menu-tool span, .field span, .auth-note, .pause-subtitle,
+.up-hud-kicker, .up-filter, .board-code { color: #8585b8; }
+
+/* Foco visible en controles que antes no lo mostraban. */
+.up-tab:focus-visible, .up-filter:focus-visible, .up-dot-btn:focus-visible,
+.up-arrow:focus-visible, .up-slot-remove:focus-visible, .up-icon-btn:focus-visible,
+.pwa-update-later:focus-visible {
+  outline: 3px solid var(--amber);
+  outline-offset: 2px;
+}
+.up-arrow { outline: 3px solid transparent; }
+
+/* Área táctil cómoda sin cambiar el tamaño visual del punto. */
+.up-dot-btn { min-width: 23px; min-height: 23px; padding: 8px; background-clip: content-box; }
+.up-arrow, .pwa-update-later, .up-icon-btn { min-height: 44px; }
+
+/* Modo daltónico: añade patrón además del color en la barra. */
+html.colorblind .voltage-bar.voltage-high {
+  background-image: repeating-linear-gradient(135deg, var(--amber) 0 6px, var(--cyan) 6px 12px);
+}
+html.colorblind .voltage-bar.voltage-frozen {
+  background-image: repeating-linear-gradient(45deg, #ffffff 0 6px, var(--magenta) 6px 12px);
+}
+html.colorblind .voltage-bar.overdrive {
+  background-image: repeating-linear-gradient(90deg, var(--cyan) 0 6px, var(--magenta) 6px 12px);
+}
+html.colorblind .voltage-tier.active { outline: 2px solid var(--amber); outline-offset: -2px; }
+html.colorblind #app.nightmare #hud { filter: none; }
+
+@media (max-width: 400px) {
+  .hud-k, .hud-token, .voltage-tier { font-size: 10px; }
+  .menu-tool span { font-size: 9px; white-space: normal; }
+}

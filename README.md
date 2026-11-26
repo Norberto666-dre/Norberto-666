@@ -67,7 +67,7 @@ El juego abre en un **launcher** con los perfiles ya vinculados. Solo se piden *
 - **CRUD de cuentas**: en cada tarjeta del launcher puedes entrar, **editar** (nombre, color, foto y contraseña nueva) o **eliminar**. Guardar/borrar exige la contraseña actual y borrar necesita una segunda confirmación.
 - La foto se recorta a `192×192`, se guarda como JPEG embebido (máx. `96 KB` decodificados) y nunca se sube a un servidor.
 - El botón **PAUSA** del HUD (o `Esc`) congela la partida, guarda una instantánea real del ciclo y permite **GUARDAR AHORA**, **CONTINUAR** o **GUARDAR Y SALIR**.
-- La barra de voltaje lleva una escalera `×1…×5` con icono: el peldaño activo se ilumina y los anteriores quedan marcados. Al vaciarse, se muestra llena 0,6 s con el multiplicador perdido (`×3 → ×2`) antes de volver al 15 %.
+- La barra de voltaje lleva una escalera `×1…×5` con icono, marcas persistentes en el margen del 15 % y en el rearmado por debajo del 95 %, y valor numérico. Al vaciarse, se muestra llena 0,6 s con el multiplicador perdido y el margen (`×3 → ×2 · MARGEN 15 %`). El HUD añade el total de la run junto al ciclo y los resultados avisan cuando el próximo ciclo será de jefe.
 - El menú agrupa **CAMPAÑA/CONTINUAR** y **RUN DIARIA** y una fila de accesos rápidos (**TABLA, MEJORAS, ARCHIVO, AJUSTES, USUARIO**). MEJORAS se navega con tres pestañas —**ÁRBOL DE REFLEJOS**, **10 CURSORES** y **CHIPS Y CALIBRACIÓN**— y atajos `1/2/3` y `←/→`.
 
 ## Diseño responsive
@@ -77,7 +77,7 @@ El juego abre en un **launcher** con los perfiles ya vinculados. Solo se piden *
 - Controles con objetivo táctil mínimo de `44×44 px`; las pantallas crecen con scroll cuando el contenido no cabe.
 - `Renderer.computeBoard()` mide el borde real del HUD y limita el tamaño de celda en pantallas grandes, de modo que el tablero queda centrado y el HUD nunca se superpone a los hoyos.
 - `resize`, `orientationchange` y `visualViewport` mantienen el canvas y el hit-test alineados. Con ratón hay hover sobre el hoyo objetivo y solo responde el botón primario.
-- Teclado: `Enter`/`Espacio` activan controles, `Esc` cierra diálogos y gestiona la pausa, y un único anuncio accesible informa de hitos sin leer el marcador cada frame.
+- Teclado: `Enter`/`Espacio` activan controles, `Esc` cierra diálogos y gestiona la pausa, y un único anuncio accesible informa de hitos (peldaños, jefes y estados) sin leer el marcador cada frame. El modo daltónico añade patrones a la barra y leyenda de formas al tablero.
 - Fuentes 100 % offline: sin `@import` ni `preload` a Google Fonts; se usan copias locales si están instaladas y una pila del sistema como respaldo.
 
 ## Campaña, run diaria y tabla
@@ -123,6 +123,6 @@ La suite (97 pruebas) cubre voltaje, peldaños, purga de rojos, combos, tableros
 - `js/content.js` — catálogo de habilidades, chips y cursores.
 - `tests/` — suite Node, servidor estático y guiones de QA.
 - `docs/INCREMENTAL_DESIGN.md` — diseño incremental, fórmulas, ritmo y QA.
-- `docs/qa/` — capturas de verificación (Ciclos 11, 13 y 15).
+- `docs/qa/` — capturas de verificación (Ciclos 11, 13, 15 y 16), incluidas `hud-antes-*.png` y `hud-despues-*.png`.
 
 Sin IAP ni multijugador. El contenedor Android se conserva en el tag `android-webview-v1` para cuando se retome.

@@ -37,7 +37,7 @@
     <div id="a11y-live" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
 
     <!-- Canvas principal del tablero -->
-    <canvas id="gameCanvas" role="img" aria-label="Tablero de hoyos. Toca el núcleo que brille para ganar voltaje. Arrastra los núcleos rojos hacia un borde para purgarlos y ganar +1 de voltaje; el núcleo blanco activa el Falso Final."></canvas>
+    <canvas id="gameCanvas" role="img" aria-label="Tablero de hoyos. Toca el núcleo que brille para ganar voltaje. Arrastra los núcleos rojos hacia un borde para purgarlos y ganar +1 de voltaje; el núcleo blanco activa el Falso Final. En modo daltónico: X es rojo, reloj es crono, estrella es nova y rombo es blanco."></canvas>
 
     <!-- Pantalla: Launcher / cuentas locales -->
     <div id="screen-launcher" class="screen hidden" aria-labelledby="launcher-title">
@@ -175,7 +175,7 @@
           <span class="hud-voltage-value" id="hud-voltage-value">100 %</span>
         </div>
         <div class="voltage-container">
-          <div class="voltage-bar" id="voltage-bar"></div>
+          <div class="voltage-bar" id="voltage-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100" aria-label="Voltaje 100 %. Margen 15 %. Rearmado por debajo de 95 %."></div>
           <div class="voltage-glow" id="voltage-glow"></div>
           <div class="voltage-demote" id="voltage-demote" aria-hidden="true"><span>×0</span></div>
         </div>
@@ -363,7 +363,7 @@
         </div>
       </header>
 
-      <main class="up-main">
+      <div class="up-main">
         <section class="up-view" id="up-view-tree" role="tabpanel" aria-labelledby="up-tab-tree">
           <div class="up-panel up-tree-panel">
             <div class="up-panel-head">
@@ -442,7 +442,7 @@
             <div class="up-dots" id="up-chip-dots"></div>
           </div>
         </section>
-      </main>
+      </div>
 
       <div class="settings-footer up-footer">
         <button class="btn btn-secondary" id="btn-volver-upgrades">VOLVER</button>

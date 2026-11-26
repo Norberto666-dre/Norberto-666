@@ -418,3 +418,22 @@ El prototipo visual de MEJORAS se adapta al lenguaje ya instalado en el juego: m
 | Renovación PWA | **Medio** · resuelto | El CSS y el JS nuevos seguían en la caché `overclock9-v3`. | Caché subida a `overclock9-v4`. | Recarga con caché ignorada muestra el rediseño; `npm test` 97/97 y `build.bat --check` en verde. |
 
 **Resultado del ciclo:** la pantalla de MEJORAS mantiene la economía y los efectos reales (`ABILITIES`, `CURSORS`, `CHIPS_EXTRA`, `LEGACY_PRICES`) con una jerarquía más clara y navegable por teclado. Se documenta el riesgo pendiente de validación visual humana de las capturas y se regenera el ejecutable para que `OVERCLOCK9.exe` incluya el rediseño.
+
+### 10.12 Ciclo 16: claridad del HUD, feedback y accesibilidad
+
+Se ejecutó el juego en navegador (1112×670, 390×844 y 320×844) y en Electron con consola vigilada. El motor ya calculaba `run.scoreTotal`, `run.nextBoss`, `voltageArmed`, `jackpotActive`, `clutchActive` y `globalInvertRemaining`, pero la capa DOM solo exponía una parte. No se tocó `balance.js`, `game.js` ni la geometría del tablero.
+
+**Plan priorizado aplicado**
+
+| Prioridad | Elemento | Decisión | Evidencia |
+|---|---|---|---|
+| **P0** | HUD sin total de run | `#hud-cycle` pasa a `Cn/999 · RUN total` y `#hud-score` recibe `title`/`aria-label` con puntos del ciclo y de la run. | 1112 px: `C1/999 · RUN 1290`; 390/320 px con total de 7 cifras sin desbordamiento ni solape (`boardY > hudBottom`). |
+| **P0** | Marcas 15/95 ausentes | Pseudoelementos absolutos en `.voltage-container`; posiciones derivadas de `BALANCE.voltage.emptyRefill` y `rearmBelow`. La barra es `progressbar` y anuncia margen y estado de rearmado sin leer el valor frame a frame. | Estilo computado: marca baja `rgb(255,204,0)`, marca de armado `rgb(0,243,255)`; 0 errores de consola. |
+| **P0** | Aviso de próximo jefe | `res-meta` añade `PRÓXIMO CICLO: JEFE` y el anuncio de resultados lo incluye. Solo se calcula en resultados para no propagar el flag `nextBoss` «sticky» durante la partida. | `res-meta` verificado con `run.nextBoss = true`. |
+| **P1** | Feedback de estados | Anuncios por transición de Frenesí, Cámara lenta, Lectura invertida y Pesadilla; los popups siguen siendo solo canvas para no saturar al lector. El flash de degradación muestra ahora `×N → ×M · MARGEN 15 %`. | Sin nuevos bloques DOM; `updateHUD()` mantiene su patrón de hitos. |
+| **P1** | FTUE y leyenda | La etiqueta del canvas incluye la leyenda de formas del modo daltónico; se conserva la pista táctil del menú. | Texto accesible verificado en DOM. |
+| **P2** | Contraste y foco | Textos pequeños a `#8585b8` (≈5.6:1); rings ámbar en pestañas, filtros, puntos, flechas y controles PWA; área táctil ampliada sin cambiar el glifo visible. | 0 desbordamientos en las tres pestañas de MEJORAS a 320 px y 1112 px. |
+| **P2** | Modo daltónico | `html.colorblind` con patrones en la barra y contorno en el peldaño activo; se desactiva el filtro de Pesadilla sobre el HUD. | `background-image` pasa de degradado a `repeating-linear-gradient` al marcar la casilla. |
+| **P2** | Renovación PWA | Caché subida a `overclock9-v5`. | `npm test` 97/97; `tools/build.mjs --check` sin errores. |
+
+**Resultado del ciclo:** la suite canónica (`npm test`) sigue en 97/97. Conviene aclarar que `node --test tests/` no es la orden válida en este repo: intenta ejecutar `tests/serve.mjs` como test y falla; el script `test` de `package.json` enumera los seis archivos reales. Las capturas `docs/qa/hud-antes-*.png` y `hud-despues-*.png` documentan el estado. Queda pendiente la revisión visual humana de esas imágenes: en este entorno se verificó geometría, estilos computados y consola, no la interpretación de píxeles. Tampoco se añadió control del tablero por teclado: sería una capa de input nueva y queda fuera del alcance de bajo riesgo.
