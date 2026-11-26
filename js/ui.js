@@ -17,6 +17,10 @@ export class UI {
     this.renderer = renderer;
     this.accounts = accounts;
     this.leaderboard = leaderboard;
+    this.editingAccountId = null;
+    this.removeEditorPhoto = false;
+    this.deleteArmed = false;
+    this.selectedProfileId = null;
 
     this.screens = {
       launcher: document.getElementById('screen-launcher'),
@@ -201,9 +205,16 @@ export class UI {
     const btn = event.target.querySelector('button[type="submit"]');
     if (btn) btn.disabled = true;
     try {
+      let options = {};
+      if (mode === 'register') {
+        const file = document.getElementById('register-photo')?.files?.[0];
+        if (file) options = { photo: await this.processAvatarFile(file) };
+      }
       const result = mode === 'register'
-        ? await this.accounts.register(nickname, password)
+        ? await this.accounts.register(nickname, password, options)
         : await this.accounts.login(nickname, password);
+      const photoInput = document.getElementById('register-photo');
+      if (photoInput) photoInput.value = '';
       this.applyAccount(result.account, result.save);
       this.showScreen('menu');
       this.showToast(mode === 'register'
@@ -293,6 +304,68 @@ export class UI {
     if (el) el.textContent = message || '';
   }
 
+  setEditorError(message) {
+    const el = document.getElementById('account-editor-error');
+    if (el) el.textContent = message || '';
+  }
+
+  avatarInner(account) {
+    if (account?.photo) return `<img src="${this.escapeHtml(account.photo)}" alt="" />`;
+    return this.escapeHtml(
+      String(account?.nickname || '??').split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase()
+    );
+  }
+
+  avatarMarkup(account, className = 'avatar') {
+    const color = /^#[0-9a-f]{6}$/i.test(String(account?.color || '')) ? account.color : '#00f3ff';
+    const style = account?.photo ? '' : ` style="background:${color};box-shadow:0 0 16px ${color}66"`;
+    return `<span class="${className}"${style}>${this.avatarInner(account)}</span>`;
+  }
+
+  /** Recorta la foto a 192×192 y la convierte en JPEG embebido, sin assets externos. */
+  async processAvatarFile(file) {
+    if (!file) return null;
+    if (!/^image\/(png|jpeg|webp)$/i.test(file.type)) {
+      throw new Error('La foto debe ser PNG, JPG o WebP.');
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = 192;
+    canvas.height = 192;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#05050a';
+    ctx.fillRect(0, 0, 192, 192);
+
+    let source;
+    let objectUrl = null;
+    if (typeof createImageBitmap === 'function') {
+      source = await createImageBitmap(file);
+    } else {
+      objectUrl = URL.createObjectURL(file);
+      source = await new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error('No se pudo leer la imagen.'));
+        img.src = objectUrl;
+      });
+    }
+    try {
+      const side = Math.min(source.width, source.height);
+      const sx = (source.width - side) / 2;
+      const sy = (source.height - side) / 2;
+      ctx.drawImage(source, sx, sy, side, side, 0, 0, 192, 192);
+    } finally {
+      source.close?.();
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    }
+    let quality = 0.82;
+    let data = canvas.toDataURL('image/jpeg', quality);
+    while (data.length > 110000 && quality > 0.5) {
+      quality -= 0.1;
+      data = canvas.toDataURL('image/jpeg', quality);
+    }
+    return data;
+  }
+
   setAuthMode(mode) {
     const isRegister = mode === 'register';
     document.getElementById('form-login')?.classList.toggle('hidden', isRegister);
@@ -309,6 +382,8 @@ export class UI {
   selectProfile(id) {
     const account = this.accounts?.manifest?.accounts.find(a => a.id === id);
     if (!account) return;
+    this.selectedProfileId = id;
+    this.refreshLauncher();
     const input = document.getElementById('login-nickname');
     if (input) input.value = account.nickname;
     this.setAuthMode('login');
@@ -322,20 +397,24 @@ export class UI {
     if (list) {
       list.innerHTML = '';
       accounts.forEach(account => {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'profile-card';
-        btn.dataset.account = account.id;
-        btn.setAttribute('aria-label', `Perfil ${account.nickname}`);
-        const initials = account.nickname.split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
+        const card = document.createElement('div');
+        card.className = 'profile-card';
+        card.dataset.account = account.id;
+        card.classList.toggle('selected', account.id === this.selectedProfileId);
         const meta = account.lastPlayed
           ? new Date(account.lastPlayed).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })
           : 'NUEVO';
-        btn.innerHTML = `
-          <span class="avatar" style="background:${account.color};box-shadow:0 0 16px ${account.color}66">${initials}</span>
-          <span class="profile-name">${this.escapeHtml(account.nickname)}</span>
-          <span class="profile-meta">${meta}</span>`;
-        list.appendChild(btn);
+        card.innerHTML = `
+          <button type="button" class="profile-open" data-action="open" aria-label="Entrar como ${this.escapeHtml(account.nickname)}">
+            ${this.avatarMarkup(account)}
+            <span class="profile-name">${this.escapeHtml(account.nickname)}</span>
+            <span class="profile-meta">${meta}</span>
+          </button>
+          <div class="profile-actions">
+            <button type="button" class="profile-action" data-action="edit" aria-label="Editar ${this.escapeHtml(account.nickname)}" title="Editar">✎</button>
+            <button type="button" class="profile-action delete" data-action="delete" aria-label="Eliminar ${this.escapeHtml(account.nickname)}" title="Eliminar">×</button>
+          </div>`;
+        list.appendChild(card);
       });
     }
     if (empty) empty.classList.toggle('hidden', accounts.length > 0);
@@ -352,9 +431,124 @@ export class UI {
     }
   }
 
+  avatarDataUrl(account) {
+    const color = /^#[0-9a-f]{6}$/i.test(String(account?.color || '')) ? account.color : '#00f3ff';
+    const initials = String(account?.nickname || '??').split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128"><rect width="128" height="128" rx="32" fill="${color}"/><text x="64" y="78" text-anchor="middle" font-family="Orbitron,sans-serif" font-size="46" font-weight="900" fill="#05050a">${this.escapeHtml(initials)}</text></svg>`;
+    return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  }
+
+  openAccountEditor(id) {
+    const account = this.accounts?.getAccount(id);
+    if (!account) return;
+    this.editingAccountId = id;
+    this.removeEditorPhoto = false;
+    this.deleteArmed = false;
+    const set = (elementId, value) => {
+      const el = document.getElementById(elementId);
+      if (el) el.value = value;
+    };
+    set('edit-nickname', account.nickname);
+    set('edit-color', /^#[0-9a-f]{6}$/i.test(String(account.color || '')) ? account.color : '#00f3ff');
+    set('edit-password-new', '');
+    set('edit-password-current', '');
+    set('edit-photo', '');
+    const preview = document.getElementById('edit-avatar-preview');
+    if (preview) preview.src = account.photo || this.avatarDataUrl(account);
+    const deleteBtn = document.getElementById('btn-account-delete');
+    if (deleteBtn) { deleteBtn.disabled = false; deleteBtn.textContent = 'ELIMINAR CUENTA'; }
+    this.setEditorError('');
+    document.getElementById('account-editor')?.classList.remove('hidden');
+    requestAnimationFrame(() => document.getElementById('edit-nickname')?.focus());
+  }
+
+  closeAccountEditor() {
+    document.getElementById('account-editor')?.classList.add('hidden');
+    this.editingAccountId = null;
+    this.removeEditorPhoto = false;
+    this.deleteArmed = false;
+    this.setEditorError('');
+  }
+
+  async saveAccountEdit(event) {
+    event?.preventDefault();
+    const id = this.editingAccountId;
+    if (!id) return;
+    this.setEditorError('');
+    const btn = document.getElementById('btn-account-save');
+    if (btn) btn.disabled = true;
+    try {
+      const file = document.getElementById('edit-photo')?.files?.[0];
+      const newPassword = document.getElementById('edit-password-new')?.value || '';
+      const changes = {
+        nickname: document.getElementById('edit-nickname')?.value || '',
+        color: document.getElementById('edit-color')?.value || '#00f3ff',
+        password: newPassword || undefined
+      };
+      if (file) changes.photo = await this.processAvatarFile(file);
+      else if (this.removeEditorPhoto) changes.photo = null;
+      const password = document.getElementById('edit-password-current')?.value || '';
+      const { account } = await this.accounts.updateAccount(id, changes, password);
+      if (this.currentAccount?.id === id) {
+        this.currentAccount = account;
+        this.refreshMenuIdentity();
+      }
+      this.selectedProfileId = id;
+      this.refreshLauncher();
+      this.closeAccountEditor();
+      this.showToast('PERFIL ACTUALIZADO');
+    } catch (err) {
+      this.setEditorError(err?.message || 'No se pudo actualizar la cuenta.');
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  }
+
+  async deleteAccountFromEditor() {
+    const id = this.editingAccountId;
+    if (!id) return;
+    const password = document.getElementById('edit-password-current')?.value || '';
+    if (!password) {
+      this.setEditorError('Escribe tu contraseña actual para eliminar la cuenta.');
+      return;
+    }
+    const btn = document.getElementById('btn-account-delete');
+    if (!this.deleteArmed) {
+      this.deleteArmed = true;
+      if (btn) btn.textContent = 'CONFIRMAR ELIMINACIÓN';
+      this.setEditorError('Pulsa de nuevo para borrar la cuenta y su partida.');
+      return;
+    }
+    this.setEditorError('');
+    if (btn) btn.disabled = true;
+    try {
+      await this.accounts.deleteAccount(id, password);
+      if (this.currentAccount?.id === id) {
+        this.currentAccount = null;
+        this.runState = null;
+        this.lastOptions = null;
+      }
+      if (this.selectedProfileId === id) this.selectedProfileId = null;
+      this.closeAccountEditor();
+      this.refreshLauncher();
+      this.showToast('CUENTA ELIMINADA');
+    } catch (err) {
+      this.setEditorError(err?.message || 'No se pudo eliminar la cuenta.');
+      if (btn) { btn.disabled = false; btn.textContent = 'CONFIRMAR ELIMINACIÓN'; }
+    }
+  }
+
   refreshMenuIdentity() {
     const user = document.getElementById('menu-user');
     if (user) user.textContent = this.currentAccount?.nickname || '—';
+    const avatar = document.getElementById('menu-avatar');
+    if (avatar) {
+      avatar.innerHTML = this.currentAccount ? this.avatarInner(this.currentAccount) : '—';
+      const color = /^#[0-9a-f]{6}$/i.test(String(this.currentAccount?.color || '')) ? this.currentAccount.color : '#00f3ff';
+      const tinted = !!this.currentAccount && !this.currentAccount.photo;
+      avatar.style.background = tinted ? color : '';
+      avatar.style.boxShadow = tinted ? `0 0 12px ${color}66` : '';
+    }
     const resume = document.getElementById('btn-resume-save');
     if (resume) {
       resume.classList.toggle('hidden', !this.runState);
@@ -481,7 +675,48 @@ export class UI {
     const profileRoot = document.getElementById('launcher-profiles');
     profileRoot?.addEventListener('click', e => {
       const card = e.target.closest('[data-account]');
-      if (card) this.selectProfile(card.dataset.account);
+      if (!card) return;
+      const action = e.target.closest('[data-action]')?.dataset.action || 'open';
+      if (action === 'edit') this.openAccountEditor(card.dataset.account);
+      else if (action === 'delete') this.openAccountEditor(card.dataset.account);
+      else this.selectProfile(card.dataset.account);
+    });
+
+    // CRUD del launcher
+    document.getElementById('form-account-edit')?.addEventListener('submit', e => this.saveAccountEdit(e));
+    this.onClick('btn-account-close', () => this.closeAccountEditor());
+    this.onClick('btn-account-delete', () => this.deleteAccountFromEditor());
+    this.onClick('btn-remove-photo', () => {
+      this.removeEditorPhoto = true;
+      const preview = document.getElementById('edit-avatar-preview');
+      const account = this.accounts?.getAccount(this.editingAccountId);
+      if (preview && account) preview.src = this.avatarDataUrl(account);
+      const file = document.getElementById('edit-photo');
+      if (file) file.value = '';
+    });
+    document.getElementById('edit-photo')?.addEventListener('change', async e => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      try {
+        const preview = document.getElementById('edit-avatar-preview');
+        if (preview) preview.src = await this.processAvatarFile(file);
+        this.removeEditorPhoto = false;
+        this.setEditorError('');
+      } catch (err) {
+        this.setEditorError(err?.message || 'No se pudo leer la imagen.');
+      }
+    });
+    document.getElementById('edit-password-current')?.addEventListener('input', () => {
+      if (this.deleteArmed) {
+        this.deleteArmed = false;
+        const btn = document.getElementById('btn-account-delete');
+        if (btn) btn.textContent = 'ELIMINAR CUENTA';
+      }
+    });
+    document.getElementById('register-photo')?.addEventListener('change', e => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      this.setLauncherError(file.size > 4 * 1024 * 1024 ? 'La foto es demasiado grande (máx. 4 MB).' : '');
     });
 
     // Menú
@@ -774,6 +1009,7 @@ export class UI {
   // ---------- Navegación ----------
 
   showScreen(name) {
+    this.closeAccountEditor();
     if (name !== 'launcher' && !this.accounts?.canPlay()) {
       name = 'launcher';
     }

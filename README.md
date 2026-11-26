@@ -17,12 +17,14 @@ Los núcleos aparecen cada vez más rápido: de `2.2 s` a `0.35 s` entre núcleo
 
 ## Cuentas y partidas
 
-El juego abre en un **launcher** con los perfiles ya vinculados. Solo se piden **nombre/nickname y contraseña**; la contraseña se guarda como hash PBKDF2-SHA256 con salt, nunca en texto plano.
+El juego abre en un **launcher** con los perfiles ya vinculados. Solo se piden **nombre/nickname y contraseña**; la contraseña se guarda como hash PBKDF2-SHA256 con salt, nunca en texto plano. El alta puede incluir **foto de perfil** opcional.
 
 - En **Escritorio** (Chrome/Edge sobre `localhost` o HTTPS), pulsa **ELEGIR CARPETA DATASAVE** una vez. Se crean `accounts.json` y un `u_<id>.json` por jugador con su progreso, partida en curso y ajustes.
 - El acceso a la carpeta se recuerda; si el navegador vuelve a pedir permiso, aparece **CONECTAR DATASAVE**.
 - En **Android/Firefox**, donde no existe la API de carpetas, el mismo formato se guarda en un *datasave virtual* dentro del almacenamiento del navegador.
-- **CAMBIAR USUARIO** guarda la partida y vuelve al launcher; **CONTINUAR PARTIDA** reanuda la run guardada de ese perfil.
+- **CAMBIAR USUARIO** guarda la partida y vuelve al launcher; **CONTINUAR** reanuda la run guardada de ese perfil.
+- **CRUD de cuentas**: en cada tarjeta del launcher puedes entrar, **editar** (nombre, color, foto y contraseña nueva) o **eliminar**. Guardar/borrar exige la contraseña actual y borrar necesita una segunda confirmación. Al borrar se eliminan también su `u_<id>.json`, su caché y su sesión.
+- La foto se recorta a `192×192`, se guarda como JPEG embebido (máx. `96 KB` decodificados) en `accounts.json` o en el datasave virtual. Nunca se sube a un servidor.
 - El botón **PAUSA** del HUD (o `Esc`) congela la partida, guarda una instantánea real del ciclo en el archivo del perfil y permite **GUARDAR AHORA**, **CONTINUAR** o **GUARDAR Y SALIR** sin perder el estado.
 - La barra de voltaje lleva una escalera `×1…×5` con icono: el peldaño activo se ilumina y los anteriores quedan marcados. Al vaciarse, la barra se muestra llena durante 0,6 s con el multiplicador perdido (`×3 → ×2`) antes de volver al margen del 15 %.
 - El menú agrupa las acciones en dos botones principales (**CAMPAÑA/CONTINUAR** y **RUN DIARIA**) y una fila de accesos rápidos con icono (**TABLA, MEJORAS, ARCHIVO, AJUSTES, USUARIO**).
@@ -62,7 +64,7 @@ node --check js/balance.js   # y los otros módulos
 node --test tests/game.test.mjs tests/accounts.test.mjs tests/leaderboard.test.mjs
 ```
 
-La suite (75 pruebas) cubre voltaje, subida y desincrementación de peldaños con su flash visual, purga de rojos con `+1 V`, escalones de combo, tableros, clústers, rotación de 10 jefes y sus efectos de entorno, pausa/instantánea, Diario de run única, Nova de una explosión, ritmo de aparición, economía, cuentas/guardado por perfil y tabla online/offline.
+La suite (79 pruebas) cubre voltaje, subida y desincrementación de peldaños con su flash visual, purga de rojos con `+1 V`, escalones de combo, tableros, clústers, rotación de 10 jefes y sus efectos de entorno, pausa/instantánea, Diario de run única, Nova de una explosión, ritmo de aparición, economía, CRUD de cuentas con foto/guardado por perfil y tabla online/offline.
 
 ## Estructura
 

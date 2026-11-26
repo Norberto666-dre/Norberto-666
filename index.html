@@ -41,7 +41,7 @@
         <div class="storage-pill" id="launcher-storage">DATASAVE · NAVEGADOR</div>
 
         <section class="profiles-section" aria-labelledby="profiles-label">
-          <div class="section-label" id="profiles-label">CUENTAS VINCULADAS</div>
+          <div class="section-label" id="profiles-label">CUENTAS VINCULADAS <span>· EDITAR / ELIMINAR</span></div>
           <div id="launcher-profiles" class="profile-grid"></div>
           <p id="launcher-empty" class="empty-hint hidden">Aún no hay cuentas. Crea la primera con tu nombre y contraseña.</p>
         </section>
@@ -72,6 +72,10 @@
             <span>CONTRASEÑA</span>
             <input id="register-password" name="password" type="password" autocomplete="new-password" placeholder="Mínimo 6 caracteres" required />
           </label>
+          <label class="field">
+            <span>FOTO DE PERFIL (OPCIONAL)</span>
+            <input id="register-photo" type="file" accept="image/png,image/jpeg,image/webp" />
+          </label>
           <button class="btn btn-primary" type="submit">CREAR CUENTA</button>
         </form>
 
@@ -82,7 +86,48 @@
           <button type="button" class="link-btn hidden" id="btn-folder-access">CONECTAR DATASAVE</button>
           <span class="folder-name hidden" id="folder-name"></span>
         </div>
-        <p class="auth-note">Solo nombre y contraseña. Cada perfil guarda su partida por separado.</p>
+        <p class="auth-note">Nombre, contraseña y foto por perfil. Cada cuenta guarda su partida por separado.</p>
+
+        <!-- Editor de cuenta: nombre, color, foto y contraseña; requiere clave actual -->
+        <div id="account-editor" class="account-editor hidden" role="dialog" aria-modal="true" aria-labelledby="account-editor-title">
+          <form id="form-account-edit" class="editor-form" novalidate>
+            <div class="editor-head">
+              <h2 id="account-editor-title">EDITAR PERFIL</h2>
+              <button type="button" class="editor-close" id="btn-account-close" aria-label="Cerrar editor">×</button>
+            </div>
+            <div class="editor-avatar-row">
+              <img id="edit-avatar-preview" class="editor-avatar" alt="Vista previa de la foto de perfil" />
+              <div class="editor-avatar-tools">
+                <label class="field">
+                  <span>FOTO (PNG / JPG / WEBP)</span>
+                  <input id="edit-photo" type="file" accept="image/png,image/jpeg,image/webp" />
+                </label>
+                <button type="button" class="link-btn" id="btn-remove-photo">QUITAR FOTO</button>
+              </div>
+            </div>
+            <label class="field">
+              <span>NOMBRE O NICKNAME</span>
+              <input id="edit-nickname" type="text" maxlength="18" autocomplete="off" spellcheck="false" required />
+            </label>
+            <label class="field editor-color">
+              <span>COLOR DEL PERFIL</span>
+              <input id="edit-color" type="color" value="#00f3ff" />
+            </label>
+            <label class="field">
+              <span>NUEVA CONTRASEÑA (OPCIONAL)</span>
+              <input id="edit-password-new" type="password" autocomplete="new-password" placeholder="Dejar vacío para conservarla" />
+            </label>
+            <label class="field">
+              <span>CONTRASEÑA ACTUAL</span>
+              <input id="edit-password-current" type="password" autocomplete="current-password" placeholder="Necesaria para guardar o borrar" required />
+            </label>
+            <div id="account-editor-error" class="auth-error" role="alert" aria-live="polite"></div>
+            <div class="editor-actions">
+              <button type="submit" class="btn btn-primary" id="btn-account-save">GUARDAR CAMBIOS</button>
+              <button type="button" class="btn btn-danger" id="btn-account-delete">ELIMINAR CUENTA</button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
 
@@ -164,7 +209,7 @@
       </div>
       <div class="menu-footer">
         <div class="menu-identity">
-          <span class="menu-user">PERFIL: <span id="menu-user">—</span></span>
+          <span class="menu-user"><span class="menu-avatar" id="menu-avatar" aria-hidden="true"></span>PERFIL: <span id="menu-user">—</span></span>
           <span class="menu-credits">CRÉDITOS: <span id="menu-credits">0</span></span>
         </div>
         <div class="ftue-hint">Toca el núcleo activo. Arrastra la X roja al borde: <strong>+1 V</strong>.</div>

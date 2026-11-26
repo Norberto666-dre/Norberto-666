@@ -78,6 +78,8 @@ El Diario además fuerza `pulso / sin chips / sin mejoras / sin habilidades`, si
 | Menú compacto | Dos acciones principales y una fila de cinco accesos rápidos con icono; `CONTINUAR` sustituye a `CAMPAÑA` cuando hay partida guardada, que pasa a ser `NUEVA CAMPAÑA`. | Todas las funciones siguen accesibles con el mismo número de toques o menos, sin desbordamiento en `390×844`. |
 | Pausa con guardado | `Esc` o el botón del HUD capturan `Game.getResumeState()` (run, ciclo, voltaje, hoyos, jefe, carga y opciones) y lo escriben en el datasave antes de mostrar el overlay. | Salir en pausa y pulsar **CONTINUAR PARTIDA** restaura el mismo ciclo, no una run nueva. |
 | Tabla diaria | `datasave` para la columna offline; endpoint configurable con token para la columna mundial. Sin red se sirve caché y se encola la publicación. | La mejor run de cualquier usuario se muestra sin backend real; al configurar la URL se publica y sincroniza la cola. |
+| CRUD de cuentas | Alta con foto opcional; lectura en tarjetas del launcher; edición de nombre/color/foto/contraseña; baja con doble confirmación. Toda mutación exige la contraseña actual. | Editar una cuenta cambia su tarjeta y su save sin afectar a otras; eliminar borra manifest, archivo, cachés y sesión activa. |
+| Foto de perfil | Se recorta a `192×192` en canvas y se embebe como JPEG (≤`96 KB`) en el manifest; se validan MIME, firma binaria y tamaño antes de persistir. | La foto se ve en launcher y menú; un data URL inválido o demasiado grande se descarta sin romper el manifest. |
 
 **Resonancia Nova (bomba de recompensa)**
 
@@ -271,7 +273,7 @@ Las secciones 2–4 describen el diseño incremental original (15 nodos, 15 Chip
 - El combo es el multiplicador dominante: `1 + min(combo,50)·0.04`, aplicado **después** de puntuar cada golpe (primer golpe ×1). `Sincronía` conserva una fracción del combo, pero nunca lo crea desde cero.
 - Nova sigue siendo recompensa: rara, nunca en Jackpot, limpia solo los núcleos presentes en la explosión, paga su valor real, no cuenta como bomba y conserva el combo. `SURGE NOVA` / `Resonancia Nova` aumentan pago y radio y añaden un tercer anillo visual.
 
-**Criterio de salida del catálogo:** 75/75 tests (`game` + `accounts` + `leaderboard`), `node --check` limpio en todos los módulos, 0 errores de consola en navegador, compras y persistencia verificadas tras recarga, listas visibles y desplazables a 390×844, cuentas separadas por perfil en `datasave`, desincrementación `×3→×2→×1→0` verificada en motor y HUD, purga de rojo con `+1 V`, y latencia input→SFX < 100 ms con evento humano confiable.
+**Criterio de salida del catálogo:** 79/79 tests (`game` + `accounts` + `leaderboard`), `node --check` limpio en todos los módulos, 0 errores de consola en navegador, compras y persistencia verificadas tras recarga, listas visibles y desplazables a 390×844, cuentas separadas por perfil en `datasave`, CRUD con foto validada y borrado de save/caché, desincrementación `×3→×2→×1→0` verificada en motor y HUD, purga de rojo con `+1 V`, y latencia input→SFX < 100 ms con evento humano confiable.
 
 ---
 

@@ -13,12 +13,16 @@ const SAVE_CACHE_PREFIX = 'overclock9_save_cache_';
 const LEGACY_KEY = 'overclock9_progress';
 const PROGRESS_CACHE_KEY = 'overclock9_progress_cache';
 const FORMAT_VERSION = 1;
+const AVATAR_LIMIT_BYTES = 96 * 1024;
+const AVATAR_RE = /^data:image\/(png|jpeg|webp);base64,([A-Za-z0-9+/]+={0,2})$/;
+const HEX_COLOR_RE = /^#[0-9a-f]{6}$/i;
 
 export const CREDENTIAL_RULES = Object.freeze({
   nicknameMin: 3,
   nicknameMax: 18,
   passwordMin: 6,
-  iterations: 120000
+  iterations: 120000,
+  avatarMaxBytes: AVATAR_LIMIT_BYTES
 });
 
 const PALETTE = ['#00f3ff', '#ff40d0', '#ffcc00', '#7b8cff', '#00ff9d', '#ff6a00'];
@@ -27,23 +31,72 @@ export function normalizeNickname(value) {
   return String(value ?? '').trim().replace(/\s+/g, ' ').slice(0, CREDENTIAL_RULES.nicknameMax);
 }
 
-export function validateCredentials(nickname, password) {
+function nicknameError() {
+  return `El nombre debe tener ${CREDENTIAL_RULES.nicknameMin}-${CREDENTIAL_RULES.nicknameMax} letras, números, espacios, - o _.`;
+}
+
+export function validateNickname(nickname) {
   const nick = normalizeNickname(nickname);
-  const nickOk = new RegExp(`^[\\p{L}\\p{N} _-]{${CREDENTIAL_RULES.nicknameMin},${CREDENTIAL_RULES.nicknameMax}}$`, 'u')
+  const ok = new RegExp(`^[\\p{L}\\p{N} _-]{${CREDENTIAL_RULES.nicknameMin},${CREDENTIAL_RULES.nicknameMax}}$`, 'u')
     .test(nick);
-  if (!nickOk) {
-    return {
-      ok: false,
-      error: `El nombre debe tener ${CREDENTIAL_RULES.nicknameMin}-${CREDENTIAL_RULES.nicknameMax} letras, números, espacios, - o _.`
-    };
-  }
+  return ok ? { ok: true, nickname: nick } : { ok: false, error: nicknameError() };
+}
+
+export function validateCredentials(nickname, password) {
+  const valid = validateNickname(nickname);
+  if (!valid.ok) return valid;
   if (typeof password !== 'string' || password.length < CREDENTIAL_RULES.passwordMin) {
     return {
       ok: false,
       error: `La contraseña debe tener al menos ${CREDENTIAL_RULES.passwordMin} caracteres.`
     };
   }
-  return { ok: true, nickname: nick, password };
+  return { ok: true, nickname: valid.nickname, password };
+}
+
+function decodeBase64(text) {
+  try {
+    if (typeof atob === 'function') {
+      const binary = atob(text);
+      return Uint8Array.from(binary, ch => ch.charCodeAt(0));
+    }
+    return new Uint8Array(Buffer.from(text, 'base64'));
+  } catch { return null; }
+}
+
+function hasImageSignature(bytes, mime) {
+  if (mime === 'png') {
+    return [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a].every((b, i) => bytes[i] === b);
+  }
+  if (mime === 'jpeg') return bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+  if (mime === 'webp') {
+    return String.fromCharCode(...bytes.slice(0, 4)) === 'RIFF'
+      && String.fromCharCode(...bytes.slice(8, 12)) === 'WEBP';
+  }
+  return false;
+}
+
+/** Acepta solo data URLs de imagen pequeñas generadas por la UI; devuelve null si no es válida. */
+export function normalizeAvatar(value) {
+  if (value == null || value === '') return null;
+  const match = AVATAR_RE.exec(String(value).replace(/\s+/g, ''));
+  if (!match) return null;
+  const bytes = decodeBase64(match[2]);
+  if (!bytes || !bytes.length || bytes.length > AVATAR_LIMIT_BYTES) return null;
+  if (!hasImageSignature(bytes, match[1])) return null;
+  return `data:image/${match[1]};base64,${match[2]}`;
+}
+
+export function parseAvatar(value) {
+  const clean = normalizeAvatar(value);
+  if (!clean) {
+    throw new Error(`La foto debe ser PNG/JPEG/WebP de menos de ${Math.round(AVATAR_LIMIT_BYTES / 1024)} KB.`);
+  }
+  return clean;
+}
+
+function sanitizeColor(value, fallback) {
+  return HEX_COLOR_RE.test(String(value || '')) ? String(value).toLowerCase() : fallback;
 }
 
 function bytesToBase64(bytes) {
@@ -119,10 +172,12 @@ export function sanitizeManifest(data) {
         salt: String(a.hash.salt || ''),
         digest: String(a.hash.digest || '')
       },
-      color: /^#[0-9a-f]{6}$/i.test(String(a.color || '')) ? a.color : PALETTE[index % PALETTE.length],
+      color: sanitizeColor(a.color, PALETTE[index % PALETTE.length]),
+      photo: normalizeAvatar(a.photo),
       file: `u_${String(a.id).replace(/[^a-zA-Z0-9_-]/g, '')}.json`,
       createdAt: a.createdAt || null,
-      lastPlayed: a.lastPlayed || null
+      lastPlayed: a.lastPlayed || null,
+      updatedAt: a.updatedAt || null
     }))
     .filter(a => a.nickname && a.hash.salt && a.hash.digest);
   const activeId = accounts.some(a => a.id === data?.activeId) ? data.activeId : null;
@@ -230,6 +285,10 @@ export class AccountManager {
 
   writeLocal(key, value) {
     try { globalThis.localStorage?.setItem(key, value); } catch { /* cuota o modo privado */ }
+  }
+
+  removeLocal(key) {
+    try { globalThis.localStorage?.removeItem(key); } catch { /* modo privado */ }
   }
 
   readVault() {
@@ -375,7 +434,16 @@ export class AccountManager {
     return this.manifest.accounts.find(a => a.nickname.toLocaleLowerCase('es') === key) || null;
   }
 
-  async register(nickname, password) {
+  listAccounts() {
+    return (this.manifest?.accounts || []).map(a => ({ ...a }));
+  }
+
+  getAccount(id) {
+    const account = (this.manifest?.accounts || []).find(a => a.id === id);
+    return account ? { ...account } : null;
+  }
+
+  async register(nickname, password, options = {}) {
     const valid = validateCredentials(nickname, password);
     if (!valid.ok) throw new Error(valid.error);
     return this.enqueue(async () => {
@@ -389,7 +457,8 @@ export class AccountManager {
         id,
         nickname: valid.nickname,
         hash: await hashPassword(valid.password),
-        color: PALETTE[manifest.accounts.length % PALETTE.length],
+        color: sanitizeColor(options.color, PALETTE[manifest.accounts.length % PALETTE.length]),
+        photo: options.photo == null ? null : parseAvatar(options.photo),
         file: `u_${String(id).replace(/[^a-zA-Z0-9_-]/g, '')}.json`,
         createdAt: new Date().toISOString(),
         lastPlayed: new Date().toISOString()
@@ -424,6 +493,85 @@ export class AccountManager {
       this.current = account;
       this.currentSave = save;
       return { account, save };
+    });
+  }
+
+  /**
+   * Actualiza nombre, color, foto y/o contraseña de una cuenta.
+   * La contraseña actual se exige para cualquier cambio (CRUD local protegido).
+   * `photo: null` quita la foto; `undefined` conserva la existente.
+   */
+  async updateAccount(id, changes = {}, password) {
+    return this.enqueue(async () => {
+      this.ensureWritable();
+      const manifest = await this.readManifest();
+      const account = manifest.accounts.find(a => a.id === id);
+      if (!account) throw new Error('No existe esa cuenta.');
+      if (!await verifyPassword(password, account.hash)) throw new Error('Contraseña incorrecta.');
+
+      const patch = {};
+      if (changes.nickname !== undefined) {
+        const valid = validateNickname(changes.nickname);
+        if (!valid.ok) throw new Error(valid.error);
+        const taken = manifest.accounts.some(
+          a => a.id !== id && a.nickname.toLocaleLowerCase('es') === valid.nickname.toLocaleLowerCase('es')
+        );
+        if (taken) throw new Error('Ese nombre ya está vinculado a otra cuenta.');
+        patch.nickname = valid.nickname;
+      }
+      if (changes.color !== undefined) patch.color = sanitizeColor(changes.color, account.color);
+      if (changes.photo !== undefined) {
+        patch.photo = changes.photo == null || changes.photo === '' ? null : parseAvatar(changes.photo);
+      }
+      if (changes.password !== undefined && changes.password !== '') {
+        if (typeof changes.password !== 'string' || changes.password.length < CREDENTIAL_RULES.passwordMin) {
+          throw new Error(`La contraseña debe tener al menos ${CREDENTIAL_RULES.passwordMin} caracteres.`);
+        }
+        patch.hash = await hashPassword(changes.password);
+      }
+
+      Object.assign(account, patch, { updatedAt: new Date().toISOString() });
+      await this.writeManifest(manifest);
+      const saved = await this.writeSave(account, {
+        ...(await this.readSave(account) || blankSave(account)),
+        nickname: account.nickname
+      });
+
+      const clean = this.manifest.accounts.find(a => a.id === id) || account;
+      if (this.current?.id === id) {
+        this.current = clean;
+        this.currentSave = saved;
+      }
+      return { account: clean, save: saved };
+    });
+  }
+
+  /** Elimina la cuenta, su archivo de partida y sus cachés. Requiere contraseña. */
+  async deleteAccount(id, password) {
+    return this.enqueue(async () => {
+      this.ensureWritable();
+      const manifest = await this.readManifest();
+      const account = manifest.accounts.find(a => a.id === id);
+      if (!account) throw new Error('No existe esa cuenta.');
+      if (!await verifyPassword(password, account.hash)) throw new Error('Contraseña incorrecta.');
+
+      manifest.accounts = manifest.accounts.filter(a => a.id !== id);
+      if (manifest.activeId === id) manifest.activeId = null;
+      await this.writeManifest(manifest);
+
+      if (this.mode === 'fs' && this.directory) {
+        try { await this.directory.removeEntry(account.file); } catch { /* el archivo ya no existe */ }
+      }
+      const vault = this.readVault();
+      delete vault.saves[id];
+      this.writeVault(vault);
+      this.removeLocal(SAVE_CACHE_PREFIX + id);
+
+      if (this.current?.id === id) {
+        this.current = null;
+        this.currentSave = null;
+      }
+      return { id, nickname: account.nickname };
     });
   }
 
