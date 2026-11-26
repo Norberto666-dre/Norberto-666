@@ -3,6 +3,7 @@ import { InputManager } from './input.js';
 import { Game } from './game.js';
 import { Renderer } from './render.js';
 import { UI } from './ui.js';
+import { AccountManager } from './accounts.js';
 import { BALANCE } from './balance.js';
 
 const canvas = document.getElementById('gameCanvas');
@@ -16,7 +17,9 @@ const renderer = new Renderer(canvas, ctx, { audio, input, game: null });
 const game = new Game({ audio, input, renderer });
 renderer.game = game;
 
-const ui = new UI({ game, audio, input, renderer });
+const accounts = new AccountManager();
+await accounts.init();
+const ui = new UI({ game, audio, input, renderer, accounts });
 
 // Garantizar que el AudioContext se resume en la primera interacción de usuario
 // Solo un evento confiable habilita háptica/audio: los eventos sintéticos no cuentan
@@ -41,7 +44,7 @@ document.getElementById('app').insertBefore(loading, document.getElementById('ap
 setTimeout(() => {
   loading.classList.remove('active');
   loading.classList.add('hidden');
-  ui.showScreen('menu');
+  ui.showScreen(accounts.canPlay() ? 'menu' : 'launcher');
 }, 900);
 
 // Métricas ligeras de QA (FPS y latencia evento→procesamiento)
@@ -136,7 +139,7 @@ requestAnimationFrame(loop);
 
 // Exponer para debug y QA
 window.__OVERCLOCK = {
-  game, audio, input, renderer, ui, metrics, balance: BALANCE,
+  game, audio, input, renderer, ui, accounts, metrics, balance: BALANCE,
   getMetrics: () => ({
     board: game.boardId,
     voltage: Math.round(game.voltage),

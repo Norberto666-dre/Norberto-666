@@ -15,12 +15,23 @@ Arcade de reflejos y progresión roguelite, jugable en navegador y Android. Dise
 
 Los núcleos aparecen cada vez más rápido: de `2.2 s` a `0.35 s` entre núcleos a lo largo de 180 s de run.
 
+## Cuentas y partidas
+
+El juego abre en un **launcher** con los perfiles ya vinculados. Solo se piden **nombre/nickname y contraseña**; la contraseña se guarda como hash PBKDF2-SHA256 con salt, nunca en texto plano.
+
+- En **Escritorio** (Chrome/Edge sobre `localhost` o HTTPS), pulsa **ELEGIR CARPETA DATASAVE** una vez. Se crean `accounts.json` y un `u_<id>.json` por jugador con su progreso, partida en curso y ajustes.
+- El acceso a la carpeta se recuerda; si el navegador vuelve a pedir permiso, aparece **CONECTAR DATASAVE**.
+- En **Android/Firefox**, donde no existe la API de carpetas, el mismo formato se guarda en un *datasave virtual* dentro del almacenamiento del navegador.
+- **CAMBIAR USUARIO** guarda la partida y vuelve al launcher; **CONTINUAR PARTIDA** reanuda la run guardada de ese perfil.
+
 ## Ejecutar
 
 ```bash
 python -m http.server 3000
 # abre http://localhost:3000/index.html
 ```
+
+> La carpeta local requiere origen seguro. `http://localhost` cuenta como seguro; si abres el HTML con `file://`, se usa el datasave del navegador.
 
 ## Tableros
 
@@ -34,14 +45,15 @@ python -m http.server 3000
 
 ```bash
 node --check js/balance.js   # y los otros módulos
-node --test tests/game.test.mjs
+node --test tests/game.test.mjs tests/accounts.test.mjs
 ```
 
-La suite (56 pruebas) cubre voltaje, reinicio de barra por tier, escalones de combo, tableros, rojos, clústers, rotación de 10 jefes y sus efectos de entorno, Diario, Nova de una explosión, ritmo de aparición y economía.
+La suite (61 pruebas) cubre voltaje, reinicio de barra por tier, escalones de combo, tableros, rojos, clústers, rotación de 10 jefes y sus efectos de entorno, Diario, Nova de una explosión, ritmo de aparición, economía y cuentas/guardado por perfil.
 
 ## Estructura
 
 - `js/balance.js` — todas las constantes iniciales y funciones de balance.
+- `js/accounts.js` — launcher: perfiles vinculados, hash de contraseña y guardado por usuario en `datasave`.
 - `js/game.js` — motor: voltaje, spawns, jefes, Nova, puntuación e informe de run.
 - `js/render.js`, `js/input.js`, `js/ui.js`, `js/main.js`, `js/audio.js` — capa de presentación e interacción.
 - `js/content.js` — catálogo de 20 habilidades, 5 chips y 10 cursores.

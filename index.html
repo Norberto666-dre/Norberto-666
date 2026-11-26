@@ -17,6 +17,59 @@
     <!-- Canvas principal del tablero -->
     <canvas id="gameCanvas" tabindex="0" role="img" aria-label="Tablero de hoyos. Toca el núcleo que brille para ganar voltaje. Arrastra los núcleos rojos hacia un borde para purgarlos sin castigo; el núcleo blanco activa el Falso Final."></canvas>
 
+    <!-- Pantalla: Launcher / cuentas locales -->
+    <div id="screen-launcher" class="screen hidden" aria-labelledby="launcher-title">
+      <div class="launcher-shell">
+        <div class="launcher-eyebrow">OVERCLOCK 9 · LAUNCHER</div>
+        <h1 id="launcher-title" class="launcher-title">ELIGE TU PERFIL</h1>
+        <div class="storage-pill" id="launcher-storage">DATASAVE · NAVEGADOR</div>
+
+        <section class="profiles-section" aria-labelledby="profiles-label">
+          <div class="section-label" id="profiles-label">CUENTAS VINCULADAS</div>
+          <div id="launcher-profiles" class="profile-grid"></div>
+          <p id="launcher-empty" class="empty-hint hidden">Aún no hay cuentas. Crea la primera con tu nombre y contraseña.</p>
+        </section>
+
+        <div class="auth-switch" role="tablist" aria-label="Acceso">
+          <button type="button" class="auth-tab selected" id="tab-login" role="tab" aria-selected="true" aria-controls="form-login">ENTRAR</button>
+          <button type="button" class="auth-tab" id="tab-register" role="tab" aria-selected="false" aria-controls="form-register">REGISTRARME</button>
+        </div>
+
+        <form id="form-login" class="auth-form" novalidate>
+          <label class="field">
+            <span>NOMBRE O NICKNAME</span>
+            <input id="login-nickname" name="nickname" type="text" maxlength="18" autocomplete="username" spellcheck="false" placeholder="Tu nombre" required />
+          </label>
+          <label class="field">
+            <span>CONTRASEÑA</span>
+            <input id="login-password" name="password" type="password" autocomplete="current-password" placeholder="Tu contraseña" required />
+          </label>
+          <button class="btn btn-primary" type="submit">ENTRAR</button>
+        </form>
+
+        <form id="form-register" class="auth-form hidden" novalidate>
+          <label class="field">
+            <span>NOMBRE O NICKNAME</span>
+            <input id="register-nickname" name="nickname" type="text" maxlength="18" autocomplete="username" spellcheck="false" placeholder="Tu nombre" required />
+          </label>
+          <label class="field">
+            <span>CONTRASEÑA</span>
+            <input id="register-password" name="password" type="password" autocomplete="new-password" placeholder="Mínimo 6 caracteres" required />
+          </label>
+          <button class="btn btn-primary" type="submit">CREAR CUENTA</button>
+        </form>
+
+        <div id="launcher-error" class="auth-error" role="alert" aria-live="polite"></div>
+
+        <div class="launcher-actions">
+          <button type="button" class="link-btn hidden" id="btn-link-folder">ELEGIR CARPETA DATASAVE</button>
+          <button type="button" class="link-btn hidden" id="btn-folder-access">CONECTAR DATASAVE</button>
+          <span class="folder-name hidden" id="folder-name"></span>
+        </div>
+        <p class="auth-note">Solo nombre y contraseña. Cada perfil guarda su partida por separado.</p>
+      </div>
+    </div>
+
     <!-- HUD superpuesto (diegético: cabina) -->
     <div id="hud" class="hidden">
       <div class="hud-row">
@@ -40,14 +93,17 @@
       <div class="menu-subtitle" id="menu-sector">Cabina de Reflejos · Sector 1</div>
       <div class="menu-btns">
         <button class="btn btn-primary" id="btn-jugar">JUGAR</button>
+        <button class="btn btn-secondary hidden" id="btn-resume-save">CONTINUAR PARTIDA</button>
         <button class="btn btn-secondary" id="btn-daily">CICLO DIARIO</button>
         <button class="btn btn-secondary" id="btn-endless">MODO ∞</button>
         <button class="btn btn-secondary hidden" id="btn-ascend">ASCENDER</button>
         <button class="btn btn-secondary" id="btn-mejoras">MEJORAS</button>
         <button class="btn btn-secondary" id="btn-archivo">ARCHIVO</button>
         <button class="btn btn-secondary" id="btn-ajustes">AJUSTES</button>
+        <button class="btn btn-secondary" id="btn-cambiar-usuario">CAMBIAR USUARIO</button>
       </div>
       <div class="menu-footer">
+        <div class="menu-user">PERFIL: <span id="menu-user">—</span></div>
         <div class="menu-credits">CRÉDITOS: <span id="menu-credits">0</span></div>
         <div class="ftue-hint">Toque el núcleo que brille y suba el voltaje. Arrastre la X roja al borde: el núcleo blanco congela la barra 5 s.</div>
       </div>

@@ -9,13 +9,15 @@ const LEGACY_PRICES = {
 };
 
 export class UI {
-  constructor({ game, audio, input, renderer }) {
+  constructor({ game, audio, input, renderer, accounts }) {
     this.game = game;
     this.audio = audio;
     this.input = input;
     this.renderer = renderer;
+    this.accounts = accounts;
 
     this.screens = {
+      launcher: document.getElementById('screen-launcher'),
       menu: document.getElementById('screen-menu'),
       prep: document.getElementById('screen-prep'),
       playing: null, // no hay pantalla de juego, es el canvas
@@ -31,8 +33,10 @@ export class UI {
 
     this.selectedHammer = 'pulso';
     this.selectedChips = new Set(['volc_bomb']);
-    this.selectedBoard = this.progress?.boardId || '3x3';
+    this.currentAccount = null;
+    this.selectedBoard = '3x3';
     this.runState = null; // continuidad de voltaje/ronda dentro de una run
+    this.lastOptions = null;
     this.sectorCleared = 0; // último sector cuyo jefe fue derrotado
     this.chipLabels = {
       volc_bomb: 'BOMBAS → VOLTAJE',
@@ -50,19 +54,22 @@ export class UI {
       chrono_loop: 'BUCLE CRONO'
     };
 
-    // Cargar progreso persistente
-    this.progress = this.loadProgress();
-    this.selectedBoard = this.progress.boardId || '3x3';
-    this.game.credits = this.progress.credits || 0;
-    this.applySettings();
+    // Cargar progreso persistente. Si ya hay una cuenta activa, se usa su save.
+    this.progress = this.defaultProgress();
+    if (this.accounts?.canPlay()) {
+      this.applyAccount(this.accounts.current, this.accounts.currentSave);
+    } else {
+      this.game.credits = this.progress.credits || 0;
+      this.applySettings();
+    }
 
     this.buildPrepOptions();
     this.bindUI();
-    this.showScreen('menu');
+    this.showScreen(this.accounts?.canPlay() ? 'menu' : 'launcher');
   }
 
-  loadProgress() {
-    let data = {
+  defaultProgress() {
+    return {
       credits: 0, bestScore: 0, bestCombo: 0, sector: 1,
       upgrades: {}, unlocked: [], bossDefeated: [],
       cycles: 0, endlessBest: 0, ending: false,
@@ -71,10 +78,23 @@ export class UI {
       abilities: {}, ownedCursors: ['pulso'],
       boardId: '3x3', bestScoreByBoard: {}, fakeEndings: 0, bossKills: 0
     };
+  }
+
+  loadProgress() {
+    const data = this.sanitizeProgress(this.readLegacyProgress());
+    return data;
+  }
+
+  readLegacyProgress() {
     try {
-      const raw = localStorage.getItem('overclock9_progress');
-      if (raw) data = { ...data, ...JSON.parse(raw) };
+      const legacy = localStorage.getItem('overclock9_progress');
+      if (legacy) return JSON.parse(legacy);
     } catch (e) { /* localStorage no disponible */ }
+    return null;
+  }
+
+  sanitizeProgress(input) {
+    const data = { ...this.defaultProgress(), ...(input || {}) };
     data.upgrades = data.upgrades || {};
     data.unlocked = Array.isArray(data.unlocked) ? data.unlocked : [];
     data.bossDefeated = Array.isArray(data.bossDefeated) ? data.bossDefeated : [];
@@ -104,39 +124,200 @@ export class UI {
   }
 
   writeProgress(includeScore) {
+    const data = this.sanitizeProgress({
+      ...this.progress,
+      credits: this.game.credits
+    });
+    if (includeScore) {
+      data.bestScore = Math.max(data.bestScore || 0, this.game.score.score);
+      data.bestCombo = Math.max(data.bestCombo || 0, this.game.score.maxCombo);
+      const board = this.game.boardId || '3x3';
+      data.bestScoreByBoard = data.bestScoreByBoard || {};
+      data.bestScoreByBoard[board] = Math.max(data.bestScoreByBoard[board] || 0, this.game.score.score);
+    }
+    this.progress = data;
+    // Caché de la última sesión; el archivo por usuario se escribe en persist().
+    try { localStorage.setItem('overclock9_progress_cache', JSON.stringify(data)); } catch (e) { /* noop */ }
+    this.persist();
+  }
+
+  /** Guarda progreso + partida en marcha en el archivo del usuario activo. */
+  persist() {
+    if (!this.accounts?.current) return Promise.resolve(false);
+    return this.accounts.saveCurrent({
+      progress: this.progress,
+      runState: this.runState,
+      lastOptions: this.lastOptions,
+      sectorCleared: this.sectorCleared
+    }).catch(err => {
+      this.showToast(`NO SE PUDO GUARDAR: ${err.message}`);
+      return false;
+    });
+  }
+
+  applyAccount(account, save) {
+    this.currentAccount = account;
+    const source = save?.progress || (this.accounts?.manifest?.accounts.length === 1
+      ? this.readLegacyProgress() : null);
+    this.progress = this.sanitizeProgress(source);
+    this.game.credits = this.progress.credits || 0;
+    this.runState = save?.runState || null;
+    this.lastOptions = save?.lastOptions || null;
+    this.sectorCleared = Number(save?.sectorCleared) || 0;
+    this.selectedBoard = this.progress.boardId || '3x3';
+    this.selectedHammer = 'pulso';
+    this.selectedChips = new Set(['volc_bomb']);
+    this.applySettings();
+    this.refreshMenuIdentity();
+    this.persist();
+  }
+
+  async handleAuth(mode, event) {
+    event.preventDefault();
+    const prefix = mode === 'register' ? 'register' : 'login';
+    const nickname = document.getElementById(`${prefix}-nickname`)?.value || '';
+    const password = document.getElementById(`${prefix}-password`)?.value || '';
+    this.setLauncherError('');
+    const btn = event.target.querySelector('button[type="submit"]');
+    if (btn) btn.disabled = true;
     try {
-      const data = this.loadProgress();
-      data.credits = this.game.credits;
-      if (includeScore) {
-        data.bestScore = Math.max(data.bestScore || 0, this.game.score.score);
-        data.bestCombo = Math.max(data.bestCombo || 0, this.game.score.maxCombo);
-        const board = this.game.boardId || '3x3';
-        data.bestScoreByBoard = data.bestScoreByBoard || {};
-        data.bestScoreByBoard[board] = Math.max(data.bestScoreByBoard[board] || 0, this.game.score.score);
+      const result = mode === 'register'
+        ? await this.accounts.register(nickname, password)
+        : await this.accounts.login(nickname, password);
+      this.applyAccount(result.account, result.save);
+      this.showScreen('menu');
+      this.showToast(mode === 'register'
+        ? `CUENTA CREADA · BIENVENIDA, ${result.account.nickname.toUpperCase()}`
+        : `BIENVENIDA, ${result.account.nickname.toUpperCase()}`);
+    } catch (err) {
+      this.setLauncherError(err?.message || 'No se pudo abrir la cuenta.');
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  }
+
+  async linkFolder() {
+    this.setLauncherError('');
+    const result = await this.accounts.connectFolder();
+    if (!result.ok) { this.setLauncherError(result.error); return; }
+    this.refreshLauncher();
+    if (this.accounts.canPlay()) {
+      this.applyAccount(this.accounts.current, this.accounts.currentSave);
+      this.showScreen('menu');
+    }
+  }
+
+  async grantFolder() {
+    this.setLauncherError('');
+    const result = await this.accounts.grantFolder();
+    if (!result.ok) { this.setLauncherError(result.error); return; }
+    this.refreshLauncher();
+    if (this.accounts.canPlay()) {
+      this.applyAccount(this.accounts.current, this.accounts.currentSave);
+      this.showScreen('menu');
+    }
+  }
+
+  async logoutToLauncher() {
+    await this.persist();
+    await this.accounts.logout();
+    this.currentAccount = null;
+    this.runState = null;
+    this.lastOptions = null;
+    this.sectorCleared = 0;
+    this.showScreen('launcher');
+  }
+
+  resumeSavedRun() {
+    if (!this.runState) return;
+    this.startCycle({
+      ...(this.lastOptions || {}),
+      continueRun: true,
+      run: this.runState
+    });
+  }
+
+  setLauncherError(message) {
+    const el = document.getElementById('launcher-error');
+    if (el) el.textContent = message || '';
+  }
+
+  setAuthMode(mode) {
+    const isRegister = mode === 'register';
+    document.getElementById('form-login')?.classList.toggle('hidden', isRegister);
+    document.getElementById('form-register')?.classList.toggle('hidden', !isRegister);
+    const loginTab = document.getElementById('tab-login');
+    const registerTab = document.getElementById('tab-register');
+    loginTab?.classList.toggle('selected', !isRegister);
+    registerTab?.classList.toggle('selected', isRegister);
+    loginTab?.setAttribute('aria-selected', String(!isRegister));
+    registerTab?.setAttribute('aria-selected', String(isRegister));
+    this.setLauncherError('');
+  }
+
+  selectProfile(id) {
+    const account = this.accounts?.manifest?.accounts.find(a => a.id === id);
+    if (!account) return;
+    const input = document.getElementById('login-nickname');
+    if (input) input.value = account.nickname;
+    this.setAuthMode('login');
+    document.getElementById('login-password')?.focus();
+  }
+
+  refreshLauncher() {
+    const list = document.getElementById('launcher-profiles');
+    const empty = document.getElementById('launcher-empty');
+    const accounts = this.accounts?.manifest?.accounts || [];
+    if (list) {
+      list.innerHTML = '';
+      accounts.forEach(account => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'profile-card';
+        btn.dataset.account = account.id;
+        btn.setAttribute('aria-label', `Perfil ${account.nickname}`);
+        const initials = account.nickname.split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
+        const meta = account.lastPlayed
+          ? new Date(account.lastPlayed).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })
+          : 'NUEVO';
+        btn.innerHTML = `
+          <span class="avatar" style="background:${account.color};box-shadow:0 0 16px ${account.color}66">${initials}</span>
+          <span class="profile-name">${this.escapeHtml(account.nickname)}</span>
+          <span class="profile-meta">${meta}</span>`;
+        list.appendChild(btn);
+      });
+    }
+    if (empty) empty.classList.toggle('hidden', accounts.length > 0);
+    const storage = document.getElementById('launcher-storage');
+    if (storage) storage.textContent = this.accounts?.storageLabel() || 'DATASAVE · NAVEGADOR';
+    const linkFolder = document.getElementById('btn-link-folder');
+    if (linkFolder) linkFolder.classList.toggle('hidden', !this.accounts?.supportsFs || !!this.accounts?.directory);
+    const grant = document.getElementById('btn-folder-access');
+    if (grant) grant.classList.toggle('hidden', !this.accounts?.needsPermission);
+    const folderName = document.getElementById('folder-name');
+    if (folderName) {
+      folderName.textContent = this.accounts?.mode === 'fs' ? `Carpeta: ${this.accounts.directory?.name || 'datasave'}` : '';
+      folderName.classList.toggle('hidden', this.accounts?.mode !== 'fs');
+    }
+  }
+
+  refreshMenuIdentity() {
+    const user = document.getElementById('menu-user');
+    if (user) user.textContent = this.currentAccount?.nickname || '—';
+    const resume = document.getElementById('btn-resume-save');
+    if (resume) {
+      resume.classList.toggle('hidden', !this.runState);
+      if (this.runState) {
+        const next = Math.min(999, (Number(this.runState.cyclesDone) || 0) + 1);
+        resume.textContent = `CONTINUAR PARTIDA · C${next}`;
       }
-      data.upgrades = this.progress.upgrades || {};
-      data.unlocked = this.progress.unlocked || [];
-      data.settings = this.progress.settings || {};
-      data.sector = this.progress.sector || 1;
-      data.bossDefeated = this.progress.bossDefeated || [];
-      data.cycles = this.progress.cycles || 0;
-      data.endlessBest = this.progress.endlessBest || 0;
-      data.ending = !!this.progress.ending;
-      data.ascension = this.progress.ascension || 0;
-      data.endingChoice = this.progress.endingChoice || null;
-      data.dailyBest = this.progress.dailyBest || {};
-      data.dailyRuns = this.progress.dailyRuns || {};
-      data.dailyStreak = this.progress.dailyStreak || 0;
-      data.endingReward = this.progress.endingReward || null;
-      data.abilities = this.progress.abilities || {};
-      data.ownedCursors = this.progress.ownedCursors || ['pulso'];
-      data.boardId = this.progress.boardId || '3x3';
-      data.bestScoreByBoard = this.progress.bestScoreByBoard || {};
-      data.fakeEndings = this.progress.fakeEndings || 0;
-      data.bossKills = this.progress.bossKills || 0;
-      localStorage.setItem('overclock9_progress', JSON.stringify(data));
-      this.progress = data;
-    } catch (e) { /* localStorage no disponible */ }
+    }
+  }
+
+  escapeHtml(value) {
+    return String(value).replace(/[&<>"']/g, ch => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[ch]);
   }
 
   applySettings() {
@@ -237,8 +418,23 @@ export class UI {
   }
 
   bindUI() {
+    // Launcher
+    document.getElementById('form-login')?.addEventListener('submit', e => this.handleAuth('login', e));
+    document.getElementById('form-register')?.addEventListener('submit', e => this.handleAuth('register', e));
+    this.onClick('tab-login', () => this.setAuthMode('login'));
+    this.onClick('tab-register', () => this.setAuthMode('register'));
+    this.onClick('btn-link-folder', () => this.linkFolder());
+    this.onClick('btn-folder-access', () => this.grantFolder());
+    const profileRoot = document.getElementById('launcher-profiles');
+    profileRoot?.addEventListener('click', e => {
+      const card = e.target.closest('[data-account]');
+      if (card) this.selectProfile(card.dataset.account);
+    });
+
     // Menú
-    this.onClick('btn-jugar', () => { this.runState = null; this.showScreen('prep'); });
+    this.onClick('btn-jugar', () => { this.runState = null; this.lastOptions = null; this.persist(); this.showScreen('prep'); });
+    this.onClick('btn-resume-save', () => this.resumeSavedRun());
+    this.onClick('btn-cambiar-usuario', () => this.logoutToLauncher());
     this.onClick('btn-daily', () => this.startCycle({
       daily: true, seed: this.dailySeed(), date: this.dailyKey(), sector: 1, board: '3x3'
     }));
@@ -348,7 +544,7 @@ export class UI {
 
     // Pausa
     this.onClick('btn-resume', () => { this.game.resume(); this.showPause(false); });
-    this.onClick('btn-exit-pause', () => { this.game.startMenu(); this.showScreen('menu'); });
+    this.onClick('btn-exit-pause', () => { this.persist(); this.game.startMenu(); this.showScreen('menu'); });
 
     // Tecla ESC para pausa
     window.addEventListener('keydown', (e) => {
@@ -479,13 +675,24 @@ export class UI {
   // ---------- Navegación ----------
 
   showScreen(name) {
+    if (name !== 'launcher' && !this.accounts?.canPlay()) {
+      name = 'launcher';
+    }
     Object.values(this.screens).forEach(s => {
       if (s) { s.classList.remove('active'); s.classList.add('hidden'); }
     });
     this.pauseOverlay.classList.add('hidden');
     this.hud.classList.add('hidden');
 
-    if (name === 'menu') {
+    if (name === 'launcher') {
+      this.refreshLauncher();
+      this.setAuthMode('login');
+      this.screens.launcher?.classList.remove('hidden');
+      this.screens.launcher?.classList.add('active');
+      this.audio.stopMusic();
+      requestAnimationFrame(() => document.getElementById('login-nickname')?.focus());
+    } else if (name === 'menu') {
+      this.refreshMenuIdentity();
       this.screens.menu.classList.remove('hidden');
       this.screens.menu.classList.add('active');
       this.audio.stopMusic();

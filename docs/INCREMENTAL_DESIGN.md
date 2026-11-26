@@ -260,7 +260,7 @@ Las secciones 2–4 describen el diseño incremental original (15 nodos, 15 Chip
 - El combo es el multiplicador dominante: `1 + min(combo,50)·0.04`, aplicado **después** de puntuar cada golpe (primer golpe ×1). `Sincronía` conserva una fracción del combo, pero nunca lo crea desde cero.
 - Nova sigue siendo recompensa: rara, nunca en Jackpot, limpia solo los núcleos presentes en la explosión, paga su valor real, no cuenta como bomba y conserva el combo. `SURGE NOVA` / `Resonancia Nova` aumentan pago y radio y añaden un tercer anillo visual.
 
-**Criterio de salida del catálogo:** 56/56 tests (`tests/game.test.mjs`), `node --check` limpio en los 8 módulos, 0 errores de consola en navegador, compras y persistencia verificadas tras recarga, listas visibles y desplazables a 390×844, y latencia input→SFX < 100 ms con evento humano confiable.
+**Criterio de salida del catálogo:** 61/61 tests (`game` + `accounts`), `node --check` limpio en los 9 módulos, 0 errores de consola en navegador, compras y persistencia verificadas tras recarga, listas visibles y desplazables a 390×844, cuentas separadas por perfil en `datasave`, y latencia input→SFX < 100 ms con evento humano confiable.
 
 ---
 
@@ -307,9 +307,10 @@ La implementación reside en `js/balance.js` (constantes), `js/game.js` (motor y
 
 | Verificación | Resultado |
 |---|---|
-| `node --check` en 8 módulos | Limpio |
-| `node --test tests/game.test.mjs` | 56/56 |
-| Viewport `390×844` (iframe real) | Tablero `5×4` centrado, 20 hoyos, HUD sin solapamiento, 0 errores de consola |
+| `node --check` en 9 módulos | Limpio |
+| `node --test tests/game.test.mjs tests/accounts.test.mjs` | 61/61 |
+| Viewport `390×844` (iframe real) | Launcher sin desbordamiento y tablero `5×4` centrado, 20 hoyos, HUD sin solapamiento, 0 errores de consola |
+| Cuentas | Launcher con perfiles vinculados; registro/login con hash PBKDF2, sin contraseña en texto plano; dos perfiles con progreso y run independientes |
 | Selector de tablero | Los tres `div[data-board]` responden a `pointerdown`; `boardId` persiste en `localStorage` |
 | Tap / arrastre rojo | Tap resta combo y V; arrastre `70 px` purga sin castigo, también en clúster |
 | Falso Final | Congela 5 s, activa Pesadilla, termina solo y **no** se dispara dos veces |
@@ -324,4 +325,4 @@ La implementación reside en `js/balance.js` (constantes), `js/game.js` (motor y
 | Resultados | Sin replay del error; tarjeta con informe completo de la run |
 | Diario | `3×3`, sin jefe, sin blanco, `pulso` y carga vacía |
 
-**Supuestos pendientes:** medición de FPS y audio en Android físico (sin dispositivo ni `kotlinc` en este entorno); validación visual humana de estelas, glifos y Pesadilla; latencia acústica extremo a extremo con evento `isTrusted` y dispositivo real. El selector de tablero se corrigió durante esta QA: el delegado buscaba `button[data-board]` y las opciones son `div`.
+**Supuestos pendientes:** medición de FPS y audio en Android físico (sin dispositivo ni `kotlinc` en este entorno); validación visual humana de estelas, glifos y Pesadilla; latencia acústica extremo a extremo con evento `isTrusted` y dispositivo real; el selector nativo de carpeta requiere un gesto humano y no se puede automatizar en QA, pero el botón y el fallback se verificaron en navegador. El selector de tablero se corrigió durante esta QA: el delegado buscaba `button[data-board]` y las opciones son `div`.
