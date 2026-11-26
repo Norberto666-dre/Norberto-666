@@ -2,6 +2,7 @@
 // Valor base de cada núcleo. El "peor" (estándar/rojo) paga 20 puntos antes de multiplicadores.
 const CORE_VALUES = { standard: 20, crono: 40, bomb: 20, nova: 60, white: 100 };
 const CLUSTER_BONUS_PER_CORE = CORE_VALUES.standard;
+const VOLTAGE_MARGIN = 0.15;
 
 export const BALANCE = {
   core: {
@@ -17,7 +18,8 @@ export const BALANCE = {
     bossDrainMult: 0.8,
     rearmBelow: 95,
     maxTier: 5,
-    tierRefill: 0.15, // al subir de ×N, la barra se reinicia con un 15 % de margen
+    tierRefill: VOLTAGE_MARGIN, // al subir de ×N, la barra se reinicia con margen
+    emptyRefill: VOLTAGE_MARGIN, // al vaciarse: baja un peldaño y recarga el mismo margen
     gain: { normal: 2, perfect: 3, connected: 4, boss: 0, crono: 4, nova: 6 },
     red: { drainPerSec: 5, tapPenalty: 8, escapePenalty: 10, tapCombo: 1, tapComboLinked: 2, dragThresholdPx: 60 },
     freezeSeconds: 5

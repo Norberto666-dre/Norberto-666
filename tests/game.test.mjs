@@ -148,6 +148,16 @@ test('startCycle inicializa voltaje, sin temporizador y con tier de la run', () 
   assert.equal(g.screen, 'playing');
 });
 
+test('Tras terminar en ×0, una nueva partida vuelve a arrancar en ×1', () => {
+  const g = makeGame();
+  g.run.tier = 0;
+  g.startCycle({}, { continueRun: true, run: g.run, board: '3x3' });
+  assert.equal(g.voltageTier, 1);
+  assert.equal(g.run.tier, 1);
+  assert.equal(g.voltage, BALANCE.voltage.start);
+  assert.equal(g.screen, 'playing');
+});
+
 test('Golpes normal, Perfecto y enlazado suman 2/3/4 de voltaje', () => {
   const g = start(makeGame());
   g.voltage = 40;
@@ -193,7 +203,55 @@ test('Llenar la barra sube un nivel de voltaje una sola vez y respeta el tope ×
   assert.equal(g.voltageTier, BALANCE.voltage.maxTier);
 });
 
-test('Llegar a 0 voltaje cierra el ciclo y liquida floor(score/10)', () => {
+test('Vaciarse desincrementa ×3 → ×2 → ×1 → 0 y recarga el 15 % en cada paso', () => {
+  const g = start(makeGame());
+  g.spawnTimer = 10;
+  g.voltageTier = 3;
+  g.run.tier = 3;
+  const refill = BALANCE.voltage.max * BALANCE.voltage.emptyRefill;
+  let callbacks = 0;
+  g.onEndCycle = () => callbacks++;
+
+  g.voltage = 0.001;
+  g.update(0.1);
+  assert.equal(g.voltageTier, 2);
+  assert.equal(g.run.tier, 2);
+  near(g.voltage, refill);
+  assert.equal(g.voltageArmed, true);
+  assert.equal(g.screen, 'playing');
+  assert.equal(callbacks, 0);
+
+  g.voltage = 0.001;
+  g.update(0.1);
+  assert.equal(g.voltageTier, 1);
+  near(g.voltage, refill);
+  assert.equal(g.screen, 'playing');
+  assert.equal(callbacks, 0);
+
+  g.voltage = 0.001;
+  g.update(0.1);
+  assert.equal(g.voltageTier, 0);
+  assert.equal(g.run.tier, 0);
+  assert.equal(g.voltage, 0);
+  assert.equal(g.screen, 'results');
+  assert.equal(callbacks, 1);
+});
+
+test('Después de vaciarse, llenar la barra recupera el peldaño perdido', () => {
+  const g = start(makeGame());
+  g.spawnTimer = 10;
+  g.voltageTier = 3;
+  g.run.tier = 3;
+  g.voltage = 0.001;
+  g.update(0.1);
+  assert.equal(g.voltageTier, 2);
+  near(g.voltage, BALANCE.voltage.max * BALANCE.voltage.emptyRefill);
+  g.addVoltage(BALANCE.voltage.max);
+  assert.equal(g.voltageTier, 3);
+  near(g.voltage, BALANCE.voltage.max * BALANCE.voltage.tierRefill);
+});
+
+test('Llegar a 0 voltaje en ×1 cierra el ciclo y liquida floor(score/10)', () => {
   const g = start(makeGame());
   let callbacks = 0;
   g.onEndCycle = () => callbacks++;
@@ -201,6 +259,7 @@ test('Llegar a 0 voltaje cierra el ciclo y liquida floor(score/10)', () => {
   g.voltage = 0.001;
   g.update(0.1);
   assert.equal(g.voltage, 0);
+  assert.equal(g.voltageTier, 0);
   assert.equal(g.screen, 'results');
   assert.equal(g.credits, 5000);
   assert.equal(g.creditsGained, 5000);

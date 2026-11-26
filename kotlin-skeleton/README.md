@@ -16,7 +16,7 @@ Carpeta de **diseño técnico**, no un proyecto Android Studio completo. Contien
 
 ## Notas de integración
 
-- El voltaje sustituye al temporizador: drena `3.0 + 0.4×(sector−1)` por segundo (`×0.8` con jefe vivo, `+5` por núcleo rojo activo). Llegar a 0 cierra el ciclo/run y liquida `floor(score/10)` CR.
+- El voltaje sustituye al temporizador: drena `3.0 + 0.4×(sector−1)` por segundo (`×0.8` con jefe vivo, `+5` por núcleo rojo activo). Al vaciarse baja un peldaño y recarga el `15 %` (`×3 → ×2 → ×1 → 0`); solo al vaciarse en `×0` cierra el ciclo/run y liquida `floor(score/10)` CR.
 - Llenar la barra sube un tier de multiplicador hasta `×5`; se conserva durante toda la run de hasta 999 ciclos. Se requiere rearmar por debajo de 95 para volver a subir.
 - Tableros: `3×3` inicial, `4×3` a 100 000 puntos y `5×4` a 1 000 000. El Diario fuerza `3×3`, sin jefe, sin núcleo blanco y con `Loadout.daily()`.
 - Overdrive ya no es mecánica. `timeScale` queda reservado para depuración/editor y debe ser `1.0` en partida; la banda y el destello pertenecen ahora al Falso Final (5 s de congelación y skin Pesadilla).

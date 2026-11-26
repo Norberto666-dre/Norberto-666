@@ -4,9 +4,9 @@ import kotlin.math.max
 import kotlin.math.min
 
 /**
- * Voltaje-vida del arcade. Sustituye al temporizador: drena con el tiempo y
- * al llegar a 0 cierra el ciclo. Llenar la barra sube un tier de multiplicador
- * que se conserva durante toda la run.
+ * Voltaje-vida del arcade. Sustituye al temporizador: drena con el tiempo.
+ * Llenar la barra sube un tier de multiplicador; al vaciarse baja un peldaño
+ * y recarga el 15 % (×3 → ×2 → ×1 → 0). Solo en ×0 cierra el ciclo.
  */
 class VoltageState(
     var voltage: Double = Balance.VOLTAGE_START,
@@ -14,7 +14,23 @@ class VoltageState(
     var armed: Boolean = false,
     var freezeSeconds: Double = 0.0
 ) {
-    val depleted: Boolean get() = voltage <= 0.0
+    val depleted: Boolean get() = voltage <= 0.0 && tier <= 0
+
+    /**
+     * Al vaciarse: desincrementa el multiplicador y recarga el margen.
+     * Devuelve false solo cuando se llega a ×0 y debe cerrarse la run.
+     */
+    fun demote(): Boolean {
+        if (voltage > 0.0) return true
+        tier = max(0, tier - 1)
+        if (tier == 0) {
+            voltage = 0.0
+            return false
+        }
+        voltage = Balance.VOLTAGE_MAX * Balance.EMPTY_REFILL
+        armed = true
+        return true
+    }
 
     /** Devuelve el número de tiers ganados (0 o 1) para anunciar el evento. */
     fun addGain(coreType: String): Int {
@@ -24,6 +40,7 @@ class VoltageState(
         if (voltage >= Balance.VOLTAGE_MAX && armed && tier < Balance.MAX_TIER) {
             armed = false
             tier++
+            voltage = Balance.VOLTAGE_MAX * Balance.TIER_REFILL
             return 1
         }
         return 0
@@ -43,7 +60,8 @@ class VoltageState(
         val bossMult = if (bossActive) Balance.BOSS_DRAIN_MULT else 1.0
         val redDrain = Balance.Red.DRAIN_PER_SEC * max(0, redActive)
         voltage = max(0.0, voltage - (sectorDrain * bossMult + redDrain) * realDt)
-        if (voltage < Balance.REARM_BELOW) armed = true
+        if (voltage == 0.0) demote()
+        else if (voltage < Balance.REARM_BELOW) armed = true
         return voltage
     }
 

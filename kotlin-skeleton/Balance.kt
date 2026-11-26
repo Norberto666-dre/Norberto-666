@@ -13,6 +13,7 @@ object Balance {
     const val REARM_BELOW = 95.0
     const val MAX_TIER = 5
     const val TIER_REFILL = 0.15 // 15 % de margen al subir de peldaño
+    const val EMPTY_REFILL = 0.15 // al vaciarse: baja un peldaño y recarga el margen
     const val FREEZE_SECONDS = 5.0
 
     const val CREDITS_PER_SCORE = 0.1

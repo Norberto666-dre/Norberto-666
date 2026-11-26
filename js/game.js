@@ -646,7 +646,9 @@ export class Game {
     else if (options.run) this.run = { ...this.freshRun(), ...options.run };
     this.run.lastBoard = this.boardId;
     this.runComplete = false;
-    this.voltageTier = this.run.tier;
+    // ×0 cierra la run; al reanudar se arranca de nuevo desde el peldaño base.
+    this.voltageTier = Math.max(1, Number(this.run.tier) || 1);
+    this.run.tier = this.voltageTier;
     this.bossMode = !!options.bossMode || (!options.daily && this.run.nextBoss);
     if (!this.bossMode) this.run.nextBoss = false;
     this.sector = options.sector || this.sector || 1;
@@ -805,7 +807,8 @@ export class Game {
         this.voltage = Math.max(0, this.voltage - rate * effectiveDt);
         if (this.voltage < BALANCE.voltage.rearmBelow) this.voltageArmed = true;
       }
-      if (this.voltage <= 0) {
+      if (this.voltage <= 0 && !this.demoteVoltageTier()) {
+        // ×1 → 0: no hay margen restante, la run se cierra aquí.
         this.voltage = 0;
         this.endCycle();
         return;
@@ -1359,6 +1362,31 @@ export class Game {
   }
 
   // ---------- Voltaje, Falso Final y Nova ----------
+
+  /**
+   * Al vaciarse la barra se desincrementa el multiplicador y se recarga un 15 %
+   * de margen: ×3 → ×2 → ×1 → 0. Devuelve false solo cuando llega a 0 y el
+   * llamador debe cerrar la run.
+   */
+  demoteVoltageTier() {
+    if (this.voltage > 0) return true;
+    this.voltageTier = Math.max(0, this.voltageTier - 1);
+    this.run.tier = this.voltageTier;
+    this.audio.playGlitch(false);
+    if (this.voltageTier <= 0) {
+      this.voltage = 0;
+      this.triggerFlash(0.4);
+      this.triggerShake(12);
+      this.spawnPopupAtCenter('VOLTAJE ×0 · FIN', '#ff0033');
+      return false;
+    }
+    this.voltage = BALANCE.voltage.max * BALANCE.voltage.emptyRefill;
+    this.voltageArmed = true; // permite recuperar el peldaño al volver a llenar
+    this.triggerFlash(0.25);
+    this.triggerShake(8);
+    this.spawnPopupAtCenter(`VOLTAJE ×${this.voltageTier} · MARGEN 15 %`, '#ffcc00');
+    return true;
+  }
 
   addVoltage(amt) {
     const before = this.voltage;

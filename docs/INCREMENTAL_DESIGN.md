@@ -37,11 +37,12 @@ drena/s       = (3.0 + 0.4×(sector−1)) × (jefeVivo ? 0.8 : 1)
 ganancia      = normal 2 / Perfecto 3 / enlazado 4 / rojo 0 / jefe 0
 subirTier     = Voltage=100 y rearmado por debajo de 95 (una vez por llenado)
                 → Voltage=15 (15 % de margen) y tier++ hasta ×5
-fin           = Voltage=0 → cierra ciclo o run y liquida puntos
+vaciarse      = Voltage=0 → tier-- y Voltage=15 (margen): ×3→×2→×1→0
+fin           = Voltage=0 en ×0 → cierra ciclo o run y liquida puntos
 congelación   = Falso Final: 5 s sin drenaje
 ```
 
-No hay temporizador: el voltaje es simultáneamente recurso, vida y medida de presión. Llenar la barra no reinicia el ciclo; sube un peldaño de multiplicador que se aplica también al botín del jefe. Al subir de peldaño la barra vuelve a `15`, no a `100`, para que el jugador tenga margen de error antes del siguiente llenado; si la barra llega a `0`, la run termina.
+No hay temporizador: el voltaje es simultáneamente recurso, vida y medida de presión. Llenar la barra no reinicia el ciclo; sube un peldaño de multiplicador que se aplica también al botín del jefe. Al subir de peldaño la barra vuelve a `15`, no a `100`. Al vaciarse la barra **no termina de inmediato**: el multiplicador se desincrementa y la barra se recarga al mismo `15 %` de margen (`×3 → ×2 → ×1 → 0`); solo al vaciarse en `×0` termina el ciclo o la run y se liquidan los puntos.
 
 **Cierre de ciclo y run**
 
@@ -260,7 +261,7 @@ Las secciones 2–4 describen el diseño incremental original (15 nodos, 15 Chip
 - El combo es el multiplicador dominante: `1 + min(combo,50)·0.04`, aplicado **después** de puntuar cada golpe (primer golpe ×1). `Sincronía` conserva una fracción del combo, pero nunca lo crea desde cero.
 - Nova sigue siendo recompensa: rara, nunca en Jackpot, limpia solo los núcleos presentes en la explosión, paga su valor real, no cuenta como bomba y conserva el combo. `SURGE NOVA` / `Resonancia Nova` aumentan pago y radio y añaden un tercer anillo visual.
 
-**Criterio de salida del catálogo:** 61/61 tests (`game` + `accounts`), `node --check` limpio en los 9 módulos, 0 errores de consola en navegador, compras y persistencia verificadas tras recarga, listas visibles y desplazables a 390×844, cuentas separadas por perfil en `datasave`, y latencia input→SFX < 100 ms con evento humano confiable.
+**Criterio de salida del catálogo:** 64/64 tests (`game` + `accounts`), `node --check` limpio en los 9 módulos, 0 errores de consola en navegador, compras y persistencia verificadas tras recarga, listas visibles y desplazables a 390×844, cuentas separadas por perfil en `datasave`, desincrementación `×3→×2→×1→0` verificada en motor y HUD, y latencia input→SFX < 100 ms con evento humano confiable.
 
 ---
 
@@ -308,7 +309,8 @@ La implementación reside en `js/balance.js` (constantes), `js/game.js` (motor y
 | Verificación | Resultado |
 |---|---|
 | `node --check` en 9 módulos | Limpio |
-| `node --test tests/game.test.mjs tests/accounts.test.mjs` | 61/61 |
+| `node --test tests/game.test.mjs tests/accounts.test.mjs` | 64/64 |
+| Vaciado de barra | `×3 → ×2 → ×1 → 0` con recarga al 15 %; fin solo en `×0`; reinicio en `×1` |
 | Viewport `390×844` (iframe real) | Launcher sin desbordamiento y tablero `5×4` centrado, 20 hoyos, HUD sin solapamiento, 0 errores de consola |
 | Cuentas | Launcher con perfiles vinculados; registro/login con hash PBKDF2, sin contraseña en texto plano; dos perfiles con progreso y run independientes |
 | Selector de tablero | Los tres `div[data-board]` responden a `pointerdown`; `boardId` persiste en `localStorage` |
