@@ -14,7 +14,7 @@ export const ABILITIES = [
   { id: 'ab_denso', name: 'Núcleo Denso', cost: 600, growth: 1.6, max: 5, desc: '+8% valor de golpe / NV' },
   { id: 'ab_cadena', name: 'Cadena', cost: 1800, growth: 1.7, max: 3, desc: '+1 alcance del rayo / NV' },
   { id: 'ab_sobrecarga', name: 'Sobrecarga', cost: 4500, growth: 1.7, max: 4, desc: '+10% voltaje ganado / NV' },
-  { id: 'ab_rompe', name: 'Rompejefes', cost: 12000, growth: 1.8, max: 3, desc: '+12% daño a jefes / NV' },
+  { id: 'ab_rompe', name: 'Rompejefes', cost: 12000, growth: 1.8, max: 3, desc: '+12% puntos al golpear jefes / NV' },
   { id: 'ab_eco', name: 'Generador de Eco', cost: 1000, growth: 1.6, max: 5, desc: '+2% créditos al cerrar ciclo / NV' },
   { id: 'ab_memoria', name: 'Memoria Térmica', cost: 3500, growth: 1.7, max: 4, desc: '+15 voltaje inicial / NV' },
   { id: 'ab_cache', name: 'Caché de Chips', cost: 7000, growth: 1.9, max: 2, desc: '+1 slot de Chip / NV' },
@@ -77,7 +77,7 @@ export const CURSORS = [
   { id: 'nova', name: 'NOVA', color: '#ff8a00', trail: 'star', cost: 0, unlock: 'boss2', skill: '+10% pago Nova' },
   { id: 'prisma', name: 'PRISMA', color: '#ff40d0', trail: 'mirror', cost: 0, unlock: 'boss3', skill: '+8% en golpes reflejados' },
   { id: 'criogenico', name: 'CRIOGÉNICO', color: '#8ff6ff', trail: 'frost', cost: 0, unlock: 'boss4', skill: 'Hielo 25% más corto' },
-  { id: 'nucleo', name: 'NÚCLEO', color: '#ffffff', trail: 'halo', cost: 0, unlock: 'prestige', skill: '+20% daño a jefes' },
+  { id: 'nucleo', name: 'NÚCLEO', color: '#ffffff', trail: 'halo', cost: 0, unlock: 'prestige', skill: '+20% puntos al golpear jefes' },
   { id: 'fantasma', name: 'FANTASMA', color: '#7b8cff', trail: 'ghost', cost: 32000, unlock: 'shop', skill: 'Un fallo no rompe el combo' },
   { id: 'overclock', name: 'OVERCLOCK', color: '#ff3355', trail: 'rainbow', cost: 50000, unlock: 'shop', skill: '+10% duración de núcleos, −10% telegrafía' }
 ];

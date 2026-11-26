@@ -251,7 +251,6 @@ export class UI {
 
     // Preparación
     this.onClick('btn-iniciar', () => this.startCycle({ sector: this.progress.sector || 1 }));
-    this.onClick('btn-boss', () => this.startCycle({ bossMode: true, sector: this.progress.sector || 1 }));
     this.onClick('btn-volver-menu', () => this.showScreen('menu'));
 
     // Mejoras
@@ -541,7 +540,7 @@ export class UI {
     this.sectorCleared = 0;
     this.progress.cycles = (this.progress.cycles || 0) + 1;
     this.writeProgress(false);
-    // Cada jefe (manual o cada 5 ciclos) desbloquea su chip al caer.
+    // Cada jefe (uno cada 5 ciclos) desbloquea su chip al caer.
     this.game.onBossDefeatedCb = (info) => {
       const sector = info && info.sector ? info.sector : 1;
       this.sectorCleared = sector;

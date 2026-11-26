@@ -7,10 +7,11 @@ Arcade de reflejos y progresión roguelite, jugable en navegador y Android. Dise
 - **Tap** en un núcleo activo para golpearlo.
 - **Arrastra** un núcleo rojo hacia un borde (~60 px) para purgarlo sin castigo; tocarlo resta combo y voltaje.
 - El **voltaje es la vida**: drena con el tiempo; golpear recarga. Al llegar a 0 se cierra el ciclo y se liquidan créditos (`floor(puntuación / 10)`).
-- Llenar la barra sube un peldaño de multiplicador (`×1…×5`) que se conserva durante toda la run.
+- Llenar la barra sube un peldaño de multiplicador (`×1…×5`). La barra se reinicia al **15 %** para dar margen de error; el peldaño se conserva durante toda la run.
+- Cada núcleo paga **20 puntos base** como mínimo (Crono 40, Nova 60, blanco 100). Los combos y jefes siguen siendo el multiplicador dominante.
 - **Nova** (estrella dorada) es una sola explosión que paga el valor real de los núcleos que elimina.
 - **Falso Final** (núcleo blanco): una vez por ciclo, congela el voltaje 5 s y activa Pesadilla.
-- **Jefes**: uno cada 5 ciclos, con núcleo móvil que exige impactos activos.
+- **Jefes**: uno cada 5 ciclos, sin botón manual. Son 10 tipos en rotación (Gólem, Espejo, Prisma, Crio, Sobrecarga, Sifón, Taquígrafo, Enjambre, Apagón y Cerrojo); cada vuelta completa sube su nivel. Cada golpe quita el **5 %** de la vida máxima, así que hacen falta 20 impactos.
 
 Los núcleos aparecen cada vez más rápido: de `2.2 s` a `0.35 s` entre núcleos a lo largo de 180 s de run.
 
@@ -36,7 +37,7 @@ node --check js/balance.js   # y los otros módulos
 node --test tests/game.test.mjs
 ```
 
-La suite cubre voltaje, escalones de combo, tableros, rojos, clústers, jefes, Diario, Nova de una explosión, ritmo de aparición y economía.
+La suite (56 pruebas) cubre voltaje, reinicio de barra por tier, escalones de combo, tableros, rojos, clústers, rotación de 10 jefes y sus efectos de entorno, Diario, Nova de una explosión, ritmo de aparición y economía.
 
 ## Estructura
 

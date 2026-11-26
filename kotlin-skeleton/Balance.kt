@@ -12,6 +12,7 @@ object Balance {
     const val BOSS_DRAIN_MULT = 0.8
     const val REARM_BELOW = 95.0
     const val MAX_TIER = 5
+    const val TIER_REFILL = 0.15 // 15 % de margen al subir de peldaño
     const val FREEZE_SECONDS = 5.0
 
     const val CREDITS_PER_SCORE = 0.1
@@ -38,27 +39,45 @@ object Balance {
         const val DRAG_THRESHOLD_PX = 60f
     }
 
+    object Core {
+        // El peor núcleo paga 20 puntos antes de multiplicadores.
+        val VALUES = mapOf(
+            "standard" to 20, "crono" to 40, "bomb" to 20,
+            "nova" to 60, "white" to 100
+        )
+        const val CLUSTER_PER_CORE = 20
+        const val BOSS_HIT = 20
+    }
+
     object Boss {
-        const val DAMAGE_PER_HIT = 30.0
+        // Uno cada 5 ciclos; cada vuelta completa sube el nivel del jefe.
+        val ROTATION = listOf(
+            "golem", "mirror", "prisma", "crio", "sobrecarga",
+            "sifon", "taquigrafo", "enjambre", "apagon", "cerrojo"
+        )
+        const val HIT_PERCENT = 0.05 // 20 golpes = 100 %
+        const val LEVEL_HP_STEP = 0.12
         const val TELEPORT_EVERY = 3.0
         const val VANISH_SECONDS = 0.25
         const val ARRIVE_SECONDS = 0.4
-        const val NOVA_DAMAGE = 60.0
         val HP = mapOf(
-            "golem" to 300.0,
-            "mirror" to 260.0,
-            "prisma" to 240.0,
-            "crio" to 220.0,
-            "sobrecarga" to 280.0
+            "golem" to 300.0, "mirror" to 260.0, "prisma" to 240.0,
+            "crio" to 220.0, "sobrecarga" to 280.0, "sifon" to 260.0,
+            "taquigrafo" to 240.0, "enjambre" to 280.0,
+            "apagon" to 260.0, "cerrojo" to 300.0
         )
+        object Env {
+            const val SIPHON_DRAIN_PER_LEVEL = 2.5
+            const val TEMPO_FACTOR_PER_LEVEL = 0.08
+            const val SWARM_FACTOR_PER_LEVEL = 0.12
+            const val BLOCK_SECONDS = 3.2
+            const val BLACKOUT_TELEGRAPH = 0.06
+        }
     }
 
     object Nova {
         // Una sola explosión que paga el valor real de los núcleos eliminados.
-        val CORE_VALUES = mapOf(
-            "standard" to 100, "crono" to 200, "bomb" to 50,
-            "nova" to 300, "white" to 500
-        )
+        val CORE_VALUES get() = Core.VALUES
         const val HIT_STOP = 0.12
         const val SHAKE = 18f
         const val FLASH = 0.55f
@@ -74,7 +93,7 @@ object Balance {
     object White {
         const val MIN_COMBO = 5
         const val MAX_VOLTAGE = 60.0
-        const val SCORE_BONUS = 500.0
+        const val SCORE_BONUS = 100.0
     }
 
     object Links {
@@ -84,7 +103,7 @@ object Balance {
         const val TRAP_WINDOW = 1.2
         const val TRAPPED_LIFE_BONUS = 0.6
         const val COMBO_PER_EXTRA = 1
-        const val BONUS_PER_CORE = 60.0
+        const val BONUS_PER_CORE = 20.0
     }
 
     val BOARDS = listOf(

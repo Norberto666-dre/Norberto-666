@@ -68,7 +68,7 @@ export class ScoreManager {
     this.combo++;
     if (this.combo > this.maxCombo) this.maxCombo = this.combo;
     const pMult = perfect ? 2 : 1;
-    const gained = Math.floor(100 * this.multiplierFor(this.combo) * pMult * extraMult * runMult);
+    const gained = Math.floor(BALANCE.core.standard * this.multiplierFor(this.combo) * pMult * extraMult * runMult);
     this.score += gained;
     if (perfect) this.perfects++;
     this.multiplier = this.multiplierFor(this.combo);
@@ -258,29 +258,39 @@ export class Director {
   }
 }
 
-export const BOSS_BY_SECTOR = {
-  1: 'golem', 2: 'mirror', 3: 'prisma', 4: 'crio', 5: 'sobrecarga'
-};
+export const BOSS_ROTATION = BALANCE.boss.rotation;
+
+export const BOSS_BY_SECTOR = Object.fromEntries(
+  BOSS_ROTATION.map((type, i) => [i + 1, type])
+);
 
 export const BOSS_STYLE = {
   golem: { color: '#ff6a00', glyph: 'gear' },
   mirror: { color: '#cc00ff', glyph: 'diamond' },
   prisma: { color: '#ff40d0', glyph: 'triangle' },
   crio: { color: '#8ff6ff', glyph: 'frost' },
-  sobrecarga: { color: '#ff3355', glyph: 'bolt' }
+  sobrecarga: { color: '#ff3355', glyph: 'bolt' },
+  sifon: { color: '#00ff9c', glyph: 'siphon' },
+  taquigrafo: { color: '#ffe600', glyph: 'clock' },
+  enjambre: { color: '#ff8a3d', glyph: 'swarm' },
+  apagon: { color: '#7a7aff', glyph: 'void' },
+  cerrojo: { color: '#ff4fa3', glyph: 'lock' }
 };
 
 export class Boss {
-  constructor(type = 'golem') {
+  constructor(type = 'golem', level = 1) {
     this.type = type;
+    this.level = Math.max(1, level);
     this.maxHp = BALANCE.boss.hp[type] || 300;
     this.hp = this.maxHp;
     this.phase = 1;
     this.defeated = false;
     this.slamTimers = [3, 3.6];
     this.slammedRows = [];
+    this.blockedCols = [];
+    this.blockTimer = BALANCE.boss.env.blockSeconds;
     this.damageFlash = 0;
-    this.halves = null;
+    this.halves = [this.hp / 2, this.hp / 2];
 
     this.invertTimer = 6;
     this.invertRemaining = 0;
@@ -308,11 +318,12 @@ export class Boss {
   get hpPercent() { return this.hp / this.maxHp; }
   get vulnerable() { return !this.defeated && this.vanishing <= 0 && this.arriving <= 0; }
   get name() {
-    if (this.type === 'mirror') return 'NÚCLEO ESPEJO';
-    if (this.type === 'prisma') return 'PRISMA ÓPTICO';
-    if (this.type === 'crio') return 'CRIOGENERADOR';
-    if (this.type === 'sobrecarga') return 'SOBRECARGA';
-    return 'GÓLEM MECÁNICO';
+    const names = {
+      golem: 'GÓLEM MECÁNICO', mirror: 'NÚCLEO ESPEJO', prisma: 'PRISMA ÓPTICO',
+      crio: 'CRIOGENERADOR', sobrecarga: 'SOBRECARGA', sifon: 'SIFÓN DE VOLTAJE',
+      taquigrafo: 'TAQUÍGRAFO', enjambre: 'ENJAMBRE', apagon: 'APAGÓN', cerrojo: 'CERROJO'
+    };
+    return names[this.type] || 'GÓLEM MECÁNICO';
   }
 
   getPhase() {
@@ -324,11 +335,12 @@ export class Boss {
     this.invertJustStarted = false;
     this.invertJustEnded = false;
     this.overloadJustFired = false;
+    const pace = 1 + 0.12 * (this.level - 1);
 
     if (this.type === 'crio' && !this.defeated) {
-      this.crioTimer -= dt;
+      this.crioTimer -= dt * pace;
       if (this.crioTimer <= 0) {
-        this.crioTimer = this.phase === 3 ? 3.2 : 5;
+        this.crioTimer = (this.phase === 3 ? 3.2 : 5) / pace;
         this.slammedRows.push({
           row: Math.floor((this.rng || Math.random)() * this.rows),
           timer: this.phase === 3 ? 2.5 : 2,
@@ -338,9 +350,9 @@ export class Boss {
     }
 
     if (this.type === 'sobrecarga' && !this.defeated) {
-      this.overloadTimer -= dt;
+      this.overloadTimer -= dt * pace;
       if (this.overloadTimer <= 0) {
-        this.overloadTimer = this.phase === 3 ? 2 : this.phase === 2 ? 3 : 4;
+        this.overloadTimer = (this.phase === 3 ? 2 : this.phase === 2 ? 3 : 4) / pace;
         this.overloadJustFired = true;
       }
     }
@@ -349,9 +361,9 @@ export class Boss {
     if (this.phase >= 2 && !this.defeated) {
       const activeHalves = this.phase === 3 ? [0, 1] : [0];
       activeHalves.forEach(half => {
-        this.slamTimers[half] -= dt;
+        this.slamTimers[half] -= dt * pace;
         if (this.slamTimers[half] <= 0) {
-          this.slamTimers[half] = this.phase === 3 ? (half === 0 ? 2.2 : 3.1) : 4;
+          this.slamTimers[half] = (this.phase === 3 ? (half === 0 ? 2.2 : 3.1) : 4) / pace;
           const taken = this.slammedRows.filter(r => r.half !== half).map(r => r.row);
           const options = [];
           for (let row = 0; row < this.rows; row++) if (!taken.includes(row)) options.push(row);
@@ -369,12 +381,22 @@ export class Boss {
           this.invertJustEnded = true;
         }
       } else {
-        this.invertTimer -= dt;
+        this.invertTimer -= dt * pace;
         if (this.invertTimer <= 0) {
-          this.invertTimer = 9;
+          this.invertTimer = 9 / pace;
           this.invertRemaining = 3;
           this.invertJustStarted = true;
         }
+      }
+    }
+    if (this.type === 'cerrojo' && !this.defeated) {
+      this.blockTimer -= dt * pace;
+      if (this.blockTimer <= 0) {
+        this.blockTimer = BALANCE.boss.env.blockSeconds / pace;
+        const col = Math.floor((this.rng || Math.random)() * this.cols);
+        this.blockedCols = this.level >= 3
+          ? [col, (col + 1) % this.cols]
+          : [col];
       }
     }
     if (this.damageFlash > 0) this.damageFlash -= dt * 4;
@@ -399,21 +421,31 @@ export class Boss {
     this.pendingArrive = 0;
   }
 
-  hit(damage) {
+  // Cada golpe quita un porcentaje fijo de la vida máxima: 20 golpes = 100 %.
+  hit(percent = BALANCE.boss.hitPercent) {
     if (this.defeated) return;
+    const p = Math.min(1, Math.max(0, percent));
+    const damage = this.maxHp * p;
     if (this.phase < 3) {
-      this.hp = Math.max(0, this.hp - damage);
-      this.phase = this.getPhase();
-      if (this.phase === 3 && this.hp > 0) this.halves = [this.hp / 2, this.hp / 2];
+      this.hp = Math.max(0, Math.round((this.hp - damage) * 1000) / 1000);
+      const nextPhase = this.getPhase();
+      if (nextPhase === 3 && this.hp > 0) {
+        // Al entrar en la fase partida se reparte la vida restante en dos mitades.
+        this.halves = [this.hp / 2, this.hp / 2];
+      } else {
+        const first = Math.min(this.hp, this.maxHp / 2);
+        this.halves = [first, Math.max(0, this.hp - first)];
+      }
+      this.phase = nextPhase;
     } else {
-      if (!this.halves) this.halves = [this.hp / 2, this.hp / 2];
+      if (!this.halves || this.halves.length !== 2) this.halves = [this.hp / 2, this.hp / 2];
       let remaining = damage;
       for (let i = 0; i < 2 && remaining > 0; i++) {
         const applied = Math.min(this.halves[i], remaining);
-        this.halves[i] -= applied;
+        this.halves[i] = Math.round((this.halves[i] - applied) * 1000) / 1000;
         remaining -= applied;
       }
-      this.hp = this.halves[0] + this.halves[1];
+      this.hp = Math.round((this.halves[0] + this.halves[1]) * 1000) / 1000;
     }
     this.damageFlash = 1;
     this.hitsSinceTeleport++;
@@ -421,6 +453,7 @@ export class Boss {
   }
 
   isRowBlocked(row) { return this.slammedRows.some(r => r.row === row); }
+  isColBlocked(col) { return this.blockedCols.includes(col); }
 }
 
 export class Game {
@@ -617,6 +650,13 @@ export class Game {
     this.bossMode = !!options.bossMode || (!options.daily && this.run.nextBoss);
     if (!this.bossMode) this.run.nextBoss = false;
     this.sector = options.sector || this.sector || 1;
+    const bossOrdinal = this.run.nextBoss
+      ? Math.max(1, Math.ceil((this.run.cyclesDone || 0) / BALANCE.run.bossEvery))
+      : 1;
+    this.bossLevel = 1 + Math.floor((bossOrdinal - 1) / BOSS_ROTATION.length);
+    this.bossType = this.run.nextBoss && !options.bossMode
+      ? BOSS_ROTATION[(bossOrdinal - 1) % BOSS_ROTATION.length]
+      : (BOSS_BY_SECTOR[this.sector] || 'golem');
     this.endless = !!options.endless;
     this.endlessRounds = 0;
     this.endlessMistakes = 0;
@@ -681,7 +721,9 @@ export class Game {
     this.clutchActive = false;
     this.clutchTimer = 0;
 
-    this.boss = this.bossMode ? this.spawnBoss(BOSS_BY_SECTOR[this.sector] || 'golem') : null;
+    this.boss = this.bossMode
+      ? this.spawnBoss(this.bossType, (this.bossLevel - 1) * BALANCE.boss.levelHpStep, this.bossLevel)
+      : null;
     this.bossVictoryTimer = 0;
 
     this.audio.init();
@@ -692,14 +734,26 @@ export class Game {
   pause() { if (this.screen === SCREEN.PLAYING) { this.screen = 'paused'; } }
   resume() { if (this.screen === 'paused') { this.screen = SCREEN.PLAYING; } }
 
-  spawnBoss(type, extra = 0) {
-    const boss = this.scaleBoss(new Boss(type), extra);
+  spawnBoss(type, extra = 0, level = 1) {
+    const boss = this.scaleBoss(new Boss(type, level), extra);
     boss.cols = this.cols;
     boss.rows = this.rows;
     boss.rng = this.rng;
     boss.holeIndex = this.centerIndex();
     this.placeBossCore(boss.holeIndex);
+    this.applyBossEnvironment(boss);
+    this.spawnPopupAtCenter(`JEFE NV ${boss.level} · ${boss.name}`, boss.color);
     return boss;
+  }
+
+  // Cada jefe cambia el entorno. El nivel (vuelta de la rotación de 10) endurece el efecto.
+  applyBossEnvironment(boss) {
+    const env = BALANCE.boss.env;
+    if (boss.type === 'taquigrafo') {
+      const factor = Math.max(0.4, 1 - env.tempoFactorPerLevel * boss.level);
+      this.holeLifetimeMult *= factor;
+      this.telegraphScale = Math.max(0.4, this.telegraphScale * factor);
+    }
   }
 
   // El jefe es un núcleo móvil: occupy un hoyo real y solo se toca cuando aterriza.
@@ -740,8 +794,14 @@ export class Game {
       if (this.voltageFrozen <= 0) {
         const redDrain = this.holes.filter(h => h.state === HoleState.ACTIVE && h.core === CoreType.BOMB).length
           * BALANCE.voltage.red.drainPerSec;
-        const rate = BALANCE.voltage.drainPerSec + BALANCE.voltage.drainPerSector * (this.sector - 1)
+        const boss = this.boss && !this.boss.defeated ? this.boss : null;
+        const baseRate = BALANCE.voltage.drainPerSec + BALANCE.voltage.drainPerSector * (this.sector - 1)
           + redDrain;
+        const bossMult = boss ? BALANCE.voltage.bossDrainMult : 1;
+        // Sifón drena voltaje extra mientras vive; su intensidad crece con el nivel.
+        const siphonDrain = boss && boss.type === 'sifon'
+          ? BALANCE.boss.env.siphonDrainPerLevel * boss.level : 0;
+        const rate = baseRate * bossMult + siphonDrain;
         this.voltage = Math.max(0, this.voltage - rate * effectiveDt);
         if (this.voltage < BALANCE.voltage.rearmBelow) this.voltageArmed = true;
       }
@@ -847,9 +907,16 @@ export class Game {
   updateBoss(dt) {
     const boss = this.boss;
     boss.update(dt);
+    // Cerrojo puede cerrar la columna donde está el jefe: lo obliga asaltar.
+    if (!boss.defeated && boss.isColBlocked(boss.holeIndex % this.cols)) boss.teleport();
     if (boss.pendingArrive > 0 && boss.vanishing <= 0) {
-      const candidates = this.holes.filter(h => h.state === HoleState.EMPTY && !boss.isRowBlocked(Math.floor(h.index / this.cols)));
-      const pool = candidates.length ? candidates : this.holes.filter(h => h !== this.holes[boss.holeIndex]);
+      const candidates = this.holes.filter(h =>
+        h.state === HoleState.EMPTY &&
+        !boss.isRowBlocked(Math.floor(h.index / this.cols)) &&
+        !boss.isColBlocked(h.index % this.cols));
+      const pool = candidates.length ? candidates : this.holes.filter(h =>
+        h !== this.holes[boss.holeIndex] && !boss.isColBlocked(h.index % this.cols));
+      if (!pool.length) return;
       if (pool.length) {
         const next = pool[Math.floor((this.rng || Math.random)() * pool.length)];
         const previous = this.holes[boss.holeIndex];
@@ -916,15 +983,21 @@ export class Game {
 
   currentSpawnInterval() {
     const p = this.spawnProgress();
-    return BALANCE.spawn.startInterval +
+    const base = BALANCE.spawn.startInterval +
       (BALANCE.spawn.minInterval - BALANCE.spawn.startInterval) * p;
+    // Enjambre acelera la aparición mientras el jefe está vivo.
+    const boss = this.boss;
+    if (!boss || boss.defeated || boss.type !== 'enjambre') return base;
+    const factor = 1 + BALANCE.boss.env.swarmFactorPerLevel * boss.level;
+    return Math.max(BALANCE.spawn.minInterval * 0.5, base / factor);
   }
 
   trySpawn() {
     const empty = this.holes.filter(h =>
       h.state === HoleState.EMPTY &&
       !(this.boss && h.index === this.boss.holeIndex) &&
-      !(this.boss && this.boss.isRowBlocked(Math.floor(h.index / this.cols)))
+      !(this.boss && this.boss.isRowBlocked(Math.floor(h.index / this.cols))) &&
+      !(this.boss && this.boss.isColBlocked(h.index % this.cols))
     );
     if (empty.length === 0) return;
     let { hole, core, lifetime, telegraph } = this.director.pick(
@@ -939,7 +1012,8 @@ export class Game {
     }
 
     const reflectChance = this.boss && this.boss.type === 'prisma'
-      ? (this.boss.phase === 3 ? 0.8 : this.boss.phase === 2 ? 0.6 : 0.4) : 0;
+      ? Math.min(0.95, (this.boss.phase === 3 ? 0.8 : this.boss.phase === 2 ? 0.6 : 0.4) +
+        0.05 * (this.boss.level - 1)) : 0;
     if (reflectChance && (this.rng || Math.random)() < reflectChance) {
       const row = Math.floor(hole.index / this.cols);
       const col = hole.index % this.cols;
@@ -950,6 +1024,10 @@ export class Game {
     if (this.ascensionRules && this.ascensionRules.split && this.isSplitActive()) {
       lifetime *= 0.72;
       telegraph *= 0.9;
+    }
+    if (this.boss && this.boss.type === 'apagon' && !this.boss.defeated) {
+      // Apagón: la telegrafía se acorta y el tablero se oscurece en el render.
+      telegraph *= Math.max(0.4, 1 - BALANCE.boss.env.blackoutTelegraph * this.boss.level);
     }
 
     hole.spawn(core, lifetime * (this.holeLifetimeMult || 1));
@@ -1029,7 +1107,7 @@ export class Game {
     group.done = true;
     this.clustersCleared++;
     const extra = Math.max(0, group.indices.length - 1);
-    const points = Math.round(BALANCE.links.bonusPerCore * extra * this.scoreMultiplier *
+    const points = Math.round(BALANCE.core.clusterPerCore * extra * this.scoreMultiplier *
       this.voltageTier * this.score.multiplier);
     this.score.score += points;
     this.score.addCombo(extra * BALANCE.links.comboPerExtra);
@@ -1093,9 +1171,10 @@ export class Game {
       hole.hit();
       this.sessionHits++;
       const perfect = hole.timer < this.perfectWindow;
-      const pts = Math.round(100 * this.score.multiplier * (perfect ? 2 : 1) * this.scoreMultiplier * this.voltageTier);
+      const pts = Math.round(BALANCE.core.bossHit * this.bossDamageMultiplier *
+        this.score.multiplier * (perfect ? 2 : 1) * this.scoreMultiplier * this.voltageTier);
       this.score.score += pts;
-      this.damageBoss(BALANCE.boss.damagePerHit * (perfect ? 1.3 : 1));
+      this.damageBoss(BALANCE.boss.hitPercent);
       this.playCursorHit(perfect, pan);
       this.audio.playBossHit();
       this.spawnPopup(hole.x, hole.y - 24, `+${pts} JEFE`, this.boss.color);
@@ -1105,6 +1184,11 @@ export class Game {
       return;
     }
 
+    if (this.boss && this.boss.isColBlocked(hole.index % this.cols)) {
+      this.spawnPopup(hole.x, hole.y - 20, 'CERROJO', '#ff4fa3');
+      this.triggerShake(3);
+      return;
+    }
     if (this.boss && this.boss.isRowBlocked(Math.floor(hole.index / this.cols))) {
       this.spawnPopup(hole.x, hole.y - 20, 'BLOQUEADO', '#ff0033');
       this.triggerShake(3);
@@ -1144,7 +1228,7 @@ export class Game {
       this.detonateNova(hole, perfect, pan);
     } else if (hole.core === CoreType.CRONO) {
       const extra = this.scoreMultiplier * (1 + this.cronoScoreMult);
-      const base = 100 * this.score.multiplier * (perfect ? 2 : 1) * extra * this.voltageTier;
+      const base = BALANCE.core.crono * this.score.multiplier * (perfect ? 2 : 1) * extra * this.voltageTier;
       const bonus = base * (this.cronoMultiplier - 1);
       this.score.onHit(perfect, extra, this.voltageTier);
       this.score.score += Math.round(bonus);
@@ -1156,7 +1240,7 @@ export class Game {
       this.spawnParticles(hole.x, hole.y, this.cursorDef?.color || '#cc00ff', 12,
         { streak: ['arc', 'star', 'rainbow'].includes(this.cursorDef?.trail) });
       this.spawnPopup(hole.x, hole.y - 20, `+${Math.round(base + bonus)}`, '#cc00ff');
-      this.damageBoss(20);
+      this.damageBoss(BALANCE.boss.hitPercent);
       if (this.loadout.hammer === 'tesla' || this.loadout.chips.includes('chain_master')) this.triggerChainLightning(hole);
     } else {
       const linked = !!hole.linkId;
@@ -1173,7 +1257,7 @@ export class Game {
       this.addVoltage(gain * this.voltageMultiplier);
       if (perfect) this.triggerFlash(0.12);
       this.spawnPopup(hole.x, hole.y - 20, perfect ? `+${pts} PERFECT` : `+${pts}`, perfect ? '#ffcc00' : '#00f3ff');
-      this.damageBoss(perfect ? 25 : 15);
+      this.damageBoss(BALANCE.boss.hitPercent);
       if (this.doubleTapChance > 0 && (this.rng || Math.random)() < this.doubleTapChance) {
         const extraPts = Math.round(pts * 0.5 * this.voltageTier);
         this.score.score += extraPts;
@@ -1283,6 +1367,8 @@ export class Game {
       this.voltageTier++;
       this.voltageArmed = false;
       this.run.tier = this.voltageTier;
+      // La barra se reinicia con margen de error para no perder la run al subir de tier.
+      this.voltage = BALANCE.voltage.max * BALANCE.voltage.tierRefill;
       this.audio.playVoltageFill();
       this.triggerFlash(0.3);
       this.triggerShake(10);
@@ -1345,7 +1431,7 @@ export class Game {
     this.novaPoints += points;
     this.director.registerHit(!!perfect);
     this.addVoltage(BALANCE.voltage.gain.nova * this.voltageMultiplier);
-    if (this.boss && !this.boss.defeated) this.damageBoss(BALANCE.boss.novaDamage);
+    if (this.boss && !this.boss.defeated) this.damageBoss(BALANCE.boss.hitPercent);
     this.spawnPopup(origin.x, origin.y - 28, `NOVA +${points} · ${cleared} NÚCLEOS`, '#ffcc00');
     const reach = Math.max(120, ...this.holes.map(h => Math.hypot(h.x - origin.x, h.y - origin.y)));
     this.shockwaves.push({
@@ -1388,7 +1474,7 @@ export class Game {
     target.hit();
     this.score.onHit(false, 1 + this.reflectBonus, this.voltageTier);
     this.director.registerHit(false);
-    this.damageBoss(10);
+    this.damageBoss(BALANCE.boss.hitPercent);
     this.spawnParticles(target.x, target.y, '#cc00ff', 8);
     this.spawnPopup(target.x, target.y - 20, '+REFLEJO', '#cc00ff');
     const existing = this.chainLightning && this.chainLightning.from !== originHole.index ? this.chainLightning.to : [];
@@ -1428,7 +1514,7 @@ export class Game {
       h.hit();
       this.score.onHit(false, this.scoreMultiplier, this.voltageTier);
       this.director.registerHit(false);
-      this.damageBoss(10);
+      this.damageBoss(BALANCE.boss.hitPercent);
       this.spawnParticles(h.x, h.y, '#00f3ff', 8);
       this.spawnPopup(h.x, h.y - 20, '+CHAIN', '#00f3ff');
     });
@@ -1446,17 +1532,20 @@ export class Game {
   }
 
   spawnEndlessBoss() {
-    const wave = this.endlessRounds / 3;
-    const type = BOSS_BY_SECTOR[((wave - 1) % 5) + 1] || 'golem';
-    this.boss = this.spawnBoss(type, endlessHpBonus(wave));
+    const wave = Math.max(1, Math.ceil(this.endlessRounds / 3));
+    const type = BOSS_ROTATION[(wave - 1) % BOSS_ROTATION.length];
+    const level = 1 + Math.floor((wave - 1) / BOSS_ROTATION.length);
+    this.boss = this.spawnBoss(type, endlessHpBonus(wave), level);
     this.bossVictoryTimer = 0;
-    this.spawnPopupAtCenter(`JEFE ∞ · ${this.boss.name}`, '#ffcc00');
+    this.spawnPopupAtCenter(`JEFE ∞ · NV${level} · ${this.boss.name}`, '#ffcc00');
     this.triggerFlash(0.3);
   }
 
-  damageBoss(amount) {
+  // Vida del jefe: exactamente el 5 % de la vida máxima por golpe válido (20 golpes).
+  // Los bonuses de "Rompejefes" afectan a los puntos, nunca a la barra.
+  damageBoss(percent = BALANCE.boss.hitPercent) {
     if (!this.boss || this.boss.defeated || !this.boss.vulnerable) return;
-    this.boss.hit(amount * this.bossDamageMultiplier);
+    this.boss.hit(percent);
     if (this.boss.defeated) this.onBossDefeated();
   }
 

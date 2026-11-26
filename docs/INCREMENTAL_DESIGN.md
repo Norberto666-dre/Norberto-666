@@ -36,19 +36,21 @@ drena/s       = (3.0 + 0.4×(sector−1)) × (jefeVivo ? 0.8 : 1)
                 + 5 × núcleosRojosActivos
 ganancia      = normal 2 / Perfecto 3 / enlazado 4 / rojo 0 / jefe 0
 subirTier     = Voltage=100 y rearmado por debajo de 95 (una vez por llenado)
+                → Voltage=15 (15 % de margen) y tier++ hasta ×5
 fin           = Voltage=0 → cierra ciclo o run y liquida puntos
 congelación   = Falso Final: 5 s sin drenaje
 ```
 
-No hay temporizador: el voltaje es simultáneamente recurso, vida y medida de presión. Llenar la barra no reinicia el ciclo; sube un peldaño de multiplicador que se aplica también al botín del jefe.
+No hay temporizador: el voltaje es simultáneamente recurso, vida y medida de presión. Llenar la barra no reinicia el ciclo; sube un peldaño de multiplicador que se aplica también al botín del jefe. Al subir de peldaño la barra vuelve a `15`, no a `100`, para que el jugador tenga margen de error antes del siguiente llenado; si la barra llega a `0`, la run termina.
 
 **Cierre de ciclo y run**
 
 ```
+hitValue    = 20 (estándar/rojo/jefe) · 40 (Crono) · 60 (Nova) · 100 (blanco) × multiplicadores
 cycleScore  = Σ hitValue + bonoJefe + bonoNova + bonoFalsoFinal
 bonoJefe    = 5000 × comboStep × voltageTier        // un jefe cada 5 ciclos, dentro de 999
 bonoNova    = Σ valor real de los núcleos eliminados por una sola explosión
-bonoBlanco  = 500 × comboStep × voltageTier         // una vez por ciclo
+bonoBlanco  = 100 × comboStep × voltageTier         // una vez por ciclo
 
 creditos    = floor(cycleScore × 0.1)
             × nodeCreditMult
@@ -72,8 +74,8 @@ El Diario además fuerza `pulso / sin chips / sin mejoras / sin habilidades`, si
 |---|---|---|
 | Disparo | Una sola explosión | No hay 3 ondas ni pagos `100/60/40 %` |
 | Objetivo | Los núcleos vivos en el instante de la explosión | Paga su valor real; no limpia núcleos que aparezcan después |
-| Valores iniciales | estándar 100 · crono 200 · rojo 50 · Nova 300 · blanco 500 | Centralizados en `BALANCE.nova.coreValues` |
-| Interacción | No cuenta como bomba, no rompe combo | Carga voltaje y daña jefe (`60`) sin dar voltaje por golpe de jefe |
+| Valores iniciales | estándar 20 · crono 40 · rojo 20 · Nova 60 · blanco 100 | Centralizados en `BALANCE.core` y reutilizados por `BALANCE.nova.coreValues` |
+| Interacción | No cuenta como bomba, no rompe combo | Carga voltaje y quita el `5 %` de vida al jefe sin dar voltaje por golpe de jefe |
 | Efectos | Un anillo con subanillo, destello y estelas | Reutiliza FX del antiguo Overdrive |
 
 **Ritmo de aparición de núcleos**
@@ -202,7 +204,7 @@ Reemplazan a los Martillos. Todos tienen estela, partículas y SFX propios; ning
 | Auto-tap / macro | Solo eventos `PointerEvent.isTrusted`; intervals <80 ms o desviación <5 ms se ignoran y muestran aviso |
 | Bot de lectura perfecta | La ventana Perfecto depende del tiempo de reacción humano; se exige variabilidad mínima entre 5 toques |
 | Eco infinito | Tope 4 h, 50 % de eficiencia y requisito de partida activa en 24 h |
-| Jefe pereza | Los jefes solo bajan vida con impactos válidos; Nova da 60 fijo, nunca remata |
+| Jefe pereza | Los jefes solo bajan vida con impactos válidos; Nova quita un `5 %`, nunca remata |
 | Multi-cuenta | Sin IAP ni multijugador; el diario usa firma local `O9-...`, no servidor |
 | Compra de ventaja | Cursores son cosmetic+mecánica, pero todos se obtienen jugando o con FN |
 
@@ -213,7 +215,7 @@ Reemplazan a los Martillos. Todos tienen estela, partículas y SFX propios; ning
 | Palanca | Riesgo | Ajuste sugerido |
 |---|---|---|
 | Probabilidad Nova 3.5–11 % | Puede volver el cierre automático | Bajar a 2–7 % si >15 % de ciclos terminan con Nova |
-| Pago Nova con tablero `5×4` | Inflación de CR | Reducir `BALANCE.nova.coreValues` (p. ej. 80/160/40) |
+| Pago Nova con tablero `5×4` | Inflación de CR | Reducir `BALANCE.core` / `BALANCE.nova.coreValues` (p. ej. 15/30/15) |
 | Eco 5 % del ritmo activo | Juego idle | Mantener ≤5 % y cortar a 4 h offline |
 | Fragmentos √escala | Prestigio demasiado rápido | Subir divisor 10 000 → 25 000 si <40 min por FN |
 | Rareza Legendario ×3 | Rompe curva | Limitar a 2 copias y slots de Chip |
@@ -258,7 +260,7 @@ Las secciones 2–4 describen el diseño incremental original (15 nodos, 15 Chip
 - El combo es el multiplicador dominante: `1 + min(combo,50)·0.04`, aplicado **después** de puntuar cada golpe (primer golpe ×1). `Sincronía` conserva una fracción del combo, pero nunca lo crea desde cero.
 - Nova sigue siendo recompensa: rara, nunca en Jackpot, limpia solo los núcleos presentes en la explosión, paga su valor real, no cuenta como bomba y conserva el combo. `SURGE NOVA` / `Resonancia Nova` aumentan pago y radio y añaden un tercer anillo visual.
 
-**Criterio de salida del catálogo:** 51/51 tests (`tests/game.test.mjs`), `node --check` limpio en los 8 módulos, 0 errores de consola en navegador, compras y persistencia verificadas tras recarga, listas visibles y desplazables a 390×844, y latencia input→SFX < 100 ms con evento humano confiable.
+**Criterio de salida del catálogo:** 56/56 tests (`tests/game.test.mjs`), `node --check` limpio en los 8 módulos, 0 errores de consola en navegador, compras y persistencia verificadas tras recarga, listas visibles y desplazables a 390×844, y latencia input→SFX < 100 ms con evento humano confiable.
 
 ---
 
@@ -275,6 +277,7 @@ La implementación reside en `js/balance.js` (constantes), `js/game.js` (motor y
 | Drenaje con jefe | `×0.8` | El jefe no castiga doblemente por ocupar un hoyo |
 | Ganancia | normal `+2`, Perfecto `+3`, enlazado `+4`, jefe `0` | Golpear al jefe jamás recarga la barra |
 | Subida de tier | al `100`, solo si se rearmó por debajo de `95` | Un llenado = un tier; tope `×5` |
+| Reinicio de barra al subir | `100 × 0.15 = 15` | Margen de error antes del siguiente llenado; `0` sigue siendo derrota |
 | Persistencia del tier | toda la run (hasta 999 ciclos) | `V×3` sigue vivo tras continuar desde resultados |
 | Fin de run | voltaje `0` | Liquida `floor(score/10)` CR y muestra resultados |
 
@@ -283,33 +286,39 @@ La implementación reside en `js/balance.js` (constantes), `js/game.js` (motor y
 - Tocar un rojo: `−1` combo (`−2` si enlazado), `−8` V y RNG de error; **no** crea combo.
 - Arrastrar `≥60 px` hacia un borde: purga sin castigo; si está enlazado, purga también al compañero.
 - Dejar escapar un rojo: `−10` V, pero **no** rompe el combo.
-- Clúster: ventana de `1.2 s`; el primer golpe trampa y amplía `+0.6 s` la vida de los demás; limpiarlos suma `+1` combo por extra, `+60` puntos por núcleo y conexión visual.
+- Clúster: ventana de `1.2 s`; el primer golpe trampa y amplía `+0.6 s` la vida de los demás; limpiarlos suma `+1` combo por extra, `+20` puntos por núcleo y conexión visual.
 - Aegis absorbe el primer rojo del ciclo sin penalización.
 
 ### 10.3 Falso Final y Pesadilla
 
 - Núcleo blanco neón: aparece como máximo una vez por ciclo, con combo ≥5 o voltaje ≤60; fuera del Diario.
-- Al tocarlo: `+500 × comboStep × tier`, congela el voltaje `5 s`, activa skin/anuncio de Pesadilla y reutiliza los FX del antiguo Overdrive.
+- Al tocarlo: `+100 × comboStep × tier`, congela el voltaje `5 s`, activa skin/anuncio de Pesadilla y reutiliza los FX del antiguo Overdrive.
 - Se consume en el momento del golpe (`fakeEndings` por ciclo), de modo que un segundo núcleo blanco inesperado no puede volver a activarlo.
 
 ### 10.4 Jefes móviles
 
-- Un jefe cada `5` ciclos, dentro de una run de hasta `999`; `5000 × comboStep × tier` al caer.
-- Vida inicial por tipo: Gólem `300`, Espejo `260`, Prisma `240`, Criogenerador `220`, Sobrecarga `280`; `30` de daño por golpe.
-- Teletransporte cada `3 s` o tras `5` impactos: `0.25 s` desvanecimiento, `0.4 s` llegada, hoyo anterior limpio y bloqueo de fila aplastada.
-- Siempre exige juego activo: aparece en un hoyo real, tiene color/glifo propios y Nova solo aporta `60` de daño sin otorgar voltaje.
+- Un jefe cada `5` ciclos, dentro de una run de hasta `999`; `5000 × comboStep × tier` al caer. No hay botón de "Modo Jefe" en preparación.
+- Rotación de **10 jefes**: Gólem, Espejo, Prisma, Criogenerador, Sobrecarga, Sifón, Taquígrafo, Enjambre, Apagón y Cerrojo. Cada vuelta completa sube el nivel del jefe (`NV1 → NV2 → …`) y endurece su efecto.
+- Cada golpe válido quita exactamente `5 %` de la vida máxima (`BALANCE.boss.hitPercent`): 20 impactos lo derrotan. La barra muestra `NV · FASE · %` y baja en escalones constantes. Nova también quita un `5 %`.
+- Efectos de entorno por tipo: Gólem aplasta filas; Espejo invierte la lectura; Prisma refleja golpes; Crio congela filas; Sobrecarga vuelve rojos los núcleos; Sifón drena voltaje extra por nivel; Taquígrafo acorta vida y telegrafía; Enjambre acelera los spawns; Apagón oscurece el tablero y acorta la telegrafía; Cerrojo bloquea columnas (2 a partir de NV3).
+- Teletransporte cada `3 s` o tras `5` impactos: `0.25 s` desvanecimiento, `0.4 s` llegada, hoyo anterior limpio. Siempre exige juego activo: aparece en un hoyo real y tiene color/glifo propios; golpear al jefe nunca recarga voltaje.
 
 ### 10.5 QA de la refactorización
 
 | Verificación | Resultado |
 |---|---|
 | `node --check` en 8 módulos | Limpio |
-| `node --test tests/game.test.mjs` | 51/51 |
+| `node --test tests/game.test.mjs` | 56/56 |
 | Viewport `390×844` (iframe real) | Tablero `5×4` centrado, 20 hoyos, HUD sin solapamiento, 0 errores de consola |
 | Selector de tablero | Los tres `div[data-board]` responden a `pointerdown`; `boardId` persiste en `localStorage` |
 | Tap / arrastre rojo | Tap resta combo y V; arrastre `70 px` purga sin castigo, también en clúster |
 | Falso Final | Congela 5 s, activa Pesadilla, termina solo y **no** se dispara dos veces |
-| Jefe | Golpe sin voltaje, teletransporte real, derrota notifica una vez |
+| Jefe | Golpe sin voltaje, teletransporte real, derrota notifica una vez, `5 %` por golpe y 20 impactos |
+| Rotación de jefes | 10 tipos únicos; el ordinal 11 vuelve a Gólem en `NV2` |
+| Entornos de jefe | Sifón drena extra, Taquígrafo/Enjambre aceleran, Apagón acorta telegrafía, Cerrojo bloquea columnas |
+| Barra al subir tier | Reinicia en `15` (15 %); tope `×5` y `0` sigue cerrando la run |
+| Valor de núcleos | Base mínima `20`; Crono `40`, Nova `60`, blanco `100`; clúster `+20` por núcleo |
+| Preparación | Sin botón "MODO JEFE"; el jefe aparece solo cada 5 ciclos |
 | Nova | Una explosión que paga el valor real de los núcleos eliminados; no limpia núcleos posteriores |
 | Ritmo de aparición | `2.2 s → 0.35 s` entre núcleos a lo largo de 180 s |
 | Resultados | Sin replay del error; tarjeta con informe completo de la run |

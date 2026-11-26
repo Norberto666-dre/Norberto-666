@@ -48,7 +48,7 @@ const near = (a, b, eps = 1e-6) => assert.ok(Math.abs(a - b) < eps, `${a} != ${b
 test('ScoreManager: golpes, perfectos, fallos y reinicio', () => {
   const s = new ScoreManager();
   s.onHit(true);
-  assert.equal(s.score, 200);
+  assert.equal(s.score, BALANCE.core.standard * 2);
   assert.equal(s.combo, 1);
   assert.equal(s.perfects, 1);
   s.onMiss();
@@ -80,7 +80,7 @@ test('ScoreManager: el golpe que alcanza el hito ya usa el nuevo multiplicador',
   for (let i = 0; i < 4; i++) s.onHit(false);
   assert.equal(s.multiplier, 1);
   const gained = s.onHit(false);
-  assert.equal(gained, 150);
+  assert.equal(gained, BALANCE.core.standard * 1.5);
   assert.equal(s.lastMilestone, 5);
   assert.equal(s.multiplier, 1.5);
 });
@@ -182,6 +182,7 @@ test('Llenar la barra sube un nivel de voltaje una sola vez y respeta el tope ×
   g.addVoltage(6);
   assert.equal(g.voltageTier, 2);
   assert.equal(g.voltageArmed, false);
+  near(g.voltage, BALANCE.voltage.max * BALANCE.voltage.tierRefill);
   g.addVoltage(10);
   assert.equal(g.voltageTier, 2);
   for (let i = 0; i < 10; i++) {
@@ -415,24 +416,37 @@ test('Clúster: expira la trampa y libera los núcleos', () => {
 
 // ---------- Jefes móviles ----------
 
-test('Jefe: color y glifo propios por tipo', () => {
+test('Jefe: rotación de 10 tipos con color y glifo propios', () => {
   assert.equal(BOSS_STYLE.golem.color, '#ff6a00');
   assert.equal(BOSS_STYLE.mirror.glyph, 'diamond');
   assert.equal(BOSS_BY_SECTOR[5], 'sobrecarga');
+  assert.equal(BOSS_BY_SECTOR[10], 'cerrojo');
+  assert.equal(BALANCE.boss.rotation.length, 10);
+  assert.equal(new Set(BALANCE.boss.rotation).size, 10);
   assert.ok(BOSS_STYLE.crio.color !== BOSS_STYLE.prisma.color);
 });
 
-test('Jefe: fases y vida partida en dos mitades', () => {
+test('Jefe: cada golpe quita el 5 % de la vida máxima y 20 golpes lo derrotan', () => {
   const b = new Boss('golem');
-  b.hit(100);
-  assert.equal(b.getPhase(), 1);
-  b.hit(60);
+  const max = b.maxHp;
+  b.hit();
+  near(b.hp, max * 0.95);
+  for (let i = 0; i < 6; i++) b.hit();
   assert.equal(b.getPhase(), 2);
-  b.hit(110);
+  near(b.hp, max * 0.65);
+  for (let i = 0; i < 13; i++) b.hit();
+  assert.equal(b.defeated, true);
+  assert.equal(b.hp, 0);
+});
+
+test('Jefe: fase 3 reparte la vida restante en dos mitades', () => {
+  const b = new Boss('golem');
+  for (let i = 0; i < 14; i++) b.hit();
   assert.equal(b.getPhase(), 3);
-  assert.deepEqual(b.halves, [15, 15]);
-  b.hit(10);
-  assert.equal(b.hp, 20);
+  near(b.halves[0], b.maxHp * 0.15);
+  near(b.halves[1], b.maxHp * 0.15);
+  b.hit();
+  near(b.halves[0], b.maxHp * 0.10);
 });
 
 test('Jefe: ocupa un hoyo real y el golpe no da voltaje', () => {
@@ -463,12 +477,11 @@ test('Jefe: derrota paga 5.000 puntos y notifica una sola vez', () => {
   const g = start(makeGame(), {}, { bossMode: true });
   let calls = 0;
   g.onBossDefeatedCb = () => calls++;
-  g.boss.hp = 1;
-  g.damageBoss(10);
+  for (let i = 0; i < 20; i++) g.damageBoss();
   assert.equal(g.boss.defeated, true);
   assert.ok(g.score.score >= BALANCE.run.bossKillScore);
   assert.equal(calls, 1);
-  g.damageBoss(10);
+  g.damageBoss();
   assert.equal(calls, 1);
 });
 
@@ -481,6 +494,63 @@ test('Jefe: aparece cada 5 ciclos y se conserva en la run', () => {
   g.startCycle({}, { continueRun: true, run, board: '3x3' });
   assert.ok(g.boss);
   assert.equal(g.voltageTier, run.tier);
+});
+
+test('Jefe: la rotación de 10 tipos sube de nivel al completar cada vuelta', () => {
+  const g = start(makeGame());
+  for (let ordinal = 1; ordinal <= 11; ordinal++) {
+    g.run.cyclesDone = ordinal * BALANCE.run.bossEvery;
+    g.run.nextBoss = true;
+    g.startCycle({}, { continueRun: true, run: { ...g.run }, board: '3x3' });
+    assert.equal(g.boss.type, BALANCE.boss.rotation[(ordinal - 1) % 10]);
+    assert.equal(g.boss.level, 1 + Math.floor((ordinal - 1) / 10));
+  }
+});
+
+test('Sifón: drena voltaje extra cada segundo según el nivel del jefe', () => {
+  const g = start(makeGame(), {}, { bossMode: true });
+  g.boss.type = 'sifon';
+  g.holes.forEach(h => h.reset()); // evitar un rojo aleatorio del spawn inicial
+  g.placeBossCore(g.boss.holeIndex);
+  g.spawnTimer = 10;
+  g.voltage = 100;
+  advance(g, 0.5);
+  const base = BALANCE.voltage.drainPerSec * BALANCE.voltage.bossDrainMult;
+  const extra = BALANCE.boss.env.siphonDrainPerLevel * g.boss.level;
+  near(g.voltage, 100 - (base + extra) * 0.5, 1e-3);
+});
+
+test('Enjambre y Taquígrafo: aceleran el entorno y reducen la telegrafía', () => {
+  const normal = start(makeGame());
+  const swarm = start(makeGame(), {}, { bossMode: true });
+  swarm.boss.type = 'enjambre';
+  assert.ok(swarm.currentSpawnInterval() < normal.currentSpawnInterval());
+
+  const tempo = start(makeGame());
+  const before = tempo.holeLifetimeMult;
+  tempo.applyBossEnvironment({ type: 'taquigrafo', level: 2 });
+  assert.ok(tempo.holeLifetimeMult < before);
+  assert.ok(tempo.telegraphScale < 1);
+});
+
+test('Apagón: acorta la telegrafía; Cerrojo: bloquea columnas', () => {
+  const dark = start(makeGame(), {}, { bossMode: true });
+  dark.boss.type = 'apagon';
+  dark.boss.level = 2;
+  dark.holes.forEach(h => h.reset());
+  dark.director.pick = () => ({
+    hole: dark.holes[0], core: CoreType.STANDARD, lifetime: 1, telegraph: 0.5
+  });
+  dark.trySpawn();
+  near(dark.holes[0].telegraphTime, 0.5 * (1 - BALANCE.boss.env.blackoutTelegraph * 2));
+
+  const lock = start(makeGame(), {}, { bossMode: true });
+  lock.boss.type = 'cerrojo';
+  lock.boss.blockedCols = [0];
+  lock.holes.forEach(h => h.reset());
+  active(lock.holes[0], CoreType.STANDARD);
+  lock.handlePointerHole(lock.holes[0]);
+  assert.equal(lock.holes[0].state, HoleState.ACTIVE);
 });
 
 test('Jefe: una fila aplastada bloquea spawns normales', () => {
@@ -533,8 +603,8 @@ test('Aparición progresiva: empieza muy lenta y acelera hasta el intervalo mín
 test('Nova: daña al jefe sin otorgar voltaje por el golpe de jefe', () => {
   const g = start(makeGame(), {}, { bossMode: true });
   const hp = g.boss.hp;
-  g.damageBoss(BALANCE.boss.novaDamage);
-  assert.equal(g.boss.hp, hp - BALANCE.boss.novaDamage * g.bossDamageMultiplier);
+  g.damageBoss();
+  near(g.boss.hp, hp - g.boss.maxHp * BALANCE.boss.hitPercent);
   const v = g.voltage;
   g.handlePointerHole(g.holes[g.boss.holeIndex]);
   near(g.voltage, v);

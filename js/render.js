@@ -1,3 +1,5 @@
+import { BALANCE } from './balance.js';
+
 export class Renderer {
   constructor(canvas, ctx, { audio, input, game }) {
     this.canvas = canvas;
@@ -97,7 +99,7 @@ export class Renderer {
     ctx.translate(shakeX, shakeY);
     if (this.game.clutchActive) ctx.filter = 'saturate(0.3)';
 
-    // Filas bloqueadas por el boss
+    // Filas y columnas bloqueadas por el boss
     if (this.game.boss) {
       this.game.boss.slammedRows.forEach(r => {
         // half 2 = crio (azul), half 1 = segundo núcleo (morado), half 0 = rojo
@@ -105,6 +107,12 @@ export class Renderer {
           : r.half === 1 ? 'rgba(204,0,255,0.18)' : 'rgba(255,0,51,0.15)';
         ctx.fillStyle = color;
         ctx.fillRect(b.x, b.y + r.row * b.cell, b.width, b.cell);
+      });
+      this.game.boss.blockedCols.forEach(col => {
+        ctx.fillStyle = 'rgba(255,79,163,0.16)';
+        ctx.fillRect(b.x + col * b.cell, b.y, b.cell, b.height);
+        ctx.strokeStyle = 'rgba(255,79,163,0.55)';
+        ctx.strokeRect(b.x + col * b.cell, b.y, b.cell, b.height);
       });
     }
 
@@ -116,6 +124,14 @@ export class Renderer {
       this.drawHole(ctx, b, hole, i);
     });
     this.drawDrag(ctx);
+
+    // Apagón: el entorno se oscurece mientras el jefe sigue vivo.
+    const boss = this.game.boss;
+    if (boss && boss.type === 'apagon' && !boss.defeated) {
+      const alpha = Math.min(0.5, 0.22 + 0.04 * (boss.level - 1));
+      ctx.fillStyle = `rgba(4,4,12,${alpha})`;
+      ctx.fillRect(b.x, b.y, b.width, b.height);
+    }
 
     // Chain Lightning sobre el tablero
     if (this.game.chainLightning) {
@@ -595,6 +611,39 @@ export class Renderer {
         ctx.lineTo(size * 0.34, -size * 0.1);
         ctx.lineTo(size * 0.04, -size * 0.1);
         ctx.closePath(); ctx.fill();
+      } else if (glyph === 'siphon') {
+        ctx.beginPath();
+        ctx.arc(0, 0, size * 0.34, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(0, -size * 0.5); ctx.lineTo(0, 0);
+        ctx.lineTo(size * 0.3, size * 0.28); ctx.stroke();
+      } else if (glyph === 'clock') {
+        ctx.beginPath();
+        ctx.arc(0, 0, size * 0.38, 0, Math.PI * 2);
+        ctx.moveTo(0, 0); ctx.lineTo(0, -size * 0.28);
+        ctx.moveTo(0, 0); ctx.lineTo(size * 0.24, size * 0.12);
+        ctx.stroke();
+      } else if (glyph === 'swarm') {
+        [[-0.3, -0.2], [0.3, -0.2], [0, 0.32]].forEach(([x, y]) => {
+          ctx.beginPath();
+          ctx.arc(size * x, size * y, size * 0.14, 0, Math.PI * 2);
+          ctx.stroke();
+        });
+      } else if (glyph === 'void') {
+        ctx.beginPath();
+        ctx.arc(0, 0, size * 0.42, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.beginPath();
+        ctx.arc(size * 0.12, -size * 0.08, size * 0.3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalCompositeOperation = 'source-over';
+      } else if (glyph === 'lock') {
+        ctx.strokeRect(-size * 0.3, -size * 0.05, size * 0.6, size * 0.42);
+        ctx.beginPath();
+        ctx.arc(0, -size * 0.08, size * 0.22, Math.PI, 0);
+        ctx.stroke();
       } else {
         ctx.beginPath();
         ctx.arc(0, 0, size * 0.38, 0, Math.PI * 2);
@@ -943,7 +992,8 @@ export class Renderer {
     ctx.font = 'bold 11px Orbitron, sans-serif';
     ctx.textAlign = 'center';
     const splitLabel = boss.phase === 3 && !boss.defeated ? ' · PARTIDO' : '';
-    ctx.fillText(`${boss.name} · FASE ${boss.phase}${splitLabel}`, barX + barW / 2, barY - 5);
+    ctx.fillText(`${boss.name} · NV${boss.level} · FASE ${boss.phase} · ${Math.round(hp * 100)}%${splitLabel}`,
+      barX + barW / 2, barY - 5);
 
     if (boss.damageFlash > 0) {
       ctx.globalAlpha = boss.damageFlash * 0.4;
@@ -953,13 +1003,30 @@ export class Renderer {
     }
 
     let mechanic = null;
-    if (boss.type === 'prisma' && !boss.defeated) {
-      const chance = boss.phase === 3 ? 80 : boss.phase === 2 ? 60 : 40;
-      mechanic = `REFLEJO HORIZONTAL ${chance}%`;
-    } else if (boss.type === 'crio' && !boss.defeated) {
-      mechanic = 'CONGELACIÓN ACTIVA';
-    } else if (boss.type === 'sobrecarga' && !boss.defeated) {
-      mechanic = 'NÚCLEOS INESTABLES';
+    if (!boss.defeated) {
+      if (boss.type === 'prisma') {
+        const chance = Math.min(95, (boss.phase === 3 ? 80 : boss.phase === 2 ? 60 : 40) +
+          5 * (boss.level - 1));
+        mechanic = `REFLEJO HORIZONTAL ${chance}%`;
+      } else if (boss.type === 'crio') {
+        mechanic = 'CONGELACIÓN ACTIVA';
+      } else if (boss.type === 'sobrecarga') {
+        mechanic = 'NÚCLEOS INESTABLES';
+      } else if (boss.type === 'mirror') {
+        mechanic = 'LECTURA INVERTIDA';
+      } else if (boss.type === 'golem') {
+        mechanic = 'APLASTAMIENTO DE FILAS';
+      } else if (boss.type === 'sifon') {
+        mechanic = `SIFÓN · −${(BALANCE.boss.env.siphonDrainPerLevel * boss.level).toFixed(1)} V/S`;
+      } else if (boss.type === 'taquigrafo') {
+        mechanic = 'NÚCLEOS ACELERADOS';
+      } else if (boss.type === 'enjambre') {
+        mechanic = 'APARICIÓN ENJAMBRE';
+      } else if (boss.type === 'apagon') {
+        mechanic = 'APAGÓN · TELEGRAFÍA CORTA';
+      } else if (boss.type === 'cerrojo') {
+        mechanic = `CERROJO · ${boss.blockedCols.length} COL`;
+      }
     }
     if (mechanic) {
       ctx.globalAlpha = 0.75 + 0.25 * Math.sin(Date.now() / 120);

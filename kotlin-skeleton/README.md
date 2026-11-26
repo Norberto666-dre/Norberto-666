@@ -20,7 +20,8 @@ Carpeta de **diseño técnico**, no un proyecto Android Studio completo. Contien
 - Llenar la barra sube un tier de multiplicador hasta `×5`; se conserva durante toda la run de hasta 999 ciclos. Se requiere rearmar por debajo de 95 para volver a subir.
 - Tableros: `3×3` inicial, `4×3` a 100 000 puntos y `5×4` a 1 000 000. El Diario fuerza `3×3`, sin jefe, sin núcleo blanco y con `Loadout.daily()`.
 - Overdrive ya no es mecánica. `timeScale` queda reservado para depuración/editor y debe ser `1.0` en partida; la banda y el destello pertenecen ahora al Falso Final (5 s de congelación y skin Pesadilla).
-- Los jefes aparecen cada 5 ciclos, ocupan un hoyo real, se teletransportan y exigen impactos activos; Nova solo aporta 60 de daño sin dar voltaje.
+- Los jefes aparecen cada 5 ciclos (10 tipos en rotación, sin botón manual), ocupan un hoyo real, se teletransportan y exigen impactos activos; cada golpe quita el 5 % de la vida máxima y Nova también quita un 5 % sin dar voltaje. Cada vuelta de la rotación sube el nivel del jefe y endurece su efecto de entorno.
+- Cada núcleo paga 20 puntos base como mínimo; al subir de `×N` la barra vuelve al 15 % y el voltaje 0 sigue cerrando la run.
 - Los efectos se alimentan con `dtReal × timeScale`; el hit-stop usa `dtReal` para no estirarse en cámara lenta. `EffectSystem.nova()` es una sola explosión que paga el valor de los núcleos eliminados (`Balance.Nova.CORE_VALUES`); no hay ondas diferidas ni porcentajes.
 - La aparición de núcleos es progresiva (`Balance.Spawn`): empieza muy lenta (2.2 s entre núcleos) y termina muy rápida (0.35 s) a lo largo de `RAMP_SECONDS`.
 - `EconomyManager.closeCycle()` consume un `CycleSummary` con `voltageTier`, `board` y `fakeEndings` además del resumen clásico.
