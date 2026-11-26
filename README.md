@@ -68,10 +68,11 @@ El juego abre en un **launcher** con los perfiles ya vinculados. Solo se piden *
 - La foto se recorta a `192×192`, se guarda como JPEG embebido (máx. `96 KB` decodificados) y nunca se sube a un servidor.
 - El botón **PAUSA** del HUD (o `Esc`) congela la partida, guarda una instantánea real del ciclo y permite **GUARDAR AHORA**, **CONTINUAR** o **GUARDAR Y SALIR**.
 - La barra de voltaje lleva una escalera `×1…×5` con icono: el peldaño activo se ilumina y los anteriores quedan marcados. Al vaciarse, se muestra llena 0,6 s con el multiplicador perdido (`×3 → ×2`) antes de volver al 15 %.
-- El menú agrupa **CAMPAÑA/CONTINUAR** y **RUN DIARIA** y una fila de accesos rápidos (**TABLA, MEJORAS, ARCHIVO, AJUSTES, USUARIO**).
+- El menú agrupa **CAMPAÑA/CONTINUAR** y **RUN DIARIA** y una fila de accesos rápidos (**TABLA, MEJORAS, ARCHIVO, AJUSTES, USUARIO**). MEJORAS se navega con tres pestañas —**ÁRBOL DE REFLEJOS**, **10 CURSORES** y **CHIPS Y CALIBRACIÓN**— y atajos `1/2/3` y `←/→`.
 
 ## Diseño responsive
 
+- Todas las pantallas de menú tienen **fondo opaco** (metal oscuro con una sola luz cian y un reflejo magenta tenue): el tablero nunca se ve detrás de launcher, ajustes o resultados. Los paneles comparten las mismas superficies sólidas y estados, sin transparencias mezcladas.
 - La interfaz usa `100dvh`, unidades fluidas y `env(safe-area-inset-*)`; los cambios de escritorio son aditivos (`@media (min-width: 900px)`, `(hover: hover)` y ventana baja), por lo que el layout móvil verificado no se toca.
 - Controles con objetivo táctil mínimo de `44×44 px`; las pantallas crecen con scroll cuando el contenido no cabe.
 - `Renderer.computeBoard()` mide el borde real del HUD y limita el tamaño de celda en pantallas grandes, de modo que el tablero queda centrado y el HUD nunca se superpone a los hoyos.
@@ -122,6 +123,6 @@ La suite (97 pruebas) cubre voltaje, peldaños, purga de rojos, combos, tableros
 - `js/content.js` — catálogo de habilidades, chips y cursores.
 - `tests/` — suite Node, servidor estático y guiones de QA.
 - `docs/INCREMENTAL_DESIGN.md` — diseño incremental, fórmulas, ritmo y QA.
-- `docs/qa/` — capturas de verificación (Ciclos 11 y 13).
+- `docs/qa/` — capturas de verificación (Ciclos 11, 13 y 15).
 
 Sin IAP ni multijugador. El contenedor Android se conserva en el tag `android-webview-v1` para cuando se retome.

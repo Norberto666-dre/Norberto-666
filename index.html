@@ -323,47 +323,138 @@
     </div>
 
     <!-- Pantalla: Mejoras -->
-    <div id="screen-upgrades" class="screen hidden">
-      <div class="settings-title">MEJORAS</div>
-      <div class="upgrade-credits">CRÉDITOS: <span id="upgrade-credits">0</span></div>
-      <div class="upgrade-list">
-        <div class="upgrade-row">
-          <span>Desbloquear RAYO MAESTRO</span>
-          <button class="btn btn-secondary" id="upgrade-unlock-chain">3000</button>
+    <div id="screen-upgrades" class="screen hidden upgrade-screen">
+      <header class="up-header">
+        <div class="up-brand">
+          <span class="up-brand-icon" aria-hidden="true">⬡</span>
+          <div>
+            <h1 class="up-title">MEJORAS</h1>
+            <p class="up-subtitle">SISTEMA DE EVOLUCIÓN NEURAL</p>
+          </div>
         </div>
-        <div class="upgrade-row">
-          <span>Desbloquear ESPEJO (anula inversión)</span>
-          <button class="btn btn-secondary" id="upgrade-unlock-mirror">5000</button>
+        <nav class="up-tabs" aria-label="Secciones de mejoras" role="tablist">
+          <button type="button" class="up-tab selected" id="up-tab-tree" role="tab" aria-selected="true" aria-controls="up-view-tree" data-tab="tree">
+            <span class="up-tab-num">1</span><span>ÁRBOL DE REFLEJOS</span><span class="up-dot" id="up-dot-tree" hidden></span>
+          </button>
+          <button type="button" class="up-tab" id="up-tab-cursors" role="tab" aria-selected="false" aria-controls="up-view-cursors" data-tab="cursors">
+            <span class="up-tab-num">2</span><span>10 CURSORES</span><span class="up-dot" id="up-dot-cursors" hidden></span>
+          </button>
+          <button type="button" class="up-tab" id="up-tab-chips" role="tab" aria-selected="false" aria-controls="up-view-chips" data-tab="chips">
+            <span class="up-tab-num">3</span><span>CHIPS Y CALIBRACIÓN</span><span class="up-dot" id="up-dot-chips" hidden></span>
+          </button>
+        </nav>
+        <div class="up-hud-right">
+          <button type="button" class="up-hud-chip" id="up-hud-cursor" aria-label="Ver cursor equipado">
+            <span class="up-hud-kicker">CURSOR</span>
+            <strong id="up-hud-cursor-name">PULSO</strong>
+          </button>
+          <button type="button" class="up-hud-chip" id="up-hud-slots-btn" aria-label="Ver ranuras de chips">
+            <span class="up-hud-kicker">SLOTS CHIP</span>
+            <span class="up-slot-dots" id="up-hud-slots"></span>
+          </button>
+          <div class="up-credits">
+            <span class="up-coin" aria-hidden="true">◈</span>
+            <div>
+              <span class="up-hud-kicker">CRÉDITOS</span>
+              <strong id="upgrade-credits">0</strong>
+            </div>
+          </div>
+          <button type="button" class="up-icon-btn" id="up-mute" aria-label="Activar o silenciar efectos de sonido" aria-pressed="true">♪</button>
         </div>
-        <div class="upgrade-row">
-          <span>Desbloquear REFLEJO (réplica horizontal)</span>
-          <button class="btn btn-secondary" id="upgrade-unlock-reflejo">7000</button>
-        </div>
-        <div class="upgrade-row">
-          <span>Desbloquear CRIOGENIA (hielo ≤1 s)</span>
-          <button class="btn btn-secondary" id="upgrade-unlock-crio">9000</button>
-        </div>
-        <div class="upgrade-row">
-          <span>Desbloquear NÚCLEO (+20% puntos al golpear jefes)</span>
-          <button class="btn btn-secondary" id="upgrade-unlock-nucleo">11000</button>
-        </div>
-        <div class="upgrade-row">
-          <span>Mejorar Pulso (+5% ventana)</span>
-          <button class="btn btn-secondary" id="upgrade-pulso">1000</button>
-        </div>
-        <div class="upgrade-row">
-          <span>Mejorar Tesla (+5% voltaje)</span>
-          <button class="btn btn-secondary" id="upgrade-tesla">1000</button>
-        </div>
-      </div>
-      <div class="upgrade-section-title">20 HABILIDADES · ÁRBOL DE REFLEJOS</div>
-      <div class="upgrade-list" id="upgrade-abilities"></div>
-      <div class="upgrade-section-title">10 CURSORES · HABILIDAD ÚNICA</div>
-      <div class="upgrade-list" id="upgrade-cursors"></div>
-      <div class="upgrade-section-title">5 CHIPS NUEVOS</div>
-      <div class="upgrade-list" id="upgrade-chips-extra"></div>
-      <div class="settings-footer">
+      </header>
+
+      <main class="up-main">
+        <section class="up-view" id="up-view-tree" role="tabpanel" aria-labelledby="up-tab-tree">
+          <div class="up-panel up-tree-panel">
+            <div class="up-panel-head">
+              <span class="up-badge">20 HABILIDADES · ÁRBOL DE REFLEJOS</span>
+              <div class="up-legend">
+                <span class="up-leg up-leg-cyan">Precisión</span>
+                <span class="up-leg up-leg-magenta">Voltaje</span>
+                <span class="up-leg up-leg-amber">Poder/Eco</span>
+                <span class="up-leg up-leg-green">Control/Nova</span>
+              </div>
+            </div>
+            <div class="up-tree-scroll">
+              <div class="up-tree-stage" id="up-tree-stage">
+                <svg class="up-tree-svg" id="up-tree-conduits" viewBox="0 0 720 520" preserveAspectRatio="none" aria-hidden="true"></svg>
+                <div class="up-core" aria-hidden="true"><span>NÚCLEO<br />CENTRAL</span></div>
+                <div class="up-tree-nodes" id="up-tree-nodes"></div>
+              </div>
+            </div>
+            <div class="up-panel-foot">
+              <span>Haz clic o pasa el cursor sobre un nodo para inspeccionarlo.</span>
+              <strong id="up-tree-progress">NIVELES: 0 / 67</strong>
+            </div>
+          </div>
+          <aside class="up-panel up-inspector" id="up-inspector" aria-live="polite"></aside>
+        </section>
+
+        <section class="up-view" id="up-view-cursors" role="tabpanel" aria-labelledby="up-tab-cursors" hidden>
+          <div class="up-panel up-cursors-main">
+            <div class="up-carousel-head">
+              <div>
+                <h2>10 CURSORES · HABILIDAD ÚNICA</h2>
+                <p>Mueve el puntero sobre la tarjeta central para probar la respuesta del cursor.</p>
+              </div>
+              <span class="up-hint">Usa ← → para recorrer el carrusel</span>
+            </div>
+            <div class="up-carousel-stage">
+              <button type="button" class="up-arrow" id="up-cursor-prev" aria-label="Cursor anterior">‹</button>
+              <div class="up-cursor-track" id="up-cursor-track"></div>
+              <button type="button" class="up-arrow" id="up-cursor-next" aria-label="Siguiente cursor">›</button>
+            </div>
+            <div class="up-dots" id="up-cursor-dots"></div>
+          </div>
+        </section>
+
+        <section class="up-view" id="up-view-chips" role="tabpanel" aria-labelledby="up-tab-chips" hidden>
+          <aside class="up-panel up-chips-side">
+            <div class="up-side-block">
+              <div class="up-side-head"><h3>CALIBRACIÓN BASE</h3><span class="up-mini-badge">PASIVO</span></div>
+              <div id="up-calibrations" class="up-calibrations"></div>
+            </div>
+            <div class="up-side-block up-loadout-block">
+              <div class="up-side-head"><h3>RANURAS ACTIVAS</h3><strong id="up-loadout-count">2 / 2</strong></div>
+              <p class="up-note">Las ranuras extra se desbloquean con <b>Caché de Chips</b> en el Árbol de Reflejos.</p>
+              <div id="up-loadout" class="up-loadout"></div>
+              <p class="up-note up-synergy-note"><span>✦</span> Los chips compatibles con tu cursor muestran <b>SINERGIA ACTIVA</b>.</p>
+            </div>
+          </aside>
+          <div class="up-panel up-chips-main">
+            <div class="up-panel-head">
+              <div>
+                <h2>MÓDULOS DE CHIP (10)</h2>
+                <p>5 Chips Base desbloqueables + 5 Chips Avanzados de alto rendimiento.</p>
+              </div>
+              <div class="up-filters" role="group" aria-label="Filtrar chips">
+                <button type="button" class="up-filter selected" data-filter="ALL">TODOS (10)</button>
+                <button type="button" class="up-filter" data-filter="BASE">BASE (5)</button>
+                <button type="button" class="up-filter" data-filter="NEW">AVANZADOS (5)</button>
+                <button type="button" class="up-filter" data-filter="EQUIPPED">EQUIPADOS</button>
+              </div>
+            </div>
+            <div class="up-carousel-stage up-chip-stage">
+              <button type="button" class="up-arrow" id="up-chip-prev" aria-label="Chip anterior">‹</button>
+              <div class="up-chip-track" id="up-chip-track"></div>
+              <button type="button" class="up-arrow" id="up-chip-next" aria-label="Siguiente chip">›</button>
+            </div>
+            <div class="up-dots" id="up-chip-dots"></div>
+          </div>
+        </section>
+      </main>
+
+      <div class="settings-footer up-footer">
         <button class="btn btn-secondary" id="btn-volver-upgrades">VOLVER</button>
+      </div>
+
+      <!-- Compatibilidad: la lógica heredada sigue encontrando estos nodos. -->
+      <div class="up-legacy" aria-hidden="true">
+        <span class="upgrade-credits">CRÉDITOS: <span id="upgrade-credits-legacy">0</span></span>
+        <button id="upgrade-unlock-chain"></button><button id="upgrade-unlock-mirror"></button>
+        <button id="upgrade-unlock-reflejo"></button><button id="upgrade-unlock-crio"></button>
+        <button id="upgrade-unlock-nucleo"></button><button id="upgrade-pulso"></button><button id="upgrade-tesla"></button>
+        <div id="upgrade-abilities"></div><div id="upgrade-cursors"></div><div id="upgrade-chips-extra"></div>
       </div>
     </div>
 

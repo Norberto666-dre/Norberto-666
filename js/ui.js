@@ -69,6 +69,12 @@ export class UI {
     this.runState = null; // continuidad de voltaje/ronda dentro de una run
     this.lastOptions = null;
     this.sectorCleared = 0; // último sector cuyo jefe fue derrotado
+    this.upgradeTab = 'tree';
+    this.selectedAbilityId = 'ab_pulso';
+    this.cursorIndex = 0;
+    this.chipIndex = 0;
+    this.chipFilter = 'ALL';
+
     this.chipLabels = {
       volc_bomb: 'BOMBAS → VOLTAJE',
       chrono_x3: 'CRONO ×3',
@@ -790,6 +796,26 @@ export class UI {
     this.onClick('btn-iniciar', () => this.startCycle({ sector: this.progress.sector || 1 }));
     this.onClick('btn-volver-menu', () => this.showScreen('menu'));
 
+    // Mejoras: pestañas y carruseles del rediseño.
+    document.querySelectorAll('#screen-upgrades .up-tab').forEach(btn => {
+      btn.addEventListener('click', () => this.setUpgradeTab(btn.dataset.tab));
+    });
+    this.onClick('up-hud-cursor', () => this.setUpgradeTab('cursors'));
+    this.onClick('up-hud-slots-btn', () => this.setUpgradeTab('chips'));
+    this.onClick('up-mute', () => this.toggleUpgradeMute());
+    this.onClick('up-cursor-prev', () => this.moveCursorCarousel(-1));
+    this.onClick('up-cursor-next', () => this.moveCursorCarousel(1));
+    this.onClick('up-chip-prev', () => this.moveChipCarousel(-1));
+    this.onClick('up-chip-next', () => this.moveChipCarousel(1));
+    document.querySelectorAll('#screen-upgrades .up-filter').forEach(btn => {
+      btn.addEventListener('click', () => {
+        this.chipFilter = btn.dataset.filter;
+        this.chipIndex = 0;
+        this.renderUpgradeChips();
+      });
+    });
+    document.addEventListener('keydown', e => this.onUpgradeKey(e));
+
     // Mejoras
     this.onClick('btn-volver-upgrades', () => this.showScreen('menu'));
     this.onClick('upgrade-unlock-chain', () => this.buyChip('chain_master', LEGACY_PRICES.chain_master));
@@ -1414,6 +1440,14 @@ export class UI {
     const up = this.progress.upgrades || {};
     const unlocked = this.progress.unlocked || [];
 
+    this.renderUpgradeHud();
+    this.renderUpgradeBadges();
+    this.renderAbilityTree();
+    this.renderCalibrations();
+    this.renderLoadout();
+    this.renderUpgradeChips();
+    this.renderCursorCarousel();
+
     document.getElementById('upgrade-credits').textContent = credits;
     const labelBuy = (btn, name, state) => {
       if (btn) btn.setAttribute('aria-label', `${name}. ${state}`);
@@ -1471,6 +1505,526 @@ export class UI {
   }
 
   // ---------- Catálogo ampliado: 20 habilidades, 10 cursores, 5 chips ----------
+
+  // ===== Rediseño cyber-tech de MEJORAS =====
+
+  upgradeBranch(def) {
+    const id = def.id;
+    if (['ab_pulso', 'ab_doble', 'ab_sincronia', 'ab_umbral', 'ab_fantasma'].includes(id)) return 'north';
+    if (['ab_memoria', 'ab_cadena', 'ab_sobrecarga', 'ab_sifon', 'ab_cache'].includes(id)) return 'east';
+    if (['ab_denso', 'ab_eco', 'ab_mira', 'ab_rompe', 'ab_sector', 'ab_maestro'].includes(id)) return 'south';
+    return 'west';
+  }
+
+  setUpgradeTab(tab) {
+    if (!['tree', 'cursors', 'chips'].includes(tab)) return;
+    if (tab !== this.upgradeTab) this.cursorIndex = 0;
+    this.upgradeTab = tab;
+    document.querySelectorAll('#screen-upgrades .up-tab').forEach(btn => {
+      const active = btn.dataset.tab === tab;
+      btn.classList.toggle('selected', active);
+      btn.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+    ['tree', 'cursors', 'chips'].forEach(name => {
+      const view = document.getElementById(`up-view-${name}`);
+      if (view) view.hidden = name !== tab;
+    });
+    this.renderUpgrades();
+  }
+
+  toggleUpgradeMute() {
+    const btn = document.getElementById('up-mute');
+    if (!btn || !this.audio) return;
+    this.audio.setEnabled(!this.audio.enabled);
+    btn.textContent = this.audio.enabled ? '♪' : '×';
+    btn.setAttribute('aria-pressed', this.audio.enabled ? 'true' : 'false');
+    btn.setAttribute('aria-label', this.audio.enabled ? 'Silenciar efectos de sonido' : 'Activar efectos de sonido');
+  }
+
+  onUpgradeKey(e) {
+    if (document.getElementById('screen-upgrades')?.classList.contains('hidden')) return;
+    const tag = document.activeElement?.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+    if (e.key === '1' || e.key === '2' || e.key === '3') {
+      this.setUpgradeTab(['tree', 'cursors', 'chips'][Number(e.key) - 1]);
+      return;
+    }
+    if (this.upgradeTab === 'cursors' && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+      e.preventDefault();
+      this.moveCursorCarousel(e.key === 'ArrowLeft' ? -1 : 1);
+    } else if (this.upgradeTab === 'chips' && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+      e.preventDefault();
+      this.moveChipCarousel(e.key === 'ArrowLeft' ? -1 : 1);
+    }
+  }
+
+
+  upgradeCreditsText() {
+    return Math.round(this.game.credits).toLocaleString('es-ES');
+  }
+
+  renderUpgradeBadges() {
+    const credits = this.game.credits;
+    const abilities = this.progress.abilities || {};
+    const canAbility = ABILITIES.some(def => {
+      const lv = abilities[def.id] || 0;
+      return lv < def.max && credits >= abilityCost(def, lv);
+    });
+    const canCursor = CURSORS.some(c => c.unlock === 'shop' &&
+      !(this.progress.ownedCursors || []).includes(c.id) && credits >= c.cost);
+    const canChip = CHIPS_EXTRA.some(chip => !(this.progress.unlocked || []).includes(chip.id) && credits >= chip.cost);
+    const up = this.progress.upgrades || {};
+    const canCal = ['pulso', 'tesla'].some(key => credits >= LEGACY_PRICES[key] * ((up[key] || 0) + 1));
+    [['up-dot-tree', canAbility], ['up-dot-cursors', canCursor], ['up-dot-chips', canChip || canCal]].forEach(([id, show]) => {
+      const el = document.getElementById(id);
+      if (el) el.hidden = !show;
+    });
+  }
+
+  renderUpgradeHud() {
+    const creditsEl = document.getElementById('upgrade-credits');
+    if (creditsEl) creditsEl.textContent = this.upgradeCreditsText();
+    const legacyEl = document.getElementById('upgrade-credits-legacy');
+    if (legacyEl) legacyEl.textContent = this.game.credits;
+    const cursor = CURSORS.find(c => c.id === this.selectedHammer) || CURSORS[0];
+    const cursorName = document.getElementById('up-hud-cursor-name');
+    if (cursorName) {
+      cursorName.textContent = cursor.name;
+      cursorName.style.color = cursor.color;
+    }
+    const slotsRoot = document.getElementById('up-hud-slots');
+    if (slotsRoot) {
+      slotsRoot.innerHTML = '';
+      const slots = 2 + (this.progress.abilities?.ab_cache || 0);
+      const chips = Array.from(this.selectedChips);
+      for (let i = 0; i < slots; i += 1) {
+        const dot = document.createElement('span');
+        dot.className = i < chips.length ? 'up-slot filled' : 'up-slot';
+        slotsRoot.appendChild(dot);
+      }
+    }
+    const mute = document.getElementById('up-mute');
+    if (mute && this.audio) {
+      mute.textContent = this.audio.enabled ? '♪' : '×';
+      mute.setAttribute('aria-pressed', this.audio.enabled ? 'true' : 'false');
+    }
+  }
+
+  renderAbilityTree() {
+    const stage = document.getElementById('up-tree-stage');
+    if (!stage) return;
+    const defs = ABILITIES;
+    const coords = {
+      north: [[360, 180], [286, 120], [434, 120], [222, 54], [498, 54]],
+      east: [[470, 260], [560, 190], [560, 330], [650, 190], [650, 330]],
+      south: [[330, 350], [410, 350], [270, 420], [470, 420], [330, 490], [410, 490]],
+      west: [[270, 260], [180, 190], [180, 330], [90, 260], [90, 390]]
+    };
+    const parents = {
+      ab_pulso: null, ab_doble: 'ab_pulso', ab_umbral: 'ab_pulso', ab_sincronia: 'ab_doble', ab_fantasma: 'ab_umbral',
+      ab_memoria: null, ab_cadena: 'ab_memoria', ab_sobrecarga: 'ab_memoria', ab_sifon: 'ab_cadena', ab_cache: 'ab_sobrecarga',
+      ab_denso: null, ab_eco: null, ab_mira: 'ab_denso', ab_rompe: 'ab_eco', ab_sector: 'ab_mira', ab_maestro: 'ab_rompe',
+      ab_aegis: null, ab_cronometro: 'ab_aegis', ab_escudo_nv: 'ab_aegis', ab_resonancia: 'ab_escudo_nv'
+    };
+    const byBranch = {};
+    defs.forEach(def => {
+      const branch = this.upgradeBranch(def);
+      (byBranch[branch] || (byBranch[branch] = [])).push(def);
+    });
+    const pos = {};
+    Object.entries(byBranch).forEach(([branch, list]) => {
+      list.forEach((def, i) => {
+        pos[def.id] = {
+          x: coords[branch][Math.min(i, coords[branch].length - 1)][0],
+          y: coords[branch][Math.min(i, coords[branch].length - 1)][1],
+          branch
+        };
+      });
+    });
+
+    const svg = document.getElementById('up-tree-conduits');
+    if (svg) {
+      svg.innerHTML = '';
+      Object.entries(byBranch).forEach(([branch, list]) => {
+        const color = branch === 'north' ? '#00f3ff' : branch === 'east' ? '#ff00ff'
+          : branch === 'south' ? '#ffcc00' : '#10b981';
+        list.forEach((def, i) => {
+          const parentId = parents[def.id];
+          const from = parentId && pos[parentId] ? pos[parentId] : { x: 360, y: 260 };
+          const to = pos[def.id];
+          const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+          line.setAttribute('x1', from.x);
+          line.setAttribute('y1', from.y);
+          line.setAttribute('x2', to.x);
+          line.setAttribute('y2', to.y);
+          line.setAttribute('stroke', color);
+          line.setAttribute('stroke-width', '2');
+          line.setAttribute('stroke-opacity', '0.45');
+          svg.appendChild(line);
+        });
+      });
+    }
+
+    const nodesRoot = document.getElementById('up-tree-nodes');
+    if (nodesRoot) {
+      nodesRoot.innerHTML = '';
+      defs.forEach(def => {
+        const p = pos[def.id];
+        const lv = this.progress.abilities?.[def.id] || 0;
+        const maxed = lv >= def.max;
+        const selected = this.selectedAbilityId === def.id;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `up-node branch-${p.branch}${maxed ? ' maxed' : ''}${selected ? ' selected' : ''}`;
+        btn.style.left = `${p.x}px`;
+        btn.style.top = `${p.y}px`;
+        btn.dataset.ability = def.id;
+        btn.setAttribute('aria-label', `${def.name}. Nivel ${lv} de ${def.max}. ${def.desc}`);
+        btn.innerHTML = `<span class="up-node-icon">${maxed ? '✦' : this.upgradeIcon(p.branch)}</span><span class="up-node-lv">${lv}/${def.max}</span>`;
+        btn.addEventListener('click', () => {
+          this.selectedAbilityId = def.id;
+          this.renderAbilityTree();
+          this.renderAbilityInspector();
+        });
+        nodesRoot.appendChild(btn);
+      });
+    }
+
+    const total = defs.reduce((sum, def) => sum + (this.progress.abilities?.[def.id] || 0), 0);
+    const totalMax = defs.reduce((sum, def) => sum + def.max, 0);
+    const progress = document.getElementById('up-tree-progress');
+    if (progress) progress.textContent = `NIVELES: ${total} / ${totalMax}`;
+    this.renderAbilityInspector();
+  }
+
+  upgradeIcon(branch) {
+    return branch === 'north' ? '◎' : branch === 'east' ? '⚡' : branch === 'south' ? '◈' : '✴';
+  }
+
+  renderAbilityInspector() {
+    const root = document.getElementById('up-inspector');
+    if (!root) return;
+    const def = ABILITIES.find(a => a.id === this.selectedAbilityId) || ABILITIES[0];
+    const lv = this.progress.abilities?.[def.id] || 0;
+    const cost = abilityCost(def, lv);
+    const maxed = lv >= def.max;
+    const branch = this.upgradeBranch(def);
+    const branchLabel = { north: 'PRECISIÓN Y FLUJO', east: 'VOLTAJE Y SOBRECARGA', south: 'PODER Y ECONOMÍA', west: 'CONTROL Y NOVA' }[branch];
+    const canBuy = !maxed && this.game.credits >= cost;
+    let bars = '';
+    for (let i = 0; i < def.max; i += 1) {
+      bars += `<span class="up-seg${i < lv ? ' filled' : ''} branch-${branch}"></span>`;
+    }
+    root.innerHTML = `
+      <div class="up-inspector-top">
+        <span class="up-badge branch-${branch}">RAMA: ${branchLabel}</span>
+        <span class="up-node-id">NODO #${String(ABILITIES.indexOf(def) + 1).padStart(2, '0')}</span>
+      </div>
+      <div class="up-inspector-title">
+        <span class="up-inspector-icon branch-${branch}">${this.upgradeIcon(branch)}</span>
+        <div><h3>${def.name}</h3><p class="${maxed ? 'maxed' : ''}">NIVEL ${lv} / ${def.max}${maxed ? ' · MÁXIMO' : ''}</p></div>
+      </div>
+      <div class="up-segments">${bars}</div>
+      <p class="up-desc">${def.desc}</p>
+      <div class="up-stat-box">
+        <div><span>EFECTO POR NIVEL</span><strong>${def.desc.replace(' / NV', '')}</strong></div>
+        ${maxed ? '' : `<div><span>PRÓXIMO NIVEL</span><strong class="up-next">NV ${lv + 1} · ◈ ${cost.toLocaleString('es-ES')}</strong></div>`}
+      </div>
+      <button type="button" class="btn btn-primary up-buy" data-ability="${def.id}" ${canBuy ? '' : 'disabled'}>
+        <span>${maxed ? 'NIVEL MÁXIMO' : `MEJORAR A NV ${lv + 1}`}</span>
+        ${maxed ? '' : `<span class="up-price">◈ ${cost.toLocaleString('es-ES')}</span>`}
+      </button>
+    `;
+    const buy = root.querySelector('.up-buy');
+    if (buy && !maxed) buy.addEventListener('click', () => this.buyAbility(def.id));
+  }
+
+  filteredChips() {
+    const unlocked = this.progress.unlocked || [];
+    const base = [
+      { id: 'chain_master', label: 'RAYO MAESTRO', desc: 'Desbloquea el chip Rayo Maestro', cost: LEGACY_PRICES.chain_master, category: 'BASE', synergy: 'tesla' },
+      { id: 'mirror_core', label: 'ESPEJO', desc: 'Anula la inversión de núcleos', cost: LEGACY_PRICES.mirror_core, category: 'BASE', synergy: 'prisma' },
+      { id: 'reflejo', label: 'REFLEJO', desc: 'Réplica horizontal', cost: LEGACY_PRICES.reflejo, category: 'BASE', synergy: 'prisma' },
+      { id: 'criogenia', label: 'CRIOGENIA', desc: 'Hielo ≤ 1 s', cost: LEGACY_PRICES.criogenia, category: 'BASE', synergy: 'criogenico' },
+      { id: 'nucleo', label: 'NÚCLEO', desc: '+20% puntos al golpear jefes', cost: LEGACY_PRICES.nucleo, category: 'BASE', synergy: 'nucleo' }
+    ];
+    const advanced = CHIPS_EXTRA.map(chip => ({
+      ...chip, label: chip.label, category: 'NEW', synergy: {
+        combo_guard: 'fantasma', nova_surge: 'nova', shadow_step: 'pulso',
+        voltage_siphon: 'tesla', chrono_loop: 'cronos'
+      }[chip.id]
+    }));
+    const all = [...base, ...advanced].map(chip => ({
+      ...chip, owned: unlocked.includes(chip.id),
+      active: this.selectedChips.has(chip.id)
+    }));
+    if (this.chipFilter === 'BASE') return all.filter(chip => chip.category === 'BASE');
+    if (this.chipFilter === 'NEW') return all.filter(chip => chip.category === 'NEW');
+    if (this.chipFilter === 'EQUIPPED') return all.filter(chip => chip.active);
+    return all;
+  }
+
+  renderUpgradeChips() {
+    document.querySelectorAll('#screen-upgrades .up-filter').forEach(btn => {
+      btn.classList.toggle('selected', btn.dataset.filter === this.chipFilter);
+    });
+    const list = this.filteredChips();
+    const track = document.getElementById('up-chip-track');
+    const dots = document.getElementById('up-chip-dots');
+    if (!track || !dots) return;
+    track.innerHTML = '';
+    dots.innerHTML = '';
+    if (!list.length) {
+      track.innerHTML = '<p class="up-empty">NINGÚN CHIP EN ESTA CATEGORÍA · desbloquea y equipa chips para verlos aquí.</p>';
+      return;
+    }
+    if (this.chipIndex >= list.length) this.chipIndex = 0;
+    list.forEach((chip, idx) => {
+      const dot = document.createElement('button');
+      dot.type = 'button';
+      dot.className = `up-dot-btn${idx === this.chipIndex ? ' active' : ''}`;
+      dot.setAttribute('aria-label', `Ver chip ${chip.label}`);
+      dot.addEventListener('click', () => { this.chipIndex = idx; this.renderUpgradeChips(); });
+      dots.appendChild(dot);
+
+      let offset = idx - this.chipIndex;
+      if (list.length > 2) {
+        if (offset > list.length / 2) offset -= list.length;
+        if (offset < -list.length / 2) offset += list.length;
+      }
+      if (Math.abs(offset) > 1) return;
+      const center = offset === 0;
+      const synergy = chip.synergy === this.selectedHammer;
+      const canBuy = !chip.owned && this.game.credits >= chip.cost;
+      const card = document.createElement('div');
+      card.className = `up-chip-card${center ? ' center' : ''}${synergy ? ' synergy' : ''}`;
+      card.style.transform = `translateX(${offset * 48}%) scale(${center ? 1 : 0.86})`;
+      card.style.opacity = center ? '1' : '0.5';
+      card.style.zIndex = center ? '3' : '2';
+      if (!center) card.addEventListener('click', () => { this.chipIndex = idx; this.renderUpgradeChips(); });
+      let action = '';
+      if (!chip.owned) {
+        action = `<button type="button" class="btn btn-secondary up-chip-action" data-chip="${chip.id}" ${canBuy ? '' : 'disabled'}><span>DESBLOQUEAR</span><span>◈ ${chip.cost.toLocaleString('es-ES')}</span></button>`;
+      } else if (chip.active) {
+        action = `<button type="button" class="btn btn-secondary up-chip-action" data-chip="${chip.id}"><span>✓ EQUIPADO · QUITAR</span></button>`;
+      } else {
+        action = `<button type="button" class="btn btn-secondary up-chip-action" data-chip="${chip.id}"><span>EQUIPAR CHIP</span></button>`;
+      }
+      card.innerHTML = `
+        <div class="up-chip-top">
+          <span class="up-mini-badge">${chip.category === 'BASE' ? 'CHIP BASE' : 'CHIP AVANZADO'}</span>
+          ${synergy ? '<span class="up-synergy">✦ SINERGIA ACTIVA</span>' : ''}
+        </div>
+        <div class="up-chip-graphic"><span>⬡</span></div>
+        <h3>${chip.label}</h3>
+        <p class="up-chip-effect">${chip.desc}</p>
+        ${action}
+      `;
+      const btn = card.querySelector('.up-chip-action');
+      if (btn) btn.addEventListener('click', () => this.handleUpgradeChip(chip));
+      track.appendChild(card);
+    });
+  }
+
+  handleUpgradeChip(chip) {
+    if (!chip.owned) {
+      const cost = chip.category === 'BASE' ? LEGACY_PRICES[chip.id] : chip.cost;
+      if (chip.category === 'BASE') this.buyChip(chip.id, cost);
+      else this.buyChipExtra(chip.id);
+      return;
+    }
+    if (chip.active) {
+      if (this.selectedChips.size > 1) this.selectedChips.delete(chip.id);
+      else { this.showToast('Debe quedar al menos 1 chip equipado'); return; }
+      this.showToast(`${chip.label} DESEQUIPADO`);
+    } else {
+      const slots = 2 + (this.progress.abilities?.ab_cache || 0);
+      if (this.selectedChips.size >= slots) {
+        this.showToast(`Sin ranuras libres (${slots}/${slots}). Mejora Caché de Chips.`);
+        return;
+      }
+      this.selectedChips.add(chip.id);
+      this.showToast(`${chip.label} EQUIPADO`);
+    }
+    if (this.game.loadout?.chips) this.game.loadout.chips = Array.from(this.selectedChips);
+    this.syncPrepChips();
+    this.writeProgress(false);
+    this.renderUpgrades();
+  }
+
+  /** Mantiene PREPARACIÓN y MEJORAS apuntando a la misma selección de chips. */
+  syncPrepChips() {
+    document.querySelectorAll('#prep-chips .prep-chip').forEach(el => {
+      const selected = this.selectedChips.has(el.dataset.chip);
+      el.classList.toggle('selected', selected);
+      el.setAttribute('aria-pressed', selected ? 'true' : 'false');
+    });
+  }
+
+  renderCalibrations() {
+    const root = document.getElementById('up-calibrations');
+    if (!root) return;
+    const up = this.progress.upgrades || {};
+    root.innerHTML = '';
+    [['pulso', 'Mejorar Pulso', '+5% ventana / NV'], ['tesla', 'Mejorar Tesla', '+5% voltaje / NV']].forEach(([key, name, effect]) => {
+      const lv = up[key] || 0;
+      const cost = LEGACY_PRICES[key] * (lv + 1);
+      const canBuy = this.game.credits >= cost;
+      const bars = Array.from({ length: 10 }, (_, i) => `<span class="up-seg${i < lv ? ' filled' : ''} ${key}"></span>`).join('');
+      const item = document.createElement('div');
+      item.className = 'up-cal-item';
+      item.innerHTML = `
+        <div class="up-cal-head"><strong>${name}</strong><span>NV ${lv}/10</span></div>
+        <p>${effect} · total +${lv * 5}%</p>
+        <div class="up-segments">${bars}</div>
+        <button type="button" class="btn btn-secondary up-cal-btn" data-upgrade="${key}" ${canBuy ? '' : 'disabled'}>
+          <span>MEJORAR NV ${lv + 1}</span><span>◈ ${cost.toLocaleString('es-ES')}</span>
+        </button>
+      `;
+      item.querySelector('.up-cal-btn').addEventListener('click', () => this.buyUpgrade(key, LEGACY_PRICES[key]));
+      root.appendChild(item);
+    });
+  }
+
+  renderLoadout() {
+    const root = document.getElementById('up-loadout');
+    if (!root) return;
+    const slots = 2 + (this.progress.abilities?.ab_cache || 0);
+    const chips = Array.from(this.selectedChips);
+    const count = document.getElementById('up-loadout-count');
+    if (count) count.textContent = `${chips.length} / ${slots}`;
+    root.innerHTML = '';
+    for (let i = 0; i < slots; i += 1) {
+      const id = chips[i];
+      const slot = document.createElement('div');
+      if (id) {
+        const chip = this.filteredChipsForLabel(id);
+        slot.className = 'up-slot-row filled';
+        slot.innerHTML = `<span class="up-slot-led"></span><div><strong>${chip?.label || id}</strong><small>${chip?.desc || ''}</small></div><button type="button" class="up-slot-remove" data-chip="${id}" aria-label="Quitar ${id}">✕</button>`;
+        slot.querySelector('.up-slot-remove').addEventListener('click', () => this.handleUpgradeChip({ id, owned: true, active: true, label: chip?.label || id }));
+      } else {
+        slot.className = 'up-slot-row empty';
+        slot.textContent = `[ RANURA ${i + 1} VACÍA ]`;
+      }
+      root.appendChild(slot);
+    }
+  }
+
+  filteredChipsForLabel(id) {
+    const all = [
+      { id: 'chain_master', label: 'RAYO MAESTRO', desc: 'Desbloquea el chip Rayo Maestro' },
+      { id: 'mirror_core', label: 'ESPEJO', desc: 'Anula la inversión de núcleos' },
+      { id: 'reflejo', label: 'REFLEJO', desc: 'Réplica horizontal' },
+      { id: 'criogenia', label: 'CRIOGENIA', desc: 'Hielo ≤ 1 s' },
+      { id: 'nucleo', label: 'NÚCLEO', desc: '+20% puntos al golpear jefes' },
+      ...CHIPS_EXTRA.map(chip => ({ id: chip.id, label: chip.label, desc: chip.desc }))
+    ];
+    return all.find(chip => chip.id === id);
+  }
+
+  moveCursorCarousel(dir) {
+    if (!CURSORS.length) return;
+    this.cursorIndex = (this.cursorIndex + dir + CURSORS.length) % CURSORS.length;
+    this.renderCursorCarousel();
+  }
+
+  renderCursorCarousel() {
+    const track = document.getElementById('up-cursor-track');
+    const dots = document.getElementById('up-cursor-dots');
+    if (!track || !dots) return;
+    track.innerHTML = '';
+    dots.innerHTML = '';
+    CURSORS.forEach((cursor, idx) => {
+      const dot = document.createElement('button');
+      dot.type = 'button';
+      dot.className = `up-dot-btn${idx === this.cursorIndex ? ' active' : ''}`;
+      dot.setAttribute('aria-label', `Ver cursor ${cursor.name}`);
+      dot.addEventListener('click', () => { this.cursorIndex = idx; this.renderCursorCarousel(); });
+      dots.appendChild(dot);
+
+      let offset = idx - this.cursorIndex;
+      if (offset > CURSORS.length / 2) offset -= CURSORS.length;
+      if (offset < -CURSORS.length / 2) offset += CURSORS.length;
+      if (Math.abs(offset) > 2) return;
+      const center = offset === 0;
+      const owned = this.isCursorUnlocked(cursor);
+      const equipped = this.selectedHammer === cursor.id;
+      const canBuy = !owned && cursor.unlock === 'shop' && this.game.credits >= cursor.cost;
+      const card = document.createElement('div');
+      card.className = `up-cursor-card${center ? ' center' : ''}`;
+      card.style.transform = `translateX(${offset * 55}%) scale(${center ? 1 : Math.abs(offset) === 1 ? 0.84 : 0.7})`;
+      card.style.opacity = center ? '1' : Math.abs(offset) === 1 ? '0.62' : '0.28';
+      card.style.zIndex = String(20 - Math.abs(offset));
+      card.style.setProperty('--cursor-color', cursor.color);
+      if (!center) card.addEventListener('click', () => { this.cursorIndex = idx; this.renderCursorCarousel(); });
+      const action = equipped
+        ? '<button type="button" class="btn btn-secondary up-cursor-action" disabled><span>✓ EQUIPADO</span></button>'
+        : owned
+          ? `<button type="button" class="btn btn-secondary up-cursor-action" data-cursor="${cursor.id}"><span>EQUIPAR CURSOR</span></button>`
+          : cursor.unlock === 'shop'
+            ? `<button type="button" class="btn btn-secondary up-cursor-action" data-cursor="${cursor.id}" ${canBuy ? '' : 'disabled'}><span>DESBLOQUEAR</span><span>◈ ${cursor.cost.toLocaleString('es-ES')}</span></button>`
+            : `<button type="button" class="btn btn-secondary up-cursor-action" disabled><span>🔒 ${this.cursorRequirement(cursor).toUpperCase()}</span></button>`;
+      card.innerHTML = `
+        <span class="up-mini-badge">${cursor.unlock === 'free' ? 'INICIAL · GRATIS' : cursor.unlock === 'shop' ? `TIENDA · ${cursor.cost.toLocaleString('es-ES')}` : cursor.unlock === 'prestige' ? 'PRESTIGIO' : `RECOMPENSA JEFE ${cursor.unlock.slice(-1)}`}</span>
+        <div class="up-cursor-preview"><canvas width="260" height="110" aria-hidden="true"></canvas><span>VISTA INTERACTIVA</span></div>
+        <h3>${cursor.name}</h3>
+        <div class="up-cursor-ability"><small>HABILIDAD ÚNICA</small><strong>${cursor.skill}</strong></div>
+        ${action}
+      `;
+      const btn = card.querySelector('.up-cursor-action');
+      if (btn && !btn.disabled) btn.addEventListener('click', () => this.buyCursorSkill(cursor.id));
+      if (center) this.drawCursorPreview(card.querySelector('canvas'), cursor);
+      track.appendChild(card);
+    });
+  }
+
+  drawCursorPreview(canvas, cursor) {
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2;
+    let tick = 0;
+    const draw = () => {
+      const screen = document.getElementById('screen-upgrades');
+      if (!screen || screen.classList.contains('hidden') || this.upgradeTab !== 'cursors' || !canvas.isConnected) return;
+      tick += 0.04;
+      ctx.fillStyle = '#07080f';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.strokeStyle = cursor.color;
+      ctx.fillStyle = cursor.color;
+      ctx.shadowBlur = 12;
+      ctx.shadowColor = cursor.color;
+      const x = cx + Math.cos(tick) * 58;
+      const y = cy + Math.sin(tick * 1.4) * 24;
+      if (cursor.trail === 'arc') {
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(canvas.width * 0.78, cy + Math.sin(tick * 3) * 12);
+        ctx.stroke();
+      } else if (cursor.trail === 'shield') {
+        ctx.beginPath();
+        for (let i = 0; i < 6; i += 1) {
+          const a = (Math.PI / 3) * i + tick;
+          const px = x + Math.cos(a) * 22;
+          const py = y + Math.sin(a) * 22;
+          if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        ctx.stroke();
+      } else {
+        ctx.beginPath();
+        ctx.arc(x, y, 8 + Math.sin(tick * 2) * 5, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.beginPath();
+      ctx.arc(x, y, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      requestAnimationFrame(draw);
+    };
+    requestAnimationFrame(draw);
+  }
 
   addUpgradeRow(root, text, btnText, attrs, disabled) {
     if (!root) return;
