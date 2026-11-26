@@ -29,6 +29,19 @@ El juego abre en un **launcher** con los perfiles ya vinculados. Solo se piden *
 - La barra de voltaje lleva una escalera `×1…×5` con icono: el peldaño activo se ilumina y los anteriores quedan marcados. Al vaciarse, la barra se muestra llena durante 0,6 s con el multiplicador perdido (`×3 → ×2`) antes de volver al margen del 15 %.
 - El menú agrupa las acciones en dos botones principales (**CAMPAÑA/CONTINUAR** y **RUN DIARIA**) y una fila de accesos rápidos con icono (**TABLA, MEJORAS, ARCHIVO, AJUSTES, USUARIO**).
 
+## Android con Android Studio
+
+`android/` es un proyecto Gradle real: ábrelo con `File → Open...` y pulsa **Run** para probarlo en el emulador o en el móvil por USB. Empaqueta el juego dentro de la app, así que no hace falta servidor ni conexión.
+
+```text
+D:\Mis_apps\juego2dinteracivo\android
+```
+
+- `minSdk 24`, `targetSdk 36`, WebView sin AndroidX ni dependencias externas.
+- Los archivos web se sirven desde `assets/web/` bajo `https://overclock9.local/`, lo que permite módulos ES y guardado local (en WebView no existe `showDirectoryPicker`, así que se usa el datasave virtual automáticamente).
+- La app abre con `?qa=1` y **COPIAR MÉTRICAS** usa el portapapeles nativo.
+- APK de depuración: `android/app/build/outputs/apk/debug/app-debug.apk`. Detalles y actualización de assets en `android/README.md`.
+
 ## Diseño responsive
 
 - La interfaz usa `100dvh`, unidades fluidas y `env(safe-area-inset-*)` con `viewport-fit=cover`; no hay reglas por modelo de teléfono ni por alto de pantalla que recoloquen pantallas completas.

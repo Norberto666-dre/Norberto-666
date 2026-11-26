@@ -63,7 +63,12 @@ if (qaPanel) {
   document.body.appendChild(qaPanel);
   qaPanel.querySelector('#qa-copy').addEventListener('click', async () => {
     const data = JSON.stringify(getMetrics(), null, 2);
-    try { await navigator.clipboard.writeText(data); qaPanel.querySelector('#qa-copy').textContent = 'COPIADO'; }
+    const bridge = window.OverclockAndroid;
+    try {
+      if (bridge?.copyMetrics) bridge.copyMetrics(data);
+      else await navigator.clipboard.writeText(data);
+      qaPanel.querySelector('#qa-copy').textContent = 'COPIADO';
+    }
     catch { qaPanel.querySelector('#qa-copy').textContent = 'VER CONSOLE'; console.log(data); }
   });
 }
