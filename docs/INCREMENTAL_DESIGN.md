@@ -273,7 +273,7 @@ Las secciones 2–4 describen el diseño incremental original (15 nodos, 15 Chip
 - El combo es el multiplicador dominante: `1 + min(combo,50)·0.04`, aplicado **después** de puntuar cada golpe (primer golpe ×1). `Sincronía` conserva una fracción del combo, pero nunca lo crea desde cero.
 - Nova sigue siendo recompensa: rara, nunca en Jackpot, limpia solo los núcleos presentes en la explosión, paga su valor real, no cuenta como bomba y conserva el combo. `SURGE NOVA` / `Resonancia Nova` aumentan pago y radio y añaden un tercer anillo visual.
 
-**Criterio de salida del catálogo:** 79/79 tests (`game` + `accounts` + `leaderboard`), `node --check` limpio en todos los módulos, 0 errores de consola en navegador, compras y persistencia verificadas tras recarga, listas visibles y desplazables a 390×844, cuentas separadas por perfil en `datasave`, CRUD con foto validada y borrado de save/caché, desincrementación `×3→×2→×1→0` verificada en motor y HUD, purga de rojo con `+1 V`, y latencia input→SFX < 100 ms con evento humano confiable.
+**Criterio de salida del catálogo:** 79/79 tests (`game` + `accounts` + `leaderboard`), `node --check` limpio en todos los módulos, 0 errores de consola en navegador, compras y persistencia verificadas tras recarga, listas visibles y desplazables a 390×844, cuentas separadas por perfil en `datasave`, CRUD con foto validada y borrado de save/caché, layout fluido sin reglas por modelo, HUD separado del tablero en portrait/landscape/escritorio, desincrementación `×3→×2→×1→0` verificada en motor y HUD, purga de rojo con `+1 V`, y latencia input→SFX < 100 ms con evento humano confiable.
 
 ---
 
@@ -338,5 +338,21 @@ La implementación reside en `js/balance.js` (constantes), `js/game.js` (motor y
 | Ritmo de aparición | `2.2 s → 0.35 s` entre núcleos a lo largo de 180 s |
 | Resultados | Sin replay del error; tarjeta con informe completo de la run |
 | Diario | `3×3`, sin jefe, sin blanco, `pulso` y carga vacía |
+
+### 10.6 Responsive fluido y HUD sin solape
+
+| Decisión | Implementación | Criterio |
+|---|---|---|
+| Viewport y zonas seguras | `100dvh` + `viewport-fit=cover` + `env(safe-area-inset-*)` en pantallas, overlay, editor y aviso flotante. | El contenido respeta marcas/notch sin recortar botones ni el inicio de listas. |
+| Objetivos táctiles | Mínimo `44×44 px` en botones, pestañas de acceso, enlaces de carpeta y selector de foto. | Ningún control medible queda por debajo de `44 px` en `320×568`. |
+| Tablero HUD-aware | `Renderer.computeBoard()` mide `hud.getBoundingClientRect().bottom` y reserva además una franja inferior; `ResizeObserver`, `resize`, `orientationchange` y `visualViewport` recalculan. | Separación HUD→tablero ≥ `40 px` y separación tablero→borde inferior ≥ `40 px` en los tamaños verificados. |
+| Sin ajustes por modelo | Se eliminó el bloque por `max-height: 560px` que ocultaba el contexto del HUD y movía diversas pantallas; el layout crece con scroll y `justify-content: safe center`. | Los mismos estilos sirven para móvil estrecho, landscape y escritorio; no se recolocan pantallas completas. |
+
+| Viewport | HUD | Tablero | Separación superior / inferior |
+|---|---|---|---|
+| `320×568` | 167 px | 285 px | 52 / 64 px |
+| `390×844` | 170 px | 367 px | 141 / 165 px |
+| `844×390` (landscape) | 193 px | 110 px | 45 / 42 px |
+| `1280×720` | 193 px | 389 px | 57 / 81 px |
 
 **Supuestos pendientes:** medición de FPS y audio en Android físico (sin dispositivo ni `kotlinc` en este entorno); validación visual humana de estelas, glifos y Pesadilla; latencia acústica extremo a extremo con evento `isTrusted` y dispositivo real; el selector nativo de carpeta requiere un gesto humano y no se puede automatizar en QA, pero el botón y el fallback se verificaron en navegador. El selector de tablero se corrigió durante esta QA: el delegado buscaba `button[data-board]` y las opciones son `div`.

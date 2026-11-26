@@ -17,6 +17,7 @@
 html, body {
   margin: 0; padding: 0;
   width: 100%; height: 100%;
+  height: 100dvh;
   background: var(--bg);
   color: var(--text);
   font-family: 'Rajdhani', sans-serif;
@@ -24,11 +25,15 @@ html, body {
   touch-action: manipulation;
 }
 
-#app { width: 100%; height: 100%; position: relative; display: flex; flex-direction: column; }
+#app {
+  width: 100%; height: 100%; height: 100dvh;
+  position: relative; display: flex; flex-direction: column;
+}
 
 canvas {
   display: block;
   flex: 1;
+  min-height: 0;
   background: radial-gradient(circle at center, #0a0a1a 0%, #020205 100%);
   width: 100%; height: 100%;
 }
@@ -50,9 +55,12 @@ canvas {
 .screen {
   position: absolute; inset: 0;
   display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
+  align-items: center;
+  justify-content: center;
+  justify-content: safe center; /* si el contenido crece, el inicio sigue siendo alcanzable */
   z-index: 20;
-  padding: 24px;
+  padding: max(24px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right))
+    max(24px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
   gap: 16px;
   pointer-events: auto;
   opacity: 1;
@@ -96,6 +104,8 @@ canvas {
 .menu-tool span { font-family: 'Orbitron', sans-serif; font-size: 8px; letter-spacing: 0.6px; white-space: nowrap; }
 .btn {
   width: 100%;
+  min-height: 44px;
+  display: inline-flex; align-items: center; justify-content: center;
   padding: 16px 24px;
   font-family: 'Orbitron', sans-serif;
   font-weight: 700;
@@ -256,7 +266,9 @@ canvas {
 .account-editor {
   position: absolute; inset: 0; z-index: 5;
   display: flex; align-items: center; justify-content: center;
-  padding: 14px;
+  justify-content: safe center;
+  overflow-y: auto;
+  padding: max(14px, env(safe-area-inset-top)) 14px max(14px, env(safe-area-inset-bottom));
   background: rgba(3,3,10,0.82);
   border-radius: inherit;
   backdrop-filter: blur(6px);
@@ -287,7 +299,7 @@ canvas {
 }
 .editor-avatar-tools { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .editor-form input[type="file"] {
-  width: 100%; padding: 8px; color: var(--dim);
+  width: 100%; min-height: 44px; padding: 8px; color: var(--dim);
   font-size: 11px; background: #080812;
   border: 1px dashed var(--border); border-radius: 10px;
 }
@@ -318,6 +330,8 @@ canvas {
   border-bottom: 1px solid var(--border);
 }
 .auth-tab {
+  min-height: 44px;
+  display: inline-flex; align-items: center; justify-content: center;
   padding: 10px;
   background: transparent;
   border: none;
@@ -347,7 +361,9 @@ canvas {
 .auth-error { min-height: 16px; font-size: 11px; color: #ff6b8a; text-align: center; letter-spacing: 1px; }
 .launcher-actions { display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .link-btn {
-  background: none; border: none; padding: 4px;
+  min-height: 44px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: none; border: none; padding: 4px 10px;
   color: var(--cyan); font-size: 11px; letter-spacing: 1px;
   text-decoration: underline; cursor: pointer;
 }
@@ -672,11 +688,16 @@ canvas {
   backdrop-filter: blur(6px);
   z-index: 40;
   display: flex; align-items: center; justify-content: center;
+  justify-content: safe center;
+  overflow-y: auto;
+  padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
   pointer-events: auto;
 }
 .overlay.hidden { display: none; pointer-events: none; }
 .pause-box {
-  width: min(340px, calc(100% - 32px));
+  width: min(340px, 100%);
+  max-height: 100%;
+  overflow-y: auto;
   background: linear-gradient(160deg, rgba(18,18,34,0.98), rgba(8,8,18,0.98));
   border: 1px solid #24244d;
   border-radius: 22px 24px 20px 26px;
@@ -761,7 +782,7 @@ canvas {
 /* Toast */
 .toast {
   position: absolute;
-  bottom: 24px;
+  bottom: max(24px, env(safe-area-inset-bottom));
   left: 50%;
   transform: translateX(-50%);
   background: rgba(13,13,26,0.95);
@@ -794,7 +815,7 @@ canvas {
   .editor-form { padding: 12px; gap: 8px; }
   .editor-avatar { width: 52px; height: 52px; }
   .section-label span { display: none; }
-  .profile-grid { grid-template-columns: repeat(auto-fit, minmax(76px, 1fr)); gap: 8px; }
+  .profile-grid { grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); gap: 8px; }
   .prep-grid { flex-direction: column; gap: 12px; margin-bottom: 16px; }
   .prep-chip { flex: 1 1 90px; padding: 10px; }
   #hud { padding-left: 10px; padding-right: 10px; gap: 7px; }

@@ -29,6 +29,14 @@ El juego abre en un **launcher** con los perfiles ya vinculados. Solo se piden *
 - La barra de voltaje lleva una escalera `×1…×5` con icono: el peldaño activo se ilumina y los anteriores quedan marcados. Al vaciarse, la barra se muestra llena durante 0,6 s con el multiplicador perdido (`×3 → ×2`) antes de volver al margen del 15 %.
 - El menú agrupa las acciones en dos botones principales (**CAMPAÑA/CONTINUAR** y **RUN DIARIA**) y una fila de accesos rápidos con icono (**TABLA, MEJORAS, ARCHIVO, AJUSTES, USUARIO**).
 
+## Diseño responsive
+
+- La interfaz usa `100dvh`, unidades fluidas y `env(safe-area-inset-*)` con `viewport-fit=cover`; no hay reglas por modelo de teléfono ni por alto de pantalla que recoloquen pantallas completas.
+- Los controles interactivos tienen un objetivo táctil mínimo de `44×44 px` y las pantallas crecen con scroll cuando el contenido no cabe, sin recortar el inicio.
+- El tablero se calcula en `js/render.js` con el **borde real del HUD**, no con un porcentaje fijo: si el HUD cambia de altura (tokens de jefe, fuentes, rotación), `ResizeObserver` y la sincronización por frame vuelven a ajustar la celda. Así el HUD nunca se sobrepone a los hoyos en móvil, landscape ni escritorio.
+- `resize`, `orientationchange` y `visualViewport` mantienen el canvas y el hit-test alineados con la vista disponible.
+- `tests/responsive-lab.html?w=390&h=844` abre un iframe con cualquier tamaño para repetir la verificación visual.
+
 ## Campaña, run diaria y tabla
 
 - **CAMPAÑA** es el modo local: avanza por sectores y acumula récords personales (`bestScore`, `bestCombo`, mejor por tablero) antes de enfrentarte al reto diario.
@@ -74,7 +82,7 @@ La suite (79 pruebas) cubre voltaje, subida y desincrementación de peldaños co
 - `js/game.js` — motor: voltaje, spawns, jefes, Nova, puntuación, instantánea de pausa e informe de run.
 - `js/render.js`, `js/input.js`, `js/ui.js`, `js/main.js`, `js/audio.js` — capa de presentación e interacción.
 - `js/content.js` — catálogo de 20 habilidades, 5 chips y 10 cursores.
-- `tests/` — suite Node y harness de viewport móvil `390×844`.
+- `tests/` — suite Node, harness de viewport móvil `390×844` y laboratorio responsive con tamaño configurable.
 - `docs/INCREMENTAL_DESIGN.md` — diseño incremental, fórmulas, ritmo y QA.
 - `kotlin-skeleton/` — esqueleto Kotlin/Jetpack Compose (minSdk 24) alineado con las reglas v2.
 

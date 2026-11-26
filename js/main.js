@@ -115,7 +115,10 @@ game.onEndCycle = () => {
   ui.showScreen('results');
 };
 
-window.addEventListener('resize', () => renderer.resize());
+const handleViewportChange = () => renderer.resize();
+window.addEventListener('resize', handleViewportChange);
+window.addEventListener('orientationchange', handleViewportChange);
+window.visualViewport?.addEventListener('resize', handleViewportChange);
 renderer.resize();
 
 let lastTime = performance.now();

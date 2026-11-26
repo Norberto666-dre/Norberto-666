@@ -11,6 +11,14 @@ export class Renderer {
     this.width = 0;
     this.height = 0;
     this.board = { x: 0, y: 0, cell: 0, margin: 0 };
+    this.hud = document.getElementById('hud');
+    this.hudBottom = 0;
+    if (this.hud && typeof ResizeObserver !== 'undefined') {
+      this.hudObserver = new ResizeObserver(() => {
+        if (!this.hud.classList.contains('hidden')) this.resize();
+      });
+      this.hudObserver.observe(this.hud);
+    }
 
     this.resize();
   }
@@ -36,9 +44,19 @@ export class Renderer {
     const h = this.drawH;
     const cols = this.game && this.game.cols ? this.game.cols : 3;
     const rows = this.game && this.game.rows ? this.game.rows : 3;
-    // Tablero centrado, dejando espacio arriba para HUD y abajo para carga.
-    // La celda se calcula por columnas: 4×3 y 5×4 caben sin recortar en móvil.
-    const size = Math.min(w * 0.94, h * 0.62, (h * 0.60) * cols / rows);
+
+    // El HUD es fluido: medimos su borde real para que el tablero nunca lo tape,
+    // sin depender de breakpoints por modelo ni de alturas fijas.
+    const hudVisible = this.hud && !this.hud.classList.contains('hidden') &&
+      getComputedStyle(this.hud).display !== 'none';
+    const hudBottom = hudVisible ? this.hud.getBoundingClientRect().bottom : 0;
+    this.hudBottom = hudBottom;
+    const topReserve = hudVisible ? Math.min(h * 0.72, hudBottom + 40) : h * 0.12;
+    const bottomReserve = Math.min(64, Math.max(48, h * 0.09));
+    const availableH = Math.max(120, h - topReserve - bottomReserve);
+
+    // La celda se calcula por columnas: 3×3, 4×3 y 5×4 caben sin recortar.
+    const size = Math.min(w * 0.94, availableH * 0.92, availableH * cols / rows);
     this.board.cell = size / cols;
     this.board.rows = rows;
     this.board.cols = cols;
@@ -46,7 +64,7 @@ export class Renderer {
     this.board.height = this.board.cell * rows;
     this.board.margin = Math.max(4, this.board.cell * 0.06);
     this.board.x = (w - this.board.width) / 2;
-    this.board.y = Math.max(h * 0.17, (h - this.board.height) * 0.42);
+    this.board.y = topReserve + (availableH - this.board.height) / 2;
   }
 
   // Hit test: devuelve el hoyo bajo el puntero o null
@@ -59,7 +77,14 @@ export class Renderer {
     return this.game.holes[idx] || null;
   }
 
+  syncHudLayout() {
+    if (!this.hud || this.hud.classList.contains('hidden')) return;
+    const bottom = this.hud.getBoundingClientRect().bottom;
+    if (Math.abs(bottom - this.hudBottom) > 2) this.resize();
+  }
+
   render(dt) {
+    this.syncHudLayout();
     const ctx = this.ctx;
     const w = this.drawW;
     const h = this.drawH;

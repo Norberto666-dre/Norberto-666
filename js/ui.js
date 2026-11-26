@@ -1175,9 +1175,10 @@ export class UI {
     this.lastOptions = { ...storedOptions, creditMultiplier: 1 };
     const loadout = loadoutOverride || options.resumeState?.loadout || { hammer, chips, upgrades, abilities };
     this.game.startCycle(loadout, gameOptions);
+    // El HUD debe estar visible antes de medir: el tablero se aparta de su borde real.
+    this.hud.classList.remove('hidden');
     this.renderer.resize();
     this.game.setCanvasSize(this.renderer.drawW, this.renderer.drawH, this.renderer.board);
-    this.hud.classList.remove('hidden');
     // Ocultar todas las pantallas de menú; el juego se dibuja en el canvas
     Object.values(this.screens).forEach(s => { if (s) { s.classList.add('hidden'); s.classList.remove('active'); } });
     this.pauseOverlay.classList.add('hidden');

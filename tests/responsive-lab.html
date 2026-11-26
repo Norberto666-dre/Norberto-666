@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OVERCLOCK 9 · laboratorio responsive</title>
+  <style>
+    html, body { margin: 0; min-height: 100%; background: #020205; color: #666699; font: 12px monospace; }
+    body { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px; }
+    #label { letter-spacing: 2px; }
+    #device {
+      display: block; border: 1px solid #22224a; border-radius: 12px;
+      background: #05050c; box-shadow: 0 18px 50px rgba(0,0,0,0.6);
+    }
+  </style>
+</head>
+<body>
+  <div id="label"></div>
+  <iframe id="device" title="OVERCLOCK 9 responsive" src="/?v=responsive"></iframe>
+  <script>
+    const params = new URLSearchParams(location.search);
+    const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+    const w = clamp(Number(params.get('w')) || 390, 240, 1600);
+    const h = clamp(Number(params.get('h')) || 844, 300, 1200);
+    const frame = document.getElementById('device');
+    frame.style.width = `${w}px`;
+    frame.style.height = `${h}px`;
+    frame.src = `/?v=responsive&${params.get('q') || ''}`;
+    document.getElementById('label').textContent = `${w}×${h}`;
+  </script>
+</body>
+</html>
