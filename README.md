@@ -36,6 +36,9 @@ El juego abre en un **launcher** con los perfiles ya vinculados. Solo se piden *
 - El tablero se calcula en `js/render.js` con el **borde real del HUD**, no con un porcentaje fijo: si el HUD cambia de altura (tokens de jefe, fuentes, rotación), `ResizeObserver` y la sincronización por frame vuelven a ajustar la celda. Así el HUD nunca se sobrepone a los hoyos en móvil, landscape ni escritorio.
 - `resize`, `orientationchange` y `visualViewport` mantienen el canvas y el hit-test alineados con la vista disponible.
 - `tests/responsive-lab.html?w=390&h=844` abre un iframe con cualquier tamaño para repetir la verificación visual.
+- La interfaz funciona también con teclado: `Enter`/`Espacio` activan botones y opciones, `Esc` cierra el editor de cuenta y gestiona la pausa, y un único anuncio accesible informa de hitos sin leer el marcador cada frame.
+- Las fuentes son 100 % offline: no hay `@import` ni `preload` a Google Fonts; se usan copias locales si están instaladas y una pila del sistema como respaldo.
+- Abre el juego con `?qa=1` para ver un panel opcional con FPS, latencia y muestras; **COPIAR MÉTRICAS** exporta el resultado para medir en un Android real.
 
 ## Campaña, run diaria y tabla
 
@@ -72,7 +75,7 @@ node --check js/balance.js   # y los otros módulos
 node --test tests/game.test.mjs tests/accounts.test.mjs tests/leaderboard.test.mjs
 ```
 
-La suite (79 pruebas) cubre voltaje, subida y desincrementación de peldaños con su flash visual, purga de rojos con `+1 V`, escalones de combo, tableros, clústers, rotación de 10 jefes y sus efectos de entorno, pausa/instantánea, Diario de run única, Nova de una explosión, ritmo de aparición, economía, CRUD de cuentas con foto/guardado por perfil y tabla online/offline.
+La suite (83 pruebas) cubre voltaje, subida y desincrementación de peldaños con su flash visual, purga de rojos con `+1 V`, escalones de combo, tableros, clústers, rotación de 10 jefes y sus efectos de entorno, estrés A3 + Espejo NV3, pausa/instantánea, Diario de run única, Nova de una explosión, ritmo de aparición, economía, CRUD de cuentas con foto/guardado por perfil y tabla online/offline.
 
 ## Estructura
 
@@ -82,8 +85,9 @@ La suite (79 pruebas) cubre voltaje, subida y desincrementación de peldaños co
 - `js/game.js` — motor: voltaje, spawns, jefes, Nova, puntuación, instantánea de pausa e informe de run.
 - `js/render.js`, `js/input.js`, `js/ui.js`, `js/main.js`, `js/audio.js` — capa de presentación e interacción.
 - `js/content.js` — catálogo de 20 habilidades, 5 chips y 10 cursores.
-- `tests/` — suite Node, harness de viewport móvil `390×844` y laboratorio responsive con tamaño configurable.
-- `docs/INCREMENTAL_DESIGN.md` — diseño incremental, fórmulas, ritmo y QA.
+- `tests/` — suite Node, harness de viewport móvil `390×844`, laboratorio responsive con tamaño configurable y estrés `mirror-nv3`.
+- `docs/INCREMENTAL_DESIGN.md` — diseño incremental, fórmulas, ritmo y QA (Ciclo 11 en §10.7).
+- `docs/qa/` — capturas del Ciclo 11 pendientes de revisión humana.
 - `kotlin-skeleton/` — esqueleto Kotlin/Jetpack Compose (minSdk 24) alineado con las reglas v2.
 
 Sin IAP ni multijugador.

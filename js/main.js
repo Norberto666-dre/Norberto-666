@@ -53,6 +53,21 @@ setTimeout(() => {
 const metrics = { fps: [], latency: [], audio: [] };
 const avg = arr => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
 
+// Panel opcional para medir en un Android real: abre el juego con ?qa=1.
+const qaPanel = new URLSearchParams(location.search).has('qa') ? document.createElement('div') : null;
+if (qaPanel) {
+  qaPanel.id = 'qa-panel';
+  qaPanel.setAttribute('aria-live', 'off');
+  qaPanel.innerHTML = '<div class="qa-title">QA · ANDROID</div><pre id="qa-values">MIDIENDO…</pre>' +
+    '<button id="qa-copy" type="button">COPIAR MÉTRICAS</button>';
+  document.body.appendChild(qaPanel);
+  qaPanel.querySelector('#qa-copy').addEventListener('click', async () => {
+    const data = JSON.stringify(getMetrics(), null, 2);
+    try { await navigator.clipboard.writeText(data); qaPanel.querySelector('#qa-copy').textContent = 'COPIADO'; }
+    catch { qaPanel.querySelector('#qa-copy').textContent = 'VER CONSOLE'; console.log(data); }
+  });
+}
+
 // Conectar input con hit-test del renderizador.
 // Los núcleos rojos esperan al pointerup: si se arrastran ≥60 px se purgan y suman +1 V.
 const pendingRed = new Map();
@@ -142,19 +157,26 @@ function loop(now) {
 }
 requestAnimationFrame(loop);
 
+const getMetrics = () => ({
+  board: game.boardId,
+  voltage: Math.round(game.voltage),
+  voltageTier: game.voltageTier,
+  combo: game.score.combo,
+  avgFps: +avg(metrics.fps).toFixed(1),
+  minFps: metrics.fps.length ? Math.min(...metrics.fps) : 0,
+  avgLatencyMs: +avg(metrics.latency).toFixed(1),
+  avgAudioLatencyMs: +avg(metrics.audio).toFixed(1),
+  maxAudioLatencyMs: metrics.audio.length ? +Math.max(...metrics.audio).toFixed(1) : 0,
+  samples: { fps: metrics.fps.length, latency: metrics.latency.length, audio: metrics.audio.length }
+});
+
+if (qaPanel) {
+  const paintMetrics = () => { qaPanel.querySelector('#qa-values').textContent = JSON.stringify(getMetrics(), null, 2); };
+  paintMetrics();
+  setInterval(paintMetrics, 500);
+}
+
 // Exponer para debug y QA
 window.__OVERCLOCK = {
-  game, audio, input, renderer, ui, accounts, leaderboard, metrics, balance: BALANCE,
-  getMetrics: () => ({
-    board: game.boardId,
-    voltage: Math.round(game.voltage),
-    voltageTier: game.voltageTier,
-    combo: game.score.combo,
-    avgFps: +avg(metrics.fps).toFixed(1),
-    minFps: metrics.fps.length ? Math.min(...metrics.fps) : 0,
-    avgLatencyMs: +avg(metrics.latency).toFixed(1),
-    avgAudioLatencyMs: +avg(metrics.audio).toFixed(1),
-    maxAudioLatencyMs: metrics.audio.length ? +Math.max(...metrics.audio).toFixed(1) : 0,
-    samples: { fps: metrics.fps.length, latency: metrics.latency.length, audio: metrics.audio.length }
-  })
+  game, audio, input, renderer, ui, accounts, leaderboard, metrics, balance: BALANCE, getMetrics
 };

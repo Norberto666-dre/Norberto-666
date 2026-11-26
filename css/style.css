@@ -1,6 +1,8 @@
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600;700&display=swap');
-
+/* Fuentes 100 % offline: usamos las variantes locales si están instaladas y
+   una pila del sistema como respaldo. Sin peticiones a Google Fonts. */
 :root {
+  --font-display: 'Orbitron', 'Arial Narrow', Impact, 'Segoe UI', sans-serif;
+  --font-ui: 'Rajdhani', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --cyan: #00f3ff;
   --magenta: #ff00ff;
   --amber: #ffcc00;
@@ -20,7 +22,7 @@ html, body {
   height: 100dvh;
   background: var(--bg);
   color: var(--text);
-  font-family: 'Rajdhani', sans-serif;
+  font-family: var(--font-ui);
   overflow: hidden;
   touch-action: manipulation;
 }
@@ -71,7 +73,7 @@ canvas {
 .screen.active { opacity: 1; pointer-events: auto; transform: scale(1); z-index: 25; }
 
 .screen-glitch {
-  font-family: 'Orbitron', sans-serif;
+  font-family: var(--font-display);
   font-weight: 900;
   font-size: clamp(48px, 18vw, 110px);
   letter-spacing: -4px;
@@ -101,13 +103,13 @@ canvas {
 .menu-tool:hover { border-color: var(--cyan); background: rgba(0,243,255,0.08); }
 .menu-tool:active { transform: scale(0.95); }
 .menu-tool .icon { width: 16px; height: 16px; color: var(--cyan); }
-.menu-tool span { font-family: 'Orbitron', sans-serif; font-size: 8px; letter-spacing: 0.6px; white-space: nowrap; }
+.menu-tool span { font-family: var(--font-display); font-size: 8px; letter-spacing: 0.6px; white-space: nowrap; }
 .btn {
   width: 100%;
   min-height: 44px;
   display: inline-flex; align-items: center; justify-content: center;
   padding: 16px 24px;
-  font-family: 'Orbitron', sans-serif;
+  font-family: var(--font-display);
   font-weight: 700;
   font-size: 16px;
   letter-spacing: 2px;
@@ -152,11 +154,11 @@ canvas {
   font-size: 10px; letter-spacing: 1px; color: var(--dim);
 }
 .menu-record .icon { width: 12px; height: 12px; color: var(--amber); }
-.menu-record strong { color: var(--text); font-family: 'Orbitron', sans-serif; font-size: 10px; }
+.menu-record strong { color: var(--text); font-family: var(--font-display); font-size: 10px; }
 .menu-footer { margin-top: 16px; font-size: 12px; color: var(--dim); letter-spacing: 1px; text-align: center; }
 .menu-identity { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; margin-bottom: 6px; }
-.menu-user { font-family: 'Orbitron', sans-serif; color: var(--cyan); font-size: 11px; letter-spacing: 2px; }
-.menu-credits { font-family: 'Orbitron', sans-serif; color: var(--amber); font-size: 12px; letter-spacing: 2px; text-shadow: 0 0 10px rgba(255,204,0,0.5); }
+.menu-user { font-family: var(--font-display); color: var(--cyan); font-size: 11px; letter-spacing: 2px; }
+.menu-credits { font-family: var(--font-display); color: var(--amber); font-size: 12px; letter-spacing: 2px; text-shadow: 0 0 10px rgba(255,204,0,0.5); }
 .ftue-hint { font-style: italic; }
 
 /* ===== Launcher / cuentas ===== */
@@ -181,7 +183,7 @@ canvas {
   gap: 14px;
 }
 .launcher-eyebrow {
-  font-family: 'Orbitron', sans-serif;
+  font-family: var(--font-display);
   font-size: 10px;
   letter-spacing: 4px;
   color: var(--cyan);
@@ -189,7 +191,7 @@ canvas {
 }
 .launcher-title {
   margin: 0;
-  font-family: 'Orbitron', sans-serif;
+  font-family: var(--font-display);
   font-size: clamp(22px, 6vw, 30px);
   letter-spacing: 1px;
   text-align: center;
@@ -197,7 +199,7 @@ canvas {
 }
 .storage-pill {
   align-self: center;
-  font-family: 'Orbitron', sans-serif;
+  font-family: var(--font-display);
   font-size: 9px;
   letter-spacing: 2px;
   color: var(--amber);
@@ -231,7 +233,7 @@ canvas {
   width: 42px; height: 42px;
   display: grid; place-items: center;
   border-radius: 14px;
-  font-family: 'Orbitron', sans-serif;
+  font-family: var(--font-display);
   font-weight: 900;
   font-size: 16px;
   color: #05050a;
@@ -283,7 +285,7 @@ canvas {
 }
 .editor-head { display: flex; align-items: center; justify-content: space-between; }
 .editor-head h2 {
-  margin: 0; font-family: 'Orbitron', sans-serif;
+  margin: 0; font-family: var(--font-display);
   font-size: 14px; letter-spacing: 2px; color: var(--cyan);
 }
 .editor-close {
@@ -320,7 +322,7 @@ canvas {
   display: inline-grid; place-items: center; width: 18px; height: 18px;
   margin-right: 5px; border-radius: 6px; overflow: hidden;
   background: var(--cyan); color: #05050a;
-  font-family: 'Orbitron', sans-serif; font-size: 9px; font-weight: 900;
+  font-family: var(--font-display); font-size: 9px; font-weight: 900;
   vertical-align: middle;
 }
 .menu-avatar img { width: 100%; height: 100%; object-fit: cover; }
@@ -337,7 +339,7 @@ canvas {
   border: none;
   border-bottom: 2px solid transparent;
   color: var(--dim);
-  font-family: 'Orbitron', sans-serif;
+  font-family: var(--font-display);
   font-size: 11px;
   letter-spacing: 2px;
   cursor: pointer;
@@ -353,7 +355,7 @@ canvas {
   border: 1px solid var(--border);
   border-radius: 12px;
   color: var(--text);
-  font-family: 'Rajdhani', sans-serif;
+  font-family: var(--font-ui);
   font-size: 15px;
   letter-spacing: 1px;
 }
@@ -399,7 +401,7 @@ canvas {
 .hud-metric-body { display: flex; flex-direction: column; line-height: 1.05; min-width: 0; }
 .hud-k { font-size: 9px; letter-spacing: 2px; color: var(--dim); text-transform: uppercase; }
 .hud-metric strong {
-  font-family: 'Orbitron', sans-serif; font-size: clamp(16px, 4.4vw, 24px);
+  font-family: var(--font-display); font-size: clamp(16px, 4.4vw, 24px);
   font-weight: 900; letter-spacing: 0.5px; color: var(--text);
 }
 .hud-metric-score strong { color: var(--cyan); }
@@ -431,7 +433,7 @@ canvas {
 .hud-voltage-head {
   display: flex; align-items: center; gap: 8px;
   margin-bottom: 6px;
-  font-family: 'Orbitron', sans-serif;
+  font-family: var(--font-display);
   font-size: 10px; letter-spacing: 1.6px; color: var(--dim);
 }
 .hud-voltage-name { display: inline-flex; align-items: center; gap: 5px; color: var(--magenta); }
@@ -468,7 +470,7 @@ canvas {
   position: absolute; inset: 0;
   display: none; align-items: center; justify-content: center;
   background: repeating-linear-gradient(90deg, var(--amber) 0 8px, var(--magenta) 8px 16px);
-  color: #05050c; font-family: 'Orbitron', sans-serif;
+  color: #05050c; font-family: var(--font-display);
   font-size: 9px; font-weight: 900; letter-spacing: 2px;
   animation: demoteGhost 600ms ease-out forwards;
 }
@@ -479,7 +481,7 @@ canvas {
   flex: 1; display: flex; align-items: center; justify-content: center; gap: 3px;
   padding: 3px 0; border: 1px solid #202044; border-radius: 6px;
   background: rgba(4,4,12,0.78); color: var(--dim);
-  font-family: 'Orbitron', sans-serif; font-size: 9px; line-height: 1;
+  font-family: var(--font-display); font-size: 9px; line-height: 1;
   transition: color 140ms, background 140ms, border-color 140ms;
 }
 .voltage-tier .icon { width: 10px; height: 10px; color: currentColor; }
@@ -533,7 +535,7 @@ canvas {
 
 /* ===== Preparación ===== */
 .prep-header { text-align: center; margin-bottom: 24px; }
-.prep-title { font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 28px; letter-spacing: -2px; color: var(--cyan); text-transform: uppercase; margin-bottom: 4px; text-shadow: 0 0 15px var(--cyan); }
+.prep-title { font-family: var(--font-display); font-weight: 900; font-size: 28px; letter-spacing: -2px; color: var(--cyan); text-transform: uppercase; margin-bottom: 4px; text-shadow: 0 0 15px var(--cyan); }
 .prep-sector { font-size: 14px; letter-spacing: 3px; color: var(--amber); text-transform: uppercase; opacity: 0.9; }
 .prep-rules {
   margin-top: 8px; font-size: 11px; letter-spacing: 2px; line-height: 1.5;
@@ -573,12 +575,12 @@ canvas {
 }
 
 /* ===== Resultados ===== */
-.results-title { font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 32px; letter-spacing: -2px; color: var(--amber); text-transform: uppercase; margin-bottom: 24px; text-shadow: 0 0 15px var(--amber); text-align: center; }
-.results-meta { font-family: 'Orbitron', sans-serif; font-size: 11px; letter-spacing: 2px; color: var(--magenta); text-transform: uppercase; text-align: center; margin-bottom: 16px; opacity: 0.9; }
+.results-title { font-family: var(--font-display); font-weight: 900; font-size: 32px; letter-spacing: -2px; color: var(--amber); text-transform: uppercase; margin-bottom: 24px; text-shadow: 0 0 15px var(--amber); text-align: center; }
+.results-meta { font-family: var(--font-display); font-size: 11px; letter-spacing: 2px; color: var(--magenta); text-transform: uppercase; text-align: center; margin-bottom: 16px; opacity: 0.9; }
 .results-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; max-width: 360px; margin-bottom: 24px; }
 .stat { background: rgba(13,13,26,0.6); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; display: flex; flex-direction: column; gap: 4px; }
 .stat-label { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--dim); }
-.stat-value { font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 20px; color: var(--cyan); }
+.stat-value { font-family: var(--font-display); font-weight: 700; font-size: 20px; color: var(--cyan); }
 .run-card {
   width: 100%;
   max-width: 420px;
@@ -594,12 +596,12 @@ canvas {
   flex-direction: column;
   gap: 10px;
 }
-.run-card-title { font-family: 'Orbitron', sans-serif; font-size: 12px; letter-spacing: 2px; color: var(--cyan); text-align: center; }
-.run-group-title { font-family: 'Orbitron', sans-serif; font-size: 10px; letter-spacing: 2px; color: var(--amber); border-bottom: 1px solid var(--border); padding-bottom: 4px; margin-bottom: 6px; }
+.run-card-title { font-family: var(--font-display); font-size: 12px; letter-spacing: 2px; color: var(--cyan); text-align: center; }
+.run-group-title { font-family: var(--font-display); font-size: 10px; letter-spacing: 2px; color: var(--amber); border-bottom: 1px solid var(--border); padding-bottom: 4px; margin-bottom: 6px; }
 .run-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px; }
 .run-row { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; line-height: 1.35; }
 .run-key { color: var(--dim); text-transform: uppercase; letter-spacing: 1px; }
-.run-val { color: var(--text); font-family: 'Orbitron', sans-serif; font-weight: 600; text-align: right; overflow-wrap: anywhere; }
+.run-val { color: var(--text); font-family: var(--font-display); font-weight: 600; text-align: right; overflow-wrap: anywhere; }
 .run-note { font-size: 10px; color: var(--dim); text-align: center; }
 
 /* Archivo */
@@ -620,7 +622,7 @@ canvas {
 
 /* ===== Mejoras ===== */
 .upgrade-credits {
-  font-family: 'Orbitron', sans-serif;
+  font-family: var(--font-display);
   font-size: 15px;
   letter-spacing: 2px;
   color: var(--amber);
@@ -628,7 +630,7 @@ canvas {
   margin-bottom: 8px;
 }
 .upgrade-list { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 380px; margin-bottom: 32px; }
-.upgrade-section-title { width: 100%; max-width: 380px; color: #ffcc00; font: 700 11px Orbitron, sans-serif; letter-spacing: 2px; margin: 8px 0 4px; flex-shrink: 0; }
+.upgrade-section-title { width: 100%; max-width: 380px; color: #ffcc00; font: 700 11px var(--font-display); letter-spacing: 2px; margin: 8px 0 4px; flex-shrink: 0; }
 /* El catálogo ampliado compite por espacio en móvil: sin flex-shrink:0 colapsa a 0 px. */
 #screen-upgrades { justify-content: flex-start; padding-top: 16px; }
 #upgrade-abilities, #upgrade-cursors, #upgrade-chips-extra { flex: 0 0 auto; min-height: 96px; max-height: 168px; overflow-y: auto; margin-bottom: 12px; padding-right: 4px; }
@@ -648,7 +650,7 @@ canvas {
 
 /* Récord */
 .record-badge {
-  font-family: 'Orbitron', sans-serif;
+  font-family: var(--font-display);
   font-weight: 900;
   font-size: 15px;
   letter-spacing: 2px;
@@ -715,7 +717,7 @@ canvas {
 }
 .pause-glyph .icon { width: 24px; height: 24px; }
 .pause-title {
-  font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 26px;
+  font-family: var(--font-display); font-weight: 900; font-size: 26px;
   letter-spacing: 3px; color: var(--text); text-transform: uppercase;
 }
 .pause-subtitle { margin-top: 6px; font-size: 11px; letter-spacing: 2px; color: var(--dim); }
@@ -728,7 +730,7 @@ canvas {
 #screen-leaderboard { justify-content: flex-start; padding-top: max(18px, env(safe-area-inset-top)); }
 .board-head { display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .board-head .settings-title { margin: 0; }
-.board-date { font-family: 'Orbitron', sans-serif; font-size: 10px; letter-spacing: 3px; color: var(--cyan); }
+.board-date { font-family: var(--font-display); font-size: 10px; letter-spacing: 3px; color: var(--cyan); }
 .board-summary {
   width: min(440px, 100%);
   padding: 12px 16px;
@@ -738,7 +740,7 @@ canvas {
   text-align: center;
   font-size: 12px; letter-spacing: 1px; color: var(--dim);
 }
-.board-summary strong { color: var(--amber); font-family: 'Orbitron', sans-serif; }
+.board-summary strong { color: var(--amber); font-family: var(--font-display); }
 .board-grid {
   width: min(440px, 100%);
   display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
@@ -769,11 +771,11 @@ canvas {
   border: 1px solid transparent;
 }
 .board-row.top { border-color: rgba(255,204,0,0.45); background: rgba(255,204,0,0.07); }
-.board-rank { font-family: 'Orbitron', sans-serif; font-size: 11px; color: var(--amber); }
+.board-rank { font-family: var(--font-display); font-size: 11px; color: var(--amber); }
 .board-who { min-width: 0; display: flex; flex-direction: column; }
 .board-name { font-size: 12px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .board-code { font-size: 9px; letter-spacing: 1px; color: var(--dim); }
-.board-score { font-family: 'Orbitron', sans-serif; font-size: 12px; color: var(--cyan); }
+.board-score { font-family: var(--font-display); font-size: 12px; color: var(--cyan); }
 .board-empty { font-size: 11px; color: var(--dim); line-height: 1.5; padding: 8px 4px; }
 
 /* Utilidad */
@@ -798,6 +800,28 @@ canvas {
 @keyframes toastIn {
   from { opacity: 0; transform: translate(-50%, 10px); }
   to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* Panel opcional de medición en Android (?qa=1) */
+.qa-panel {
+  position: absolute; z-index: 70;
+  left: max(8px, env(safe-area-inset-left));
+  bottom: max(8px, env(safe-area-inset-bottom));
+  width: min(250px, calc(100% - 16px));
+  padding: 10px;
+  background: rgba(2,2,8,0.92);
+  border: 1px solid var(--cyan);
+  border-radius: 10px;
+  color: var(--cyan);
+  font: 10px/1.35 ui-monospace, Consolas, monospace;
+  pointer-events: auto;
+}
+.qa-title { font-weight: 700; letter-spacing: 2px; margin-bottom: 6px; }
+.qa-panel pre { margin: 0 0 8px; max-height: 130px; overflow: auto; white-space: pre-wrap; color: var(--text); }
+.qa-panel button {
+  width: 100%; min-height: 44px;
+  background: transparent; border: 1px solid var(--cyan); border-radius: 8px;
+  color: var(--cyan); font: inherit; letter-spacing: 1px; cursor: pointer;
 }
 
 /* HUD responsive */

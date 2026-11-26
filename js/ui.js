@@ -21,6 +21,12 @@ export class UI {
     this.removeEditorPhoto = false;
     this.deleteArmed = false;
     this.selectedProfileId = null;
+    this.live = document.getElementById('a11y-live');
+    this.lastAnnouncement = '';
+    this.editorOpener = null;
+    this.pauseOpener = null;
+    this.lastTierAnnounced = null;
+    this.lastBossAnnounced = false;
 
     this.screens = {
       launcher: document.getElementById('screen-launcher'),
@@ -299,14 +305,39 @@ export class UI {
     this.startCycle(options, snap.loadout || null);
   }
 
+  // Una sola región viva para todo el juego: evita duplicar toasts y saturar el HUD.
+  announce(message) {
+    if (!this.live || !message) return;
+    const text = String(message);
+    if (text === this.lastAnnouncement) return;
+    this.lastAnnouncement = text;
+    this.live.textContent = '';
+    requestAnimationFrame(() => { this.live.textContent = text; });
+  }
+
+  // Tab queda dentro del diálogo; Escape lo gestiona el handler global.
+  trapFocus(root, e) {
+    if (e.key !== 'Tab') return;
+    const items = [...root.querySelectorAll('button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])')]
+      .filter(el => el.offsetParent !== null);
+    if (!items.length) return;
+    const first = items[0];
+    const last = items[items.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    else if (!root.contains(document.activeElement)) { e.preventDefault(); first.focus(); }
+  }
+
   setLauncherError(message) {
     const el = document.getElementById('launcher-error');
     if (el) el.textContent = message || '';
+    if (message) this.announce(message);
   }
 
   setEditorError(message) {
     const el = document.getElementById('account-editor-error');
     if (el) el.textContent = message || '';
+    if (message) this.announce(message);
   }
 
   avatarInner(account) {
@@ -441,6 +472,7 @@ export class UI {
   openAccountEditor(id) {
     const account = this.accounts?.getAccount(id);
     if (!account) return;
+    this.editorOpener = document.activeElement;
     this.editingAccountId = id;
     this.removeEditorPhoto = false;
     this.deleteArmed = false;
@@ -458,16 +490,29 @@ export class UI {
     const deleteBtn = document.getElementById('btn-account-delete');
     if (deleteBtn) { deleteBtn.disabled = false; deleteBtn.textContent = 'ELIMINAR CUENTA'; }
     this.setEditorError('');
-    document.getElementById('account-editor')?.classList.remove('hidden');
+    const editor = document.getElementById('account-editor');
+    editor?.classList.remove('hidden');
+    if (editor) editor.onkeydown = e => this.trapFocus(editor, e);
+    this.announce(`Editando perfil ${account.nickname}. El diálogo requiere la contraseña actual para guardar o borrar.`);
     requestAnimationFrame(() => document.getElementById('edit-nickname')?.focus());
   }
 
   closeAccountEditor() {
-    document.getElementById('account-editor')?.classList.add('hidden');
+    const editor = document.getElementById('account-editor');
+    const wasOpen = editor && !editor.classList.contains('hidden');
+    editor?.classList.add('hidden');
     this.editingAccountId = null;
     this.removeEditorPhoto = false;
     this.deleteArmed = false;
     this.setEditorError('');
+    if (wasOpen) {
+      const opener = this.editorOpener;
+      this.editorOpener = null;
+      requestAnimationFrame(() => {
+        if (opener?.isConnected && opener.offsetParent !== null) opener.focus();
+        else document.getElementById('login-nickname')?.focus();
+      });
+    }
   }
 
   async saveAccountEdit(event) {
@@ -601,6 +646,8 @@ export class UI {
         el.dataset.hammer = c.id;
         el.textContent = c.name;
         el.title = `${c.name}: ${c.skill}`;
+        el.tabIndex = 0;
+        el.setAttribute('role', 'radio');
         el.setAttribute('aria-label', `${c.name}. ${c.skill}`);
         hammers.appendChild(el);
       });
@@ -613,6 +660,10 @@ export class UI {
         el.className = 'prep-chip';
         el.dataset.chip = id;
         el.textContent = label;
+        el.tabIndex = 0;
+        el.setAttribute('role', 'button');
+        el.setAttribute('aria-label', label);
+        el.setAttribute('aria-pressed', 'false');
         chips.appendChild(el);
       });
     }
@@ -627,6 +678,9 @@ export class UI {
         el.title = b.unlockScore
           ? `Se desbloquea con ${b.unlockScore.toLocaleString('es-ES')} puntos de mejor puntuación`
           : 'Tablero inicial';
+        el.tabIndex = 0;
+        el.setAttribute('role', 'radio');
+        el.setAttribute('aria-label', `Tablero ${b.label}. ${el.title}`);
         boards.appendChild(el);
       });
     }
@@ -750,10 +804,9 @@ export class UI {
     const delegate = (id, attr, cb) => {
       const root = document.getElementById(id);
       if (!root) return;
-      root.addEventListener('pointerdown', e => {
+      root.addEventListener('click', e => {
         const btn = e.target.closest(`[data-${attr}]`);
         if (!btn) return;
-        e.preventDefault();
         cb(btn.dataset[attr]);
       });
     };
@@ -764,12 +817,12 @@ export class UI {
 
     // Cursores
     document.querySelectorAll('#prep-hammers .prep-chip').forEach(el => {
-      el.addEventListener('pointerdown', () => this.selectHammer(el.dataset.hammer));
+      el.addEventListener('click', () => this.selectHammer(el.dataset.hammer));
     });
 
     // Chips
     document.querySelectorAll('#prep-chips .prep-chip').forEach(el => {
-      el.addEventListener('pointerdown', () => this.toggleChip(el.dataset.chip));
+      el.addEventListener('click', () => this.toggleChip(el.dataset.chip));
     });
 
     // Teclado: las opciones de carga son controles, no simples texto
@@ -783,7 +836,7 @@ export class UI {
       el.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
           e.preventDefault();
-          el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }));
+          el.click();
         }
       });
     });
@@ -846,14 +899,21 @@ export class UI {
     // Tecla ESC para pausa
     window.addEventListener('keydown', (e) => {
       if (e.key !== 'Escape') return;
+      const editor = document.getElementById('account-editor');
+      if (editor && !editor.classList.contains('hidden')) {
+        e.preventDefault();
+        this.closeAccountEditor();
+        return;
+      }
       if (this.game.screen === 'playing') this.pauseAndSave();
       else if (this.game.screen === 'paused') { this.game.resume(); this.showPause(false); }
     });
   }
 
   onClick(id, cb) {
+    // Botones nativos: `click` cubre puntero, Enter y Espacio sin impedir el foco.
     const el = document.getElementById(id);
-    if (el) el.addEventListener('pointerdown', (e) => { e.preventDefault(); cb(); });
+    if (el) el.addEventListener('click', cb);
   }
 
   // ---------- Ciclo Diario / Ascensión / Desenlace ----------
@@ -1080,15 +1140,49 @@ export class UI {
       this.renderLeaderboard();
       this.leaderboard?.syncPending?.();
     }
+    if (name !== 'launcher') {
+      // El botón que abrió la pantalla desaparece: devolvemos un foco válido.
+      const focusIds = {
+        menu: 'btn-jugar', prep: 'btn-iniciar', results: 'btn-reintentar',
+        archive: 'btn-volver-archive', upgrades: 'btn-volver-upgrades',
+        final: 'btn-final-accept', settings: 'btn-volver-settings',
+        leaderboard: 'btn-board-back'
+      };
+      requestAnimationFrame(() => {
+        const screen = this.screens[name];
+        let target = document.getElementById(focusIds[name]);
+        if (!target || target.offsetParent === null) {
+          target = screen?.querySelector('button:not([disabled]):not(.hidden)');
+        }
+        target?.focus();
+      });
+    }
   }
 
   showPause(show, status) {
+    if (show && !this.pauseOpener) this.pauseOpener = document.activeElement;
     this.pauseOverlay.classList.toggle('hidden', !show);
+    if (show) {
+      const overlay = this.pauseOverlay;
+      if (overlay) overlay.onkeydown = e => this.trapFocus(overlay, e);
+      this.announce('Partida en pausa. Reanuda, guarda o guarda y sal.');
+      requestAnimationFrame(() => document.getElementById('btn-resume')?.focus());
+    } else {
+      if (this.pauseOverlay) this.pauseOverlay.onkeydown = null;
+      this.announce('Partida reanudada.');
+      const opener = this.pauseOpener;
+      this.pauseOpener = null;
+      requestAnimationFrame(() => {
+        if (opener?.isConnected && opener.offsetParent !== null) opener.focus();
+        else document.getElementById('btn-pause')?.focus();
+      });
+    }
     if (show && status) {
       const el = document.getElementById('pause-save-status');
       if (el) {
         el.textContent = status;
         el.classList.toggle('saved', status === 'PARTIDA GUARDADA');
+        this.announce(status);
       }
     }
   }
@@ -1182,6 +1276,13 @@ export class UI {
     // Ocultar todas las pantallas de menú; el juego se dibuja en el canvas
     Object.values(this.screens).forEach(s => { if (s) { s.classList.add('hidden'); s.classList.remove('active'); } });
     this.pauseOverlay.classList.add('hidden');
+    const cycle = (this.game.run?.cyclesDone || 0) + 1;
+    const bossActive = !!this.game.boss && !this.game.boss.defeated;
+    this.lastTierAnnounced = this.game.voltageTier;
+    this.lastBossAnnounced = bossActive;
+    this.announce(`Ciclo ${cycle}. Tablero ${board.toUpperCase()}.` +
+      (bossActive ? ` Jefe: ${this.game.boss.name}.` : '') + ' Tablero listo.');
+    requestAnimationFrame(() => this.hud?.focus?.());
     return true;
   }
 
@@ -1253,19 +1354,11 @@ export class UI {
 
   showToast(msg) {
     const app = document.getElementById('app');
-    let region = document.getElementById('toast-region');
-    if (!region) {
-      region = document.createElement('div');
-      region.id = 'toast-region';
-      region.className = 'sr-only';
-      region.setAttribute('role', 'status');
-      region.setAttribute('aria-live', 'polite');
-      app.appendChild(region);
-    }
-    region.textContent = msg;
+    this.announce(msg);
     const t = document.createElement('div');
     t.className = 'toast';
     t.textContent = msg;
+    t.setAttribute('aria-hidden', 'true');
     app.appendChild(t);
     setTimeout(() => t.remove(), 2000);
   }
@@ -1322,17 +1415,22 @@ export class UI {
     const unlocked = this.progress.unlocked || [];
 
     document.getElementById('upgrade-credits').textContent = credits;
+    const labelBuy = (btn, name, state) => {
+      if (btn) btn.setAttribute('aria-label', `${name}. ${state}`);
+    };
 
     const chainBtn = document.getElementById('upgrade-unlock-chain');
     const hasChain = unlocked.includes('chain_master');
     chainBtn.textContent = hasChain ? 'DESBLOQUEADO' : String(LEGACY_PRICES.chain_master);
     chainBtn.disabled = hasChain || credits < LEGACY_PRICES.chain_master;
+    labelBuy(chainBtn, 'Rayo Maestro', hasChain ? 'desbloqueado' : `coste ${LEGACY_PRICES.chain_master} créditos`);
 
     const mirrorBtn = document.getElementById('upgrade-unlock-mirror');
     const hasMirror = unlocked.includes('mirror_core');
     if (mirrorBtn) {
       mirrorBtn.textContent = hasMirror ? 'DESBLOQUEADO' : String(LEGACY_PRICES.mirror_core);
       mirrorBtn.disabled = hasMirror || credits < LEGACY_PRICES.mirror_core;
+      labelBuy(mirrorBtn, 'Chip Espejo', hasMirror ? 'desbloqueado' : `coste ${LEGACY_PRICES.mirror_core} créditos`);
     }
 
     const reflejoBtn = document.getElementById('upgrade-unlock-reflejo');
@@ -1340,18 +1438,20 @@ export class UI {
     if (reflejoBtn) {
       reflejoBtn.textContent = hasReflejo ? 'DESBLOQUEADO' : String(LEGACY_PRICES.reflejo);
       reflejoBtn.disabled = hasReflejo || credits < LEGACY_PRICES.reflejo;
+      labelBuy(reflejoBtn, 'Reflejo', hasReflejo ? 'desbloqueado' : `coste ${LEGACY_PRICES.reflejo} créditos`);
     }
 
     const chipButtons = [
-      ['upgrade-unlock-crio', 'criogenia', LEGACY_PRICES.criogenia],
-      ['upgrade-unlock-nucleo', 'nucleo', LEGACY_PRICES.nucleo]
+      ['upgrade-unlock-crio', 'criogenia', 'Criogenia', LEGACY_PRICES.criogenia],
+      ['upgrade-unlock-nucleo', 'nucleo', 'Núcleo', LEGACY_PRICES.nucleo]
     ];
-    chipButtons.forEach(([id, chip, cost]) => {
+    chipButtons.forEach(([id, chip, name, cost]) => {
       const btn = document.getElementById(id);
       if (!btn) return;
       const owned = unlocked.includes(chip);
       btn.textContent = owned ? 'DESBLOQUEADO' : String(cost);
       btn.disabled = owned || credits < cost;
+      labelBuy(btn, name, owned ? 'desbloqueado' : `coste ${cost} créditos`);
     });
 
     const pulsoLvl = up.pulso || 0;
@@ -1359,12 +1459,14 @@ export class UI {
     const pulsoBtn = document.getElementById('upgrade-pulso');
     pulsoBtn.textContent = `NV ${pulsoLvl} · ${pulsoCost}`;
     pulsoBtn.disabled = credits < pulsoCost;
+    labelBuy(pulsoBtn, 'Mejorar Pulso', `nivel ${pulsoLvl}, coste ${pulsoCost} créditos`);
 
     const teslaLvl = up.tesla || 0;
     const teslaCost = LEGACY_PRICES.tesla * (teslaLvl + 1);
     const teslaBtn = document.getElementById('upgrade-tesla');
     teslaBtn.textContent = `NV ${teslaLvl} · ${teslaCost}`;
     teslaBtn.disabled = credits < teslaCost;
+    labelBuy(teslaBtn, 'Mejorar Tesla', `nivel ${teslaLvl}, coste ${teslaCost} créditos`);
     this.renderCatalogUpgrades(credits);
   }
 
@@ -1380,6 +1482,7 @@ export class UI {
     const btn = document.createElement('button');
     btn.className = 'btn btn-secondary';
     btn.textContent = btnText;
+    btn.setAttribute('aria-label', `${text}. ${btnText}`);
     btn.disabled = !!disabled;
     Object.entries(attrs).forEach(([k, v]) => btn.setAttribute(k, v));
     row.append(span, btn);
@@ -1569,6 +1672,9 @@ export class UI {
     if (finalBtn) finalBtn.style.display = !this.game.daily && this.sectorCleared === 5 ? 'inline-block' : 'none';
 
     this.renderRunCard();
+    this.announce(`Resultados: ${this.game.score.score.toLocaleString('es-ES')} puntos, ` +
+      `combo máximo ${this.game.score.maxCombo}` +
+      (isRecord ? ', nuevo récord' : '') + '.');
   }
 
   /** Tarjeta de resultados con todos los datos disponibles de la run. */
@@ -1811,5 +1917,16 @@ export class UI {
       : (g.ascension ? `A${g.ascension}${ruleShorts.length ? ` ${ruleShorts.join('/')}` : ''}` : '');
     n.rules?.classList.toggle('hidden', !rulesText);
     if (rulesText) tokenText(n.rules, rulesText);
+
+    // Solo hitos: nunca se lee el marcador frame a frame.
+    if (this.lastTierAnnounced != null && g.voltageTier !== this.lastTierAnnounced) {
+      const sube = g.voltageTier > this.lastTierAnnounced;
+      this.announce(`Voltaje ×${g.voltageTier} · ${sube ? 'ascendido' : 'degradado'}`);
+    }
+    this.lastTierAnnounced = g.voltageTier;
+    if (bossActive !== this.lastBossAnnounced) {
+      this.announce(bossActive ? `Jefe: ${g.boss.name}` : 'Jefe derrotado');
+    }
+    this.lastBossAnnounced = bossActive;
   }
 }

@@ -7,7 +7,6 @@
   <title>OVERCLOCK 9 — Arcade de Reflejos</title>
   <link rel="icon" href="data:," />
   <link rel="stylesheet" href="css/style.css" />
-  <link rel="preload" as="font" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600;700&display=swap" />
 </head>
 <body>
   <!-- Iconos del sistema: SVG en código, sin assets externos -->
@@ -26,12 +25,15 @@
     <symbol id="i-ascend" viewBox="0 0 24 24"><path d="M12 20V5M6 11l6-6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   </svg>
 
-  <div id="app">
+  <div id="app" role="main">
     <!-- Capa de efectos visuales (screen shake, flash) -->
     <div id="fx-layer"></div>
 
+    <!-- Única región viva: hitos del juego, errores y resultados sin duplicar toasts. -->
+    <div id="a11y-live" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+
     <!-- Canvas principal del tablero -->
-    <canvas id="gameCanvas" tabindex="0" role="img" aria-label="Tablero de hoyos. Toca el núcleo que brille para ganar voltaje. Arrastra los núcleos rojos hacia un borde para purgarlos y ganar +1 de voltaje; el núcleo blanco activa el Falso Final."></canvas>
+    <canvas id="gameCanvas" role="img" aria-label="Tablero de hoyos. Toca el núcleo que brille para ganar voltaje. Arrastra los núcleos rojos hacia un borde para purgarlos y ganar +1 de voltaje; el núcleo blanco activa el Falso Final."></canvas>
 
     <!-- Pantalla: Launcher / cuentas locales -->
     <div id="screen-launcher" class="screen hidden" aria-labelledby="launcher-title">
@@ -51,7 +53,7 @@
           <button type="button" class="auth-tab" id="tab-register" role="tab" aria-selected="false" aria-controls="form-register">REGISTRARME</button>
         </div>
 
-        <form id="form-login" class="auth-form" novalidate>
+        <form id="form-login" class="auth-form" role="tabpanel" aria-labelledby="tab-login" novalidate>
           <label class="field">
             <span>NOMBRE O NICKNAME</span>
             <input id="login-nickname" name="nickname" type="text" maxlength="18" autocomplete="username" spellcheck="false" placeholder="Tu nombre" required />
@@ -63,7 +65,7 @@
           <button class="btn btn-primary" type="submit">ENTRAR</button>
         </form>
 
-        <form id="form-register" class="auth-form hidden" novalidate>
+        <form id="form-register" class="auth-form hidden" role="tabpanel" aria-labelledby="tab-register" novalidate>
           <label class="field">
             <span>NOMBRE O NICKNAME</span>
             <input id="register-nickname" name="nickname" type="text" maxlength="18" autocomplete="username" spellcheck="false" placeholder="Tu nombre" required />
@@ -79,7 +81,7 @@
           <button class="btn btn-primary" type="submit">CREAR CUENTA</button>
         </form>
 
-        <div id="launcher-error" class="auth-error" role="alert" aria-live="polite"></div>
+        <div id="launcher-error" class="auth-error" aria-live="polite" aria-atomic="true"></div>
 
         <div class="launcher-actions">
           <button type="button" class="link-btn hidden" id="btn-link-folder">ELEGIR CARPETA DATASAVE</button>
@@ -121,7 +123,7 @@
               <span>CONTRASEÑA ACTUAL</span>
               <input id="edit-password-current" type="password" autocomplete="current-password" placeholder="Necesaria para guardar o borrar" required />
             </label>
-            <div id="account-editor-error" class="auth-error" role="alert" aria-live="polite"></div>
+            <div id="account-editor-error" class="auth-error" aria-live="polite" aria-atomic="true"></div>
             <div class="editor-actions">
               <button type="submit" class="btn btn-primary" id="btn-account-save">GUARDAR CAMBIOS</button>
               <button type="button" class="btn btn-danger" id="btn-account-delete">ELIMINAR CUENTA</button>
@@ -132,7 +134,7 @@
     </div>
 
     <!-- HUD superpuesto: jerarquía puntos → combo → voltaje → contexto -->
-    <div id="hud" class="hidden" aria-label="Panel de partida">
+    <div id="hud" class="hidden" role="group" tabindex="-1" aria-label="Panel de partida">
       <div class="hud-top">
         <div class="hud-metrics">
           <div class="hud-metric hud-metric-score">
@@ -170,7 +172,7 @@
           <div class="voltage-glow" id="voltage-glow"></div>
           <div class="voltage-demote" id="voltage-demote" aria-hidden="true"><span>×0</span></div>
         </div>
-        <div class="voltage-tiers" id="voltage-tiers" aria-label="Multiplicadores de voltaje">
+        <div class="voltage-tiers" id="voltage-tiers" role="group" aria-label="Multiplicadores de voltaje">
           <span class="voltage-tier" data-tier="1"><svg class="icon" aria-hidden="true"><use href="#i-bolt"></use></svg>×1</span>
           <span class="voltage-tier" data-tier="2"><svg class="icon" aria-hidden="true"><use href="#i-bolt"></use></svg>×2</span>
           <span class="voltage-tier" data-tier="3"><svg class="icon" aria-hidden="true"><use href="#i-bolt"></use></svg>×3</span>
@@ -179,7 +181,7 @@
         </div>
       </div>
 
-      <div class="hud-context" id="hud-context" aria-label="Contexto de la partida">
+      <div class="hud-context" id="hud-context" role="group" aria-label="Contexto de la partida">
         <span class="hud-token" id="hud-mode"><svg class="icon" aria-hidden="true"><use href="#i-trophy"></use></svg><span>CAMPAÑA</span></span>
         <span class="hud-token" id="hud-sector"><svg class="icon" aria-hidden="true"><use href="#i-grid"></use></svg><span>S1 · 3×3</span></span>
         <span class="hud-token" id="hud-cursor"><svg class="icon" aria-hidden="true"><use href="#i-bolt"></use></svg><span>PULSO</span></span>
@@ -193,14 +195,14 @@
     <div id="screen-menu" class="screen active">
       <div class="screen-glitch" id="menu-glitch">OVERCLOCK<span class="blink">9</span></div>
       <div class="menu-subtitle" id="menu-sector">Cabina de Reflejos · Sector 1</div>
-      <div class="menu-records" id="menu-records" aria-label="Récords locales de campaña"></div>
+      <div class="menu-records" id="menu-records" role="group" aria-label="Récords locales de campaña"></div>
       <div class="menu-actions">
         <button class="btn btn-primary" id="btn-jugar">CAMPAÑA</button>
         <button class="btn btn-primary hidden" id="btn-resume-save">CONTINUAR</button>
         <button class="btn btn-secondary btn-wide" id="btn-daily">RUN DIARIA</button>
         <button class="btn btn-secondary btn-wide hidden" id="btn-ascend">ASCENDER</button>
       </div>
-      <div class="menu-tools" aria-label="Herramientas del perfil">
+      <div class="menu-tools" role="group" aria-label="Herramientas del perfil">
         <button class="menu-tool" id="btn-board" aria-label="Tabla diaria" title="Tabla diaria"><svg class="icon" aria-hidden="true"><use href="#i-globe"></use></svg><span>TABLA</span></button>
         <button class="menu-tool" id="btn-mejoras" aria-label="Mejoras" title="Mejoras"><svg class="icon" aria-hidden="true"><use href="#i-bolt"></use></svg><span>MEJORAS</span></button>
         <button class="menu-tool" id="btn-archivo" aria-label="Archivo" title="Archivo"><svg class="icon" aria-hidden="true"><use href="#i-save"></use></svg><span>ARCHIVO</span></button>
@@ -225,17 +227,17 @@
       </div>
       <div class="prep-grid">
         <div class="prep-col">
-          <div class="prep-label">CURSOR (10)</div>
-          <div class="prep-options" id="prep-hammers"></div>
+          <div class="prep-label" id="prep-hammer-label">CURSOR (10)</div>
+          <div class="prep-options" id="prep-hammers" role="radiogroup" aria-labelledby="prep-hammer-label"></div>
         </div>
         <div class="prep-col">
           <div class="prep-label" id="prep-chip-label">CHIPS (2)</div>
-          <div class="prep-options" id="prep-chips"></div>
+          <div class="prep-options" id="prep-chips" role="group" aria-labelledby="prep-chip-label"></div>
         </div>
       </div>
       <div class="prep-board-row">
         <div class="prep-label" id="prep-board-label">TABLERO · SE DESBLOQUEA CON RÉCORD</div>
-        <div class="prep-options" id="prep-boards"></div>
+        <div class="prep-options" id="prep-boards" role="radiogroup" aria-labelledby="prep-board-label"></div>
       </div>
       <div class="prep-footer">
         <button class="btn btn-primary" id="btn-iniciar">INICIAR CICLO</button>
@@ -254,7 +256,7 @@
         <div class="stat"><span class="stat-label">GOLPES PERFECTOS</span><span class="stat-value" id="res-perfect">0</span></div>
         <div class="stat"><span class="stat-label">CRÉDITOS</span><span class="stat-value" id="res-credits">0</span></div>
       </div>
-      <div class="run-card" id="res-run-card" aria-live="polite"></div>
+      <div class="run-card" id="res-run-card"></div>
       <div class="results-btns">
         <button class="btn btn-primary" id="btn-reintentar">REINTENTAR</button>
         <button class="btn btn-secondary" id="btn-continuar" style="display:none;">CONTINUAR</button>
@@ -396,7 +398,7 @@
           <svg class="icon"><use href="#i-pause"></use></svg>
         </div>
         <div class="pause-title" id="pause-title">PAUSA</div>
-        <div class="pause-subtitle" id="pause-save-status">PARTIDA GUARDADA</div>
+        <div class="pause-subtitle" id="pause-save-status" role="status" aria-live="polite" aria-atomic="true">PARTIDA GUARDADA</div>
         <div class="pause-actions">
           <button class="btn btn-primary" id="btn-resume">CONTINUAR</button>
           <button class="btn btn-secondary" id="btn-save-pause">
