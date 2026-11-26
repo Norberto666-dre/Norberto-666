@@ -20,7 +20,7 @@ export const BALANCE = {
     maxTier: 5,
     tierRefill: VOLTAGE_MARGIN, // al subir de ×N, la barra se reinicia con margen
     emptyRefill: VOLTAGE_MARGIN, // al vaciarse: baja un peldaño y recarga el mismo margen
-    gain: { normal: 2, perfect: 3, connected: 4, boss: 0, crono: 4, nova: 6, purge: 1 },
+    gain: { normal: 0.5, perfect: 3, connected: 4, boss: 0, crono: 4, nova: 6, purge: 1 },
     red: { drainPerSec: 5, tapPenalty: 8, escapePenalty: 10, tapCombo: 1, tapComboLinked: 2, dragThresholdPx: 60 },
     freezeSeconds: 5,
     demoteFlashSeconds: 0.6 // la barra muestra el peldaño perdido antes de volver al 15 %
@@ -58,7 +58,7 @@ export const BALANCE = {
     bonusPerCore: CLUSTER_BONUS_PER_CORE
   },
   nova: {
-    // Nova es una sola explosión: paga el valor real de los núcleos que elimina.
+    // Nova barre la tabla en 3 ondas de 0.8 s; paga el valor de cada núcleo.
     coreValues: CORE_VALUES,
     hitStop: 0.12,
     shake: 18,
@@ -102,7 +102,14 @@ export function nextComboMilestone(combo) {
 export const BOARDS = [
   { id: '3x3', cols: 3, rows: 3, unlockScore: 0, label: '3×3' },
   { id: '4x3', cols: 4, rows: 3, unlockScore: 100000, label: '4×3' },
-  { id: '5x4', cols: 5, rows: 4, unlockScore: 1000000, label: '5×4' }
+  { id: '4x4', cols: 4, rows: 4, unlockScore: 250000, label: '4×4' },
+  { id: '5x4', cols: 5, rows: 4, unlockScore: 1000000, label: '5×4' },
+  { id: '5x5', cols: 5, rows: 5, unlockScore: 2500000, label: '5×5' },
+  { id: '6x5', cols: 6, rows: 5, unlockScore: 5000000, label: '6×5' },
+  { id: '6x6', cols: 6, rows: 6, unlockScore: 10000000, label: '6×6' },
+  { id: '7x6', cols: 7, rows: 6, unlockScore: 25000000, label: '7×6' },
+  { id: '8x7', cols: 8, rows: 7, unlockScore: 50000000, label: '8×7' },
+  { id: '9x7', cols: 9, rows: 7, unlockScore: 100000000, label: '9×7' }
 ];
 
 export function boardById(id) {

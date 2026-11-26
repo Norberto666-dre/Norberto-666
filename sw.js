@@ -3,7 +3,7 @@
    - Estáticos: stale-while-revalidate.
    - Ranking online (otro origen): nunca se cachea. */
 
-const VERSION = 'overclock9-v5';
+const VERSION = 'overclock9-v6';
 
 const PRECACHE = [
   './',

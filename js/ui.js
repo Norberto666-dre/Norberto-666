@@ -9,6 +9,200 @@ const LEGACY_PRICES = {
   criogenia: 9000, nucleo: 11000, pulso: 1000, tesla: 1000
 };
 
+const guideLegend = (id, name, desc) =>
+  `<span class="guide-legend"><svg class="icon" aria-hidden="true"><use href="#${id}"></use></svg>` +
+  `<b>${name}</b><span>${desc}</span></span>`;
+
+// Contenido del manual: texto estático para no depender de red ni de librerías.
+const GUIDE_CONTENT = {
+  gameplay: [
+    {
+      icon: 'i-bolt', title: 'BUCLE PRINCIPAL',
+      items: [
+        'Toca o haz clic en el núcleo activo antes de que se apague. Cada acierto suma puntos y voltaje.',
+        'El combo sube con cada acierto y multiplica la puntuación: ×1.5 desde 5, ×2 desde 10, ×3 desde 20 y hasta ×145 desde 10.000.',
+        'Un fallo rompe el combo. Sincronía conserva una parte y Paso Fantasma perdona el primer fallo de cada ciclo.',
+        'El voltaje es tu vida: drena con el tiempo y con los rojos. Si llega a 0 bajas de tier; en ×1 la run termina.'
+      ]
+    },
+    {
+      icon: 'i-grid', title: 'TIPOS DE NÚCLEO',
+      items: [
+        '<b>Estándar:</b> golpe base. Si aciertas dentro de la ventana Perfecto, paga el doble.',
+        '<b>Rojo (bomba):</b> no lo toques. Arrástralo al borde para purgarlo y ganar +1 V.',
+        '<b>Crono:</b> devuelve voltaje extra y suma puntos con multiplicador propio.',
+        '<b>Nova:</b> detona 3 ondas separadas 0.8 s que barren toda la tabla y suman el valor de cada núcleo.',
+        '<b>Blanco:</b> aparece una vez por ciclo con combo alto o voltaje bajo; activa el Falso Final.',
+        '<b>Jefe:</b> núcleo móvil blindado; solo recibe daño cuando aterriza y lo golpeas.'
+      ]
+    },
+    {
+      icon: 'i-chart', title: 'TABLEROS Y DIFICULTAD',
+      items: [
+        'Empiezas en 3×3. Los tableros nuevos se desbloquean al superar la mejor puntuación indicada.',
+        'Escala completa: 3×3, 4×3, 4×4, 5×4, 5×5, 6×5, 6×6, 7×6, 8×7 y 9×7.',
+        'Más grande no solo añade hoyos: reduce el tamaño de cada núcleo y exige más precisión.',
+        'Los récords se guardan por tablero, así que puedes volver a uno pequeño para asegurar créditos.'
+      ]
+    },
+    {
+      icon: 'i-alert', title: 'VOLTAJE Y TIERS',
+      items: [
+        'La barra baja sola. Los rojos activos drenan más y los jefes multiplican el drenaje.',
+        'Subes de tier al llenar la barra: cada tier multiplica puntos y también la dificultad.',
+        'Al quedarte sin voltaje bajas un tier y el ciclo continúa; en ×1 se cierra la run.',
+        'Los núcleos normales recargan solo +0.5 V; los Perfectos +3 V y los enlazados +4 V.'
+      ]
+    },
+    {
+      icon: 'i-boss', title: 'CICLOS Y JEFES',
+      items: [
+        'Cada ciclo tiene 5 rondas. Al cerrarlo cobras créditos = puntuación / 10 con tus multiplicadores.',
+        'Cada 5 ciclos aparece un jefe de sector; derrotarlo desbloquea su chip y abre el siguiente sector.',
+        'La campaña completa son 25 ciclos (5 sectores). Al superarlos puedes ascender con reglas extra.'
+      ]
+    },
+    {
+      icon: 'i-device', title: 'CONTROLES',
+      items: [
+        'Ratón o táctil: toca el núcleo activo y arrastra los rojos hacia cualquier borde.',
+        'Teclado: <b>Esc</b> pausa, <b>M</b> silencia el sonido y <b>F</b> alterna pantalla completa.',
+        'En los carruseles de mejoras y en esta guía puedes cambiar de pestaña con <b>←</b> y <b>→</b>.',
+        'Todo funciona sin conexión una vez instalado como PWA.'
+      ]
+    }
+  ],
+  features: [
+    {
+      icon: 'i-target', title: 'CAMPAÑA',
+      items: [
+        '25 ciclos repartidos en 5 sectores, con un jefe al final de cada sector.',
+        'Conservas mejoras, cursores y chips entre runs; el récord y los créditos son permanentes.',
+        'Cada tablero guarda su propia mejor marca y desbloquea el siguiente tamaño.'
+      ]
+    },
+    {
+      icon: 'i-globe', title: 'RUN DIARIA',
+      items: [
+        'Una partida al día con semilla fija para que todos jueguen el mismo tablero.',
+        'Publica tu resultado en la tabla local y, si hay servicio, en la tabla mundial.',
+        'Mantén la racha diaria: cada día consecutivo suma prestigio y créditos extra.'
+      ]
+    },
+    {
+      icon: 'i-ascend', title: 'ASCENSIÓN',
+      items: [
+        'Tras completar la campaña reinicias el sector 1 conservando tu progreso.',
+        'Cada nivel de ascensión añade una regla: espejo latente, escasez de voltaje, jefes mejorados y más.',
+        'Las runs ascendidas otorgan más créditos y retan a los jugadores veteranos.'
+      ]
+    },
+    {
+      icon: 'i-bolt', title: 'MEJORAS',
+      items: [
+        '20 habilidades repartidas en 4 ramas, 10 cursores con habilidad única y 10 chips equipables.',
+        'Todo se compra con créditos ganados al cerrar ciclos; los niveles son permanentes.',
+        'El inspector del árbol explica cómo se usa cada nodo, un consejo y su sinergia.'
+      ]
+    },
+    {
+      icon: 'i-save', title: 'ARCHIVO',
+      items: [
+        'Reúne estadísticas de campaña, récords por tablero, progreso diario y desbloqueos.',
+        'Incluye gráficas interactivas: toca una barra para ver el detalle de ese tablero o día.',
+        'El informe del último ciclo se conserva hasta que cierres el siguiente.'
+      ]
+    },
+    {
+      icon: 'i-grid', title: 'AJUSTES Y ACCESIBILIDAD',
+      items: [
+        'Controla audio, vibración, reducción de flash, modo daltónico y escala de texto.',
+        'Todos los controles tienen foco visible y etiquetas para lectores de pantalla.',
+        'La interfaz se adapta a 320 px de ancho sin recortar el tablero ni el HUD.'
+      ]
+    },
+    {
+      icon: 'i-device', title: 'PWA Y ESCRITORIO',
+      items: [
+        'Instala la app desde el navegador o usa el ejecutable de Windows incluido.',
+        'Los datos viven en tu datasave local: puedes cambiar de perfil sin perder progreso.',
+        'El modo offline conserva la tabla diaria y encola los resultados para publicarlos después.'
+      ]
+    }
+  ],
+  upgrades: [
+    {
+      icon: 'i-bolt', title: 'ÁRBOL DE REFLEJOS',
+      items: [
+        '4 ramas: Precisión (cian), Voltaje (magenta), Poder/Eco (ámbar) y Control/Nova (verde).',
+        'Cada nodo llega a NV 1-5. El inspector muestra cómo se usa, un consejo y su sinergia.',
+        'Los niveles son permanentes entre runs y el coste crece con cada compra.'
+      ]
+    },
+    {
+      icon: 'i-target', title: 'CURSORES',
+      items: [
+        '10 cursores con una habilidad única (Pulso, Tesla, Precisión, Espejo y más).',
+        'Se compran en MEJORAS → 10 CURSORES y se equipan en la pantalla de Preparación.',
+        'Cada cursor cambia el modificador de su habilidad: prueba combinaciones con tus chips.'
+      ]
+    },
+    {
+      icon: 'i-grid', title: 'CHIPS',
+      items: [
+        '5 chips base desbloqueables + 5 avanzados de alto rendimiento.',
+        'Ocupan ranuras; Caché de Chips añade slots para combinar sinergias.',
+        'Los chips compatibles con tu cursor muestran SINERGIA ACTIVA en el carrusel.'
+      ]
+    },
+    {
+      icon: 'i-chart', title: 'ECONOMÍA',
+      items: [
+        'Créditos = puntuación del ciclo / 10 × multiplicadores de desenlace y habilidades.',
+        'Los récords por tablero desbloquean tableros nuevos; las runs diarias dan créditos extra.',
+        'Generador de Eco y Núcleo Maestro aumentan lo que cobras al cerrar cada ciclo.'
+      ]
+    },
+    {
+      icon: 'i-star', title: 'RECOMENDACIONES',
+      items: [
+        'Empieza por Pulso Rápido y Memoria Térmica; después Mira Láser y Núcleo Denso.',
+        'Para tableros grandes prioriza Sobrecarga, Sifón de Voltaje y Aegis.',
+        'Para maximizar puntuación combina Mira Láser, Sector Abierto y Núcleo Maestro.',
+        'Para limpiar tableros, Nova + Escudo Nova + Resonancia Nova es la mejor combinación.'
+      ]
+    }
+  ],
+  icons: [
+    {
+      icon: 'i-help', title: 'HUD Y ESTADO',
+      items: [
+        guideLegend('i-bolt', 'VOLTAJE', 'Barra de vida, nivel de tier y ganancia por golpe.'),
+        guideLegend('i-target', 'PRECISIÓN', 'Ventana de golpe Perfecto y multiplicador de acierto.'),
+        guideLegend('i-combo', 'COMBO', 'Racha actual y siguiente hito de multiplicador.'),
+        guideLegend('i-boss', 'JEFE', 'Núcleo móvil; indica filas bloqueadas y daño restante.'),
+        guideLegend('i-snow', 'HIELO', 'Congela el drenaje o ralentiza una fila del jefe.'),
+        guideLegend('i-alert', 'ROJO', 'Núcleo peligroso: púrgalo arrastrándolo al borde.'),
+        guideLegend('i-star', 'NOVA / BLANCO', 'Nova barre la tabla; el blanco activa el Falso Final.'),
+        guideLegend('i-clock', 'CRONO', 'Núcleo de recarga: devuelve voltaje extra.')
+      ]
+    },
+    {
+      icon: 'i-grid', title: 'NAVEGACIÓN',
+      items: [
+        guideLegend('i-globe', 'TABLA', 'Clasificación de la run diaria, online y local.'),
+        guideLegend('i-save', 'ARCHIVO', 'Estadísticas, récords y gráficas de progreso.'),
+        guideLegend('i-device', 'USUARIO', 'Cambiar de perfil o gestionar cuentas locales.'),
+        guideLegend('i-ascend', 'ASCENDER', 'Reinicia la campaña con reglas adicionales.'),
+        guideLegend('i-chart', 'PROGRESO', 'Gráficas por tablero y por día en el Archivo.'),
+        guideLegend('i-trophy', 'RÉCORD', 'Mejor marca personal y récords por tablero.'),
+        guideLegend('i-help', 'GUÍA', 'Este manual: reglas, funciones, mejoras e iconos.'),
+        guideLegend('i-pause', 'PAUSA', 'Detiene la partida y permite guardar o salir.')
+      ]
+    }
+  ]
+};
+
 export class UI {
   constructor({ game, audio, input, renderer, accounts, leaderboard }) {
     this.game = game;
@@ -38,6 +232,7 @@ export class UI {
       results: document.getElementById('screen-results'),
       settings: document.getElementById('screen-settings'),
       archive: document.getElementById('screen-archive'),
+      guide: document.getElementById('screen-guide'),
       upgrades: document.getElementById('screen-upgrades'),
       final: document.getElementById('screen-final'),
       leaderboard: document.getElementById('screen-leaderboard')
@@ -75,6 +270,9 @@ export class UI {
     this.lastOptions = null;
     this.sectorCleared = 0; // último sector cuyo jefe fue derrotado
     this.upgradeTab = 'tree';
+    this.guideTab = 'gameplay';
+    this.archiveChart = 'boards';
+    this.resultSlide = 0;
     this.selectedAbilityId = 'ab_pulso';
     this.cursorIndex = 0;
     this.chipIndex = 0;
@@ -794,6 +992,8 @@ export class UI {
     this.onClick('btn-board-back', () => this.showScreen('menu'));
     this.onClick('btn-ascend', () => this.ascend());
     this.onClick('btn-mejoras', () => this.showScreen('upgrades'));
+    this.onClick('btn-guia', () => this.showScreen('guide'));
+    this.onClick('btn-volver-guide', () => this.showScreen('menu'));
     this.onClick('btn-archivo', () => this.showScreen('archive'));
     this.onClick('btn-volver-archive', () => this.showScreen('menu'));
     this.onClick('btn-ajustes', () => this.showScreen('settings'));
@@ -805,6 +1005,18 @@ export class UI {
     // Mejoras: pestañas y carruseles del rediseño.
     document.querySelectorAll('#screen-upgrades .up-tab').forEach(btn => {
       btn.addEventListener('click', () => this.setUpgradeTab(btn.dataset.tab));
+    });
+    // Guía: pestañas con ratón, Enter y flechas (patrón tablist accesible).
+    const guideTabs = Array.from(document.querySelectorAll('#screen-guide .guide-tab'));
+    guideTabs.forEach((btn, i) => {
+      btn.addEventListener('click', () => this.renderGuide(btn.dataset.guide));
+      btn.addEventListener('keydown', (e) => {
+        if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+        e.preventDefault();
+        const next = guideTabs[(i + (e.key === 'ArrowRight' ? 1 : -1) + guideTabs.length) % guideTabs.length];
+        next.focus();
+        this.renderGuide(next.dataset.guide);
+      });
     });
     this.onClick('up-hud-cursor', () => this.setUpgradeTab('cursors'));
     this.onClick('up-hud-slots-btn', () => this.setUpgradeTab('chips'));
@@ -1156,6 +1368,10 @@ export class UI {
       this.renderArchive();
       this.screens.archive.classList.remove('hidden');
       this.screens.archive.classList.add('active');
+    } else if (name === 'guide') {
+      this.renderGuide();
+      this.screens.guide.classList.remove('hidden');
+      this.screens.guide.classList.add('active');
     } else if (name === 'upgrades') {
       this.renderUpgrades();
       this.screens.upgrades.classList.remove('hidden');
@@ -1178,6 +1394,7 @@ export class UI {
       const focusIds = {
         menu: 'btn-jugar', prep: 'btn-iniciar', results: 'btn-reintentar',
         archive: 'btn-volver-archive', upgrades: 'btn-volver-upgrades',
+        guide: 'btn-volver-guide',
         final: 'btn-final-accept', settings: 'btn-volver-settings',
         leaderboard: 'btn-board-back'
       };
@@ -1187,7 +1404,10 @@ export class UI {
         if (!target || target.offsetParent === null) {
           target = screen?.querySelector('button:not([disabled]):not(.hidden)');
         }
-        target?.focus();
+        // Las pantallas largas (guía, archivo, ajustes) no deben abrirse
+        // desplazadas hasta el pie solo porque el foco cae en VOLVER.
+        if (screen && screen.scrollHeight > screen.clientHeight) screen.scrollTop = 0;
+        target?.focus({ preventScroll: true });
       });
     }
   }
@@ -1733,6 +1953,11 @@ export class UI {
       </div>
       <div class="up-segments">${bars}</div>
       <p class="up-desc">${def.desc}</p>
+      <div class="up-guide">
+        <div class="up-guide-row"><span>CÓMO SE USA</span><p>${def.how}</p></div>
+        <div class="up-guide-row"><span>CONSEJO</span><p>${def.tip}</p></div>
+        <div class="up-guide-row synergy"><span>SINERGIA</span><p>${def.synergy}</p></div>
+      </div>
       <div class="up-stat-box">
         <div><span>EFECTO POR NIVEL</span><strong>${def.desc.replace(' / NV', '')}</strong></div>
         ${maxed ? '' : `<div><span>PRÓXIMO NIVEL</span><strong class="up-next">NV ${lv + 1} · ◈ ${cost.toLocaleString('es-ES')}</strong></div>`}
@@ -1933,6 +2158,13 @@ export class UI {
     if (!CURSORS.length) return;
     this.cursorIndex = (this.cursorIndex + dir + CURSORS.length) % CURSORS.length;
     this.renderCursorCarousel();
+  }
+
+  moveChipCarousel(dir) {
+    const list = this.filteredChips();
+    if (!list.length) return;
+    this.chipIndex = (this.chipIndex + dir + list.length) % list.length;
+    this.renderUpgradeChips();
   }
 
   renderCursorCarousel() {
@@ -2186,10 +2418,15 @@ export class UI {
     const isRecord = this.game.score.score > prevBest;
     this.saveProgress();
     document.getElementById('res-record').style.display = isRecord ? 'block' : 'none';
-    document.getElementById('res-score').textContent = this.game.score.score;
+    document.getElementById('res-score').textContent = this.game.score.score.toLocaleString('es-ES');
     document.getElementById('res-combo').textContent = this.game.score.maxCombo;
     document.getElementById('res-perfect').textContent = this.game.score.perfects;
     document.getElementById('res-credits').textContent = this.game.credits;
+    const bestEl = document.getElementById('res-best');
+    if (bestEl) {
+      bestEl.textContent = Math.max(Number(this.progress.bestScore) || 0, Number(this.game.score.score) || 0)
+        .toLocaleString('es-ES');
+    }
 
     const up = this.progress.upgrades || {};
     const chips = Array.from(this.game.loadout.chips || []).join(', ') || 'SIN CHIPS';
@@ -2314,56 +2551,300 @@ export class UI {
       ]]
     ];
 
-    card.innerHTML = '<div class="run-card-title">INFORME COMPLETO DE LA RUN</div>' +
-      groups.map(([title, rows]) => `
-        <section class="run-group">
-          <div class="run-group-title">${title}</div>
-          <div class="run-grid">${rows.map(([key, value]) =>
-            `<div class="run-row"><span class="run-key">${key}</span><span class="run-val">${value}</span></div>`
-          ).join('')}</div>
-        </section>`).join('') +
-      '<div class="run-note">Los contadores son acumulativos durante toda la run.</div>';
+    const slides = groups.map(([title, rows], i) => `
+      <article class="res-slide" role="group" aria-roledescription="tarjeta" aria-label="${title}">
+        <div class="res-slide-head">
+          <span class="res-slide-index">${String(i + 1).padStart(2, '0')}</span>
+          <h3>${title}</h3>
+        </div>
+        <div class="res-slide-rows">${rows.map(([key, value]) =>
+          `<div class="run-row"><span class="run-key">${key}</span><span class="run-val">${value}</span></div>`
+        ).join('')}</div>
+      </article>`).join('');
+
+    card.innerHTML = `
+      <div class="res-carousel-head">
+        <span class="res-carousel-title">INFORME DE LA RUN</span>
+        <span class="res-carousel-count" id="res-slide-count">1 / ${groups.length}</span>
+      </div>
+      <div class="res-carousel-viewport" id="res-viewport">
+        <div class="res-track" id="res-track">${slides}</div>
+      </div>
+      <div class="res-carousel-foot">
+        <button type="button" class="res-nav" id="res-prev" aria-label="Tarjeta anterior">‹</button>
+        <div class="res-dots" id="res-dots">
+          ${groups.map(([title], i) => `
+            <button type="button" class="res-dot${i === 0 ? ' selected' : ''}" data-slide="${i}"
+              aria-label="Ver ${title}" aria-pressed="${i === 0}"></button>`).join('')}
+        </div>
+        <button type="button" class="res-nav" id="res-next" aria-label="Siguiente tarjeta">›</button>
+      </div>
+      <div class="res-carousel-note">Los contadores son acumulativos durante toda la run.</div>`;
+    this.resultSlide = 0;
+    this.bindResultCarousel(groups.length);
+    this.showResultSlide(0);
+  }
+
+  bindResultCarousel(total) {
+    const card = document.getElementById('res-run-card');
+    if (!card) return;
+    this.resultTotal = total;
+    const prev = document.getElementById('res-prev');
+    const next = document.getElementById('res-next');
+    if (prev) prev.addEventListener('click', () => this.moveResultSlide(-1));
+    if (next) next.addEventListener('click', () => this.moveResultSlide(1));
+    card.querySelectorAll('.res-dot').forEach(dot => {
+      dot.addEventListener('click', () => this.showResultSlide(Number(dot.dataset.slide)));
+    });
+    card.onkeydown = (e) => {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      e.preventDefault();
+      this.moveResultSlide(e.key === 'ArrowRight' ? 1 : -1);
+    };
+    // Deslizamiento táctil: un gesto horizontal cambia de tarjeta.
+    const viewport = document.getElementById('res-viewport');
+    if (viewport) {
+      let startX = null;
+      viewport.addEventListener('pointerdown', e => { startX = e.clientX; });
+      viewport.addEventListener('pointerup', e => {
+        if (startX == null) return;
+        const dx = e.clientX - startX;
+        startX = null;
+        if (Math.abs(dx) > 40) this.moveResultSlide(dx < 0 ? 1 : -1);
+      });
+      viewport.addEventListener('pointercancel', () => { startX = null; });
+    }
+  }
+
+  moveResultSlide(dir) {
+    const total = this.resultTotal || 1;
+    this.showResultSlide(((this.resultSlide || 0) + dir + total) % total);
+  }
+
+  showResultSlide(index) {
+    const card = document.getElementById('res-run-card');
+    if (!card) return;
+    const total = this.resultTotal || card.querySelectorAll('.res-slide').length || 1;
+    this.resultSlide = Math.max(0, Math.min(total - 1, index));
+    const track = document.getElementById('res-track');
+    if (track) track.style.transform = `translateX(-${this.resultSlide * 100}%)`;
+    card.querySelectorAll('.res-slide').forEach((slide, i) => {
+      slide.setAttribute('aria-hidden', i === this.resultSlide ? 'false' : 'true');
+    });
+    card.querySelectorAll('.res-dot').forEach((dot, i) => {
+      dot.classList.toggle('selected', i === this.resultSlide);
+      dot.setAttribute('aria-pressed', i === this.resultSlide ? 'true' : 'false');
+    });
+    const count = document.getElementById('res-slide-count');
+    if (count) count.textContent = `${this.resultSlide + 1} / ${total}`;
+  }
+
+  renderGuide(tab = this.guideTab || 'gameplay') {
+    this.guideTab = tab;
+    const body = document.getElementById('guide-body');
+    if (!body) return;
+    document.querySelectorAll('#screen-guide .guide-tab').forEach(btn => {
+      const on = btn.dataset.guide === tab;
+      btn.classList.toggle('selected', on);
+      btn.setAttribute('aria-selected', on ? 'true' : 'false');
+      btn.tabIndex = on ? 0 : -1;
+    });
+    const active = document.getElementById(`guide-tab-${tab}`);
+    if (active) body.setAttribute('aria-labelledby', active.id);
+    const sections = GUIDE_CONTENT[tab] || [];
+    body.innerHTML = sections.map(section => `
+      <section class="guide-card">
+        <div class="guide-card-head">
+          <span class="guide-card-icon"><svg class="icon" aria-hidden="true"><use href="#${section.icon || 'i-help'}"></use></svg></span>
+          <h2>${section.title}</h2>
+        </div>
+        <ul>${section.items.map(item => `<li>${item}</li>`).join('')}</ul>
+      </section>`).join('');
+    body.scrollTop = 0;
+  }
+
+  archiveChartData() {
+    const p = this.progress;
+    if (this.archiveChart === 'daily') {
+      return Object.entries(p.dailyRuns || {})
+        .sort(([a], [b]) => String(a).localeCompare(String(b)))
+        .slice(-10)
+        .map(([date, run]) => ({
+          label: String(date).slice(5),
+          title: String(date),
+          value: Number(run?.score) || 0,
+          sub: run?.code ? `código ${run.code}` : 'sin código'
+        }));
+    }
+    const best = p.bestScoreByBoard || {};
+    return BOARDS.map(b => ({
+      label: b.label,
+      title: `Tablero ${b.label}`,
+      value: Number(best[b.id]) || 0,
+      sub: b.unlockScore
+        ? `se desbloquea con ${b.unlockScore.toLocaleString('es-ES')} pts`
+        : 'tablero inicial'
+    }));
+  }
+
+  renderArchiveChart(data) {
+    const max = Math.max(1, ...data.map(d => d.value));
+    return `<div class="arch-chart" role="group" aria-label="Gráfica de progreso">` +
+      data.map((d, i) => `
+        <button type="button" class="arch-bar" data-arch-index="${i}"
+          aria-label="${this.escapeHtml(d.title)}: ${d.value.toLocaleString('es-ES')} puntos">
+          <span class="arch-bar-track"><span class="arch-bar-fill" style="height:${d.value ? Math.max(4, Math.round((d.value / max) * 100)) : 1}%"></span></span>
+          <span class="arch-bar-label">${this.escapeHtml(d.label)}</span>
+        </button>`).join('') + '</div>';
+  }
+
+  bindArchiveChart(data) {
+    const content = document.getElementById('archive-content');
+    const bars = Array.from(content?.querySelectorAll('.arch-bar') || []);
+    const readout = document.getElementById('arch-readout');
+    if (!bars.length) return;
+    const bestIndex = data.reduce((best, d, i) => d.value > data[best].value ? i : best, 0);
+    const paint = (index, focus = false) => {
+      bars.forEach((bar, i) => bar.classList.toggle('selected', i === index));
+      const d = data[index];
+      if (readout && d) {
+        readout.innerHTML = `<strong>${this.escapeHtml(d.title)}</strong> · ` +
+          `${d.value.toLocaleString('es-ES')} pts <span>${this.escapeHtml(d.sub)}</span>`;
+      }
+      if (focus && bars[index]) bars[index].focus();
+    };
+    bars.forEach((bar, i) => {
+      bar.addEventListener('click', () => paint(i));
+      bar.addEventListener('focus', () => paint(i));
+    });
+    paint(Math.max(0, bestIndex));
   }
 
   renderArchive() {
     const content = document.getElementById('archive-content');
+    if (!content) return;
     const p = this.progress;
-    const bosses = (p.bossDefeated || []).slice().sort().join(', ') || 'NINGUNO';
-    const chips = (p.unlocked || []).map(c => this.chipLabels[c] || c).join(' · ') || 'NINGUNO';
-    const ups = p.upgrades || {};
-    const upgrades = `PULSO NV ${ups.pulso || 0} · TESLA NV ${ups.tesla || 0}`;
-    const ending = !p.ending ? 'PENDIENTE'
-      : p.endingChoice === 'accept' ? 'SELLADO · SISTEMA ACEPTADO'
-      : p.endingChoice === 'reject' ? 'ABIERTO · SISTEMA RECHAZADO'
-      : 'SELLADO · SIN DECISIÓN';
-    const runs = Object.entries(p.dailyRuns || {}).sort();
-    const dailyEntries = runs.slice(-3);
-    const daily = dailyEntries.length
-      ? dailyEntries.map(([date, run]) =>
-          `${date}: ${run.score || 0} pts · ${run.code || '—'}`).join(' · ')
-      : 'NINGUNO';
-    const dailyStreak = Number(p.dailyStreak) || 0;
-    if (p.cycles > 0 || this.game.credits > 0 || (p.bossDefeated || []).length) {
+    const n = value => Number(value || 0).toLocaleString('es-ES');
+    const runs = Object.entries(p.dailyRuns || {}).sort(([a], [b]) => String(a).localeCompare(String(b)));
+    const hasData = (p.cycles || 0) > 0 || this.game.credits > 0 ||
+      (p.bossDefeated || []).length > 0 || runs.length > 0;
+    if (!hasData) {
       content.innerHTML = `
-        <p><strong>Ciclos jugados:</strong> ${p.cycles || 0}</p>
-        <p><strong>Último ciclo:</strong> ${this.game.score.score} pts · combo máx ${this.game.score.maxCombo} · perfectos ${this.game.score.perfects}</p>
-        <p><strong>Sector alcanzado:</strong> ${p.sector || 1} · <strong>Ascensión:</strong> ${p.ascension || 0}</p>
-        <p><strong>Jefes vencidos:</strong> ${bosses} · total ${p.bossKills || 0}</p>
-        <p><strong>Tablero actual:</strong> ${boardById(this.selectedBoard).label} · mejor por tablero: ${
-          BOARDS.map(b => `${b.label} ${(p.bestScoreByBoard || {})[b.id] || 0}`).join(' · ')}</p>
-        <p><strong>Falsos Finales:</strong> ${p.fakeEndings || 0}</p>
-        <p><strong>Desenlace:</strong> ${ending}</p>
-        <p><strong>Chips desbloqueados:</strong> ${chips}</p>
-        <p><strong>Mejoras:</strong> ${upgrades}</p>
-        <p><strong>Campaña:</strong> mejor ${p.bestScore || 0} pts · combo máx ${p.bestCombo || 0}</p>
-        <p><strong>Run diaria:</strong> ${daily}</p>
-        <p><strong>Racha diaria:</strong> ${dailyStreak} día${dailyStreak === 1 ? '' : 's'}</p>
-        <p><strong>Créditos acumulados:</strong> ${this.game.credits}</p>
-        <p><em>EL SISTEMA: "No fue un fallo, fue una decisión creativa."</em></p>
-      `;
-    } else {
-      content.innerHTML = '<p>No hay registros aún. Juega un ciclo para generar logs.</p>';
+        <div class="arch-empty-card">
+          <span class="arch-eyebrow">SIN REGISTROS</span>
+          <h2>La cabina aún no tiene memoria.</h2>
+          <p>Juega un ciclo para generar logs, récords y gráficas de progreso.</p>
+          <p class="arch-quote">EL SISTEMA: "No fue un fallo, fue una decisión creativa."</p>
+        </div>`;
+      return;
     }
+
+    const mode = this.archiveChart === 'daily' ? 'daily' : 'boards';
+    const data = this.archiveChartData();
+    const chips = (p.unlocked || []).map(id => this.chipLabels[id] || id);
+    const bosses = (p.bossDefeated || []).slice().sort((a, b) => a - b);
+    const abilities = p.abilities || {};
+    const abilityLevels = Object.values(abilities).reduce((sum, lv) => sum + (Number(lv) || 0), 0);
+    const ownedCursors = (p.ownedCursors || []).map(id =>
+      (CURSORS.find(c => c.id === id) || {}).name || id);
+    const ending = !p.ending ? 'Pendiente'
+      : p.endingChoice === 'accept' ? 'Sistema aceptado'
+      : p.endingChoice === 'reject' ? 'Sistema rechazado'
+      : 'Sin decisión';
+    const lastCycle = this.game.score || { score: 0, maxCombo: 0, perfects: 0, misses: 0 };
+    const lastDaily = runs.length ? runs[runs.length - 1] : null;
+    const equippedChips = Array.from(this.game.loadout?.chips || []).map(id => this.chipLabels[id] || id);
+    const cursorName = (CURSORS.find(c => c.id === this.game.loadout?.hammer) || {}).name || 'Pulso';
+
+    const kpis = [
+      ['MEJOR PUNTUACIÓN', n(this.bestScoreAll ? this.bestScoreAll() : p.bestScore), 'campaña'],
+      ['COMBO MÁXIMO', `×${n(p.bestCombo)}`, 'mejor racha'],
+      ['CICLOS JUGADOS', n(p.cycles), `ascensión ${n(p.ascension)}`],
+      ['JEFES VENCIDOS', n(p.bossKills), `${bosses.length} tipos`],
+      ['RACHA DIARIA', `${n(p.dailyStreak)} d`, `${runs.length} runs`],
+      ['SALDO', n(this.game.credits), 'créditos']
+    ];
+    const card = (title, rows, icon = 'i-chart') => `
+      <section class="arch-card">
+        <div class="arch-card-head">
+          <h2><svg class="icon" aria-hidden="true"><use href="#${icon}"></use></svg>${title}</h2>
+        </div>
+        <div class="arch-rows">${rows.map(([key, value]) => `
+          <div class="arch-row"><span>${key}</span><strong>${value}</strong></div>`).join('')}
+        </div>
+      </section>`;
+
+    content.innerHTML = `
+      <div class="arch-kpis">${kpis.map(([label, value, sub]) => `
+        <div class="arch-kpi"><span>${label}</span><strong>${value}</strong><small>${sub}</small></div>`).join('')}
+      </div>
+      <section class="arch-card arch-chart-card">
+        <div class="arch-card-head">
+          <div>
+            <span class="arch-eyebrow">PROGRESO INTERACTIVO</span>
+            <h2>${mode === 'daily' ? 'ÚLTIMAS RUNS DIARIAS' : 'MEJOR PUNTUACIÓN POR TABLERO'}</h2>
+          </div>
+          <div class="arch-chart-tabs" role="group" aria-label="Datos de la gráfica">
+            <button type="button" class="arch-tab${mode === 'boards' ? ' selected' : ''}" data-arch-mode="boards" aria-pressed="${mode === 'boards'}">TABLEROS</button>
+            <button type="button" class="arch-tab${mode === 'daily' ? ' selected' : ''}" data-arch-mode="daily" aria-pressed="${mode === 'daily'}">DIARIAS</button>
+          </div>
+        </div>
+        ${data.length ? this.renderArchiveChart(data)
+          : '<p class="arch-empty">Aún no hay runs diarias registradas.</p>'}
+        <p class="arch-readout" id="arch-readout" aria-live="polite"></p>
+      </section>
+      <div class="arch-grid">
+        ${card('CAMPAÑA', [
+          ['Sector alcanzado', n(p.sector || 1)],
+          ['Ascensión', `NV ${n(p.ascension)}`],
+          ['Mejor puntuación', n(p.bestScore)],
+          ['Mejor combo', `×${n(p.bestCombo)}`],
+          ['Falsos Finales', n(p.fakeEndings)],
+          ['Desenlace', ending]
+        ], 'i-target')}
+        ${card('ÚLTIMO CICLO', [
+          ['Puntuación', n(lastCycle.score)],
+          ['Combo máximo', `×${n(lastCycle.maxCombo)}`],
+          ['Perfectos', n(lastCycle.perfects)],
+          ['Fallos', n(lastCycle.misses)],
+          ['Tablero', boardById(this.selectedBoard).label]
+        ], 'i-bolt')}
+        ${card('DESBLOQUEOS', [
+          ['Chips', chips.length ? chips.join(' · ') : 'Ninguno'],
+          ['Jefes', bosses.length ? bosses.map(b => `S${b}`).join(' · ') : 'Ninguno'],
+          ['Cursores', `${ownedCursors.length} / ${CURSORS.length}`],
+          ['Equipados', equippedChips.length ? equippedChips.join(' · ') : 'Sin chips']
+        ], 'i-star')}
+        ${card('RUN DIARIA', [
+          ['Racha', `${n(p.dailyStreak)} día${Number(p.dailyStreak) === 1 ? '' : 's'}`],
+          ['Runs jugadas', n(runs.length)],
+          ['Última fecha', lastDaily ? this.escapeHtml(lastDaily[0]) : '—'],
+          ['Última puntuación', lastDaily ? n(lastDaily[1]?.score) : '—'],
+          ['Código', lastDaily && lastDaily[1]?.code ? this.escapeHtml(lastDaily[1].code) : '—']
+        ], 'i-globe')}
+        ${card('ÁRBOL Y EQUIPO', [
+          ['Niveles de habilidad', n(abilityLevels)],
+          ['Cursor equipado', this.escapeHtml(cursorName)],
+          ['Chips equipados', equippedChips.length ? equippedChips.join(' · ') : 'Ninguno'],
+          ['Pulso / Tesla', `NV ${n(p.upgrades?.pulso)} / NV ${n(p.upgrades?.tesla)}`]
+        ], 'i-grid')}
+        ${card('RÉCORDS POR TABLERO', BOARDS.map(b => [
+          b.label, n((p.bestScoreByBoard || {})[b.id])
+        ]), 'i-trophy')}
+      </div>
+      <p class="arch-quote">EL SISTEMA: "No fue un fallo, fue una decisión creativa."</p>
+    `;
+
+    content.querySelectorAll('[data-arch-mode]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        this.archiveChart = btn.dataset.archMode;
+        this.renderArchive();
+        requestAnimationFrame(() => {
+          document.querySelector(`#archive-content [data-arch-mode="${this.archiveChart}"]`)?.focus();
+        });
+      });
+    });
+    this.bindArchiveChart(data);
   }
 
   // ---------- Tabla de la run diaria ----------

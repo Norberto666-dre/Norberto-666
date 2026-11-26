@@ -15,6 +15,9 @@ export const SCREEN = {
   MENU: 'menu', PREP: 'prep', PLAYING: 'playing',
   PAUSED: 'paused', RESULTS: 'results', SETTINGS: 'settings'
 };
+
+// Separación entre las ondas de Nova (segundos). Se usa también en los tests.
+export const NOVA_WAVE_DELAY = 0.8;
 export { comboMultiplier, nextComboMilestone };
 
 // PRNG determinista para el Ciclo Diario (misma semilla → misma partida)
@@ -496,6 +499,7 @@ export class Game {
     this.tapRipples = [];
     this.links = [];
     this.linkSeq = 0;
+    this.novaWaves = [];
     this.novaDetonations = 0;
     this.novaCoresCleared = 0;
     this.novaPoints = 0;
@@ -695,6 +699,7 @@ export class Game {
     this.spawnInterval = BALANCE.spawn.startInterval;
     this.sessionHits = 0;
     this.sessionMisses = 0;
+    this.novaWaves = [];
     this.novaDetonations = 0;
     this.novaCoresCleared = 0;
     this.novaPoints = 0;
@@ -894,6 +899,7 @@ export class Game {
 
   update(dt) {
     const realDt = Math.min(dt || 0, 0.1);
+    if (this.screen === SCREEN.PLAYING) this.updateNovaWaves(realDt);
     if (this.hitStopTimer > 0) {
       this.hitStopTimer -= realDt;
       if (this.hitStopTimer < 0) this.hitStopTimer = 0;
@@ -1559,11 +1565,30 @@ export class Game {
     return values.standard;
   }
 
-  // Nova ya no tiene 3 ondas ni porcentajes: una sola explosión paga los núcleos
-  // que elimina, sin crear combo artificial ni limpiar núcleos que aparezcan después.
+  // Nova lanza 3 ondas separadas 0.8 s. Cada onda barre toda la tabla y suma
+  // el valor real de los núcleos que elimina en ese instante: los que aparecen
+  // entre ondas también caen, sin crear combo artificial.
   detonateNova(origin, perfect, pan) {
     const novaGain = this.novaMult * this.scoreMultiplier;
     const base = this.score.multiplier * (perfect ? 2 : 1) * novaGain * this.voltageTier;
+    const reach = Math.max(120, ...this.holes.map(h => Math.hypot(h.x - origin.x, h.y - origin.y)));
+    const radius = (reach * 1.3 + 40) * this.novaRadiusMult;
+
+    this.novaDetonations++;
+    this.director.registerHit(!!perfect);
+    this.addVoltage(BALANCE.voltage.gain.nova * this.voltageMultiplier);
+    if (this.boss && !this.boss.defeated) this.damageBoss(BALANCE.boss.hitPercent);
+
+    this.fireNovaWave({ origin, base, pan, radius, ring: 1 });
+    this.novaWaves.push(
+      { origin, base, pan, radius, ring: 2, timer: NOVA_WAVE_DELAY },
+      { origin, base, pan, radius, ring: 3, timer: NOVA_WAVE_DELAY * 2 }
+    );
+    this.triggerHitStop(BALANCE.nova.hitStop);
+  }
+
+  // Una onda individual: limpia los núcleos vivos de toda la tabla y paga su valor.
+  fireNovaWave(wave) {
     let raw = 0;
     let cleared = 0;
     this.holes.forEach(h => {
@@ -1575,27 +1600,38 @@ export class Game {
       this.spawnParticles(h.x, h.y, cleared % 2 ? '#ffcc00' : '#ff6a00', 12, { streak: true });
       h.reset();
     });
-    const points = Math.round(raw * base);
+    const points = Math.round(raw * wave.base);
     this.score.score += points;
-    this.novaDetonations++;
     this.novaCoresCleared += cleared;
     this.novaPoints += points;
-    this.director.registerHit(!!perfect);
-    this.addVoltage(BALANCE.voltage.gain.nova * this.voltageMultiplier);
-    if (this.boss && !this.boss.defeated) this.damageBoss(BALANCE.boss.hitPercent);
-    this.spawnPopup(origin.x, origin.y - 28, `NOVA +${points} · ${cleared} NÚCLEOS`, '#ffcc00');
-    const reach = Math.max(120, ...this.holes.map(h => Math.hypot(h.x - origin.x, h.y - origin.y)));
+    if (cleared > 0) {
+      this.spawnPopup(wave.origin.x, wave.origin.y - 28 - (wave.ring - 1) * 26,
+        `NOVA ${wave.ring}/3 +${points} · ${cleared} NÚCLEOS`, '#ffcc00');
+    }
+    const life = this.novaExtraRing ? 0.9 : 0.75;
     this.shockwaves.push({
-      x: origin.x, y: origin.y,
-      life: this.novaExtraRing ? 0.9 : 0.75,
-      maxLife: this.novaExtraRing ? 0.9 : 0.75,
-      radius: (reach * 1.3 + 40) * this.novaRadiusMult,
+      x: wave.origin.x, y: wave.origin.y,
+      life, maxLife: life,
+      radius: wave.radius * (1 + (wave.ring - 1) * 0.12),
       extraRing: !!this.novaExtraRing
     });
-    this.triggerHitStop(BALANCE.nova.hitStop);
-    this.triggerShake(BALANCE.nova.shake);
-    this.triggerFlash(BALANCE.nova.flash);
-    this.audio.playNova(pan || 0);
+    const punch = wave.ring === 1 ? 1 : 0.5;
+    this.triggerShake(BALANCE.nova.shake * punch);
+    this.triggerFlash(BALANCE.nova.flash * punch);
+    this.audio.playNova(wave.pan || 0);
+  }
+
+  // Las ondas se descuentan en tiempo real para que el ritmo de 0.8 s no dependa
+  // del hit-stop ni del time-scale de la cabina.
+  updateNovaWaves(dt) {
+    if (!this.novaWaves.length) return;
+    const due = [];
+    this.novaWaves = this.novaWaves.filter(w => {
+      w.timer -= dt;
+      if (w.timer <= 0) { due.push(w); return false; }
+      return true;
+    });
+    due.sort((a, b) => a.ring - b.ring).forEach(w => this.fireNovaWave(w));
   }
 
   addTapRipple(x, y) {

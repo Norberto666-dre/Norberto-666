@@ -27,6 +27,12 @@
     <symbol id="i-device" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M10 18h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
     <symbol id="i-save" viewBox="0 0 24 24"><path d="M5 3h12l2 2v16H5V3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M8 3v6h8V3M8 21v-7h8v7" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
     <symbol id="i-ascend" viewBox="0 0 24 24"><path d="M12 20V5M6 11l6-6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M9.5 9a2.6 2.6 0 1 1 3.5 2.4c-.8.4-1 1-1 1.8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="17" r="1.2" fill="currentColor"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 7v5l3 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 3 2.7 5.7 6.3.9-4.5 4.4 1.1 6.2L12 17.3 6.4 20.2l1.1-6.2L3 9.6l6.3-.9L12 3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3 2.5 20h19L12 3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 9v5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="17" r="1.2" fill="currentColor"/></symbol>
+    <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v18H6.5A2.5 2.5 0 0 1 4 18.5v-13z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M8 7h8M8 11h8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
   </svg>
 
   <div id="app" role="main">
@@ -211,6 +217,7 @@
       </div>
       <div class="menu-tools" role="group" aria-label="Herramientas del perfil">
         <button class="menu-tool" id="btn-board" aria-label="Tabla diaria" title="Tabla diaria"><svg class="icon" aria-hidden="true"><use href="#i-globe"></use></svg><span>TABLA</span></button>
+        <button class="menu-tool" id="btn-guia" aria-label="Guía de juego" title="Guía de juego"><svg class="icon" aria-hidden="true"><use href="#i-help"></use></svg><span>GUÍA</span></button>
         <button class="menu-tool" id="btn-mejoras" aria-label="Mejoras" title="Mejoras"><svg class="icon" aria-hidden="true"><use href="#i-bolt"></use></svg><span>MEJORAS</span></button>
         <button class="menu-tool" id="btn-archivo" aria-label="Archivo" title="Archivo"><svg class="icon" aria-hidden="true"><use href="#i-save"></use></svg><span>ARCHIVO</span></button>
         <button class="menu-tool" id="btn-ajustes" aria-label="Ajustes" title="Ajustes"><svg class="icon" aria-hidden="true"><use href="#i-grid"></use></svg><span>AJUSTES</span></button>
@@ -261,17 +268,24 @@
     </div>
 
     <!-- Pantalla: Resultados -->
-    <div id="screen-results" class="screen hidden">
-      <div class="results-title">RESULTADOS</div>
-      <div class="record-badge" id="res-record" style="display:none;">¡NUEVO RÉCORD!</div>
-      <div class="results-meta" id="res-meta">SECTOR 1</div>
-      <div class="results-stats">
-        <div class="stat"><span class="stat-label">PUNTUACIÓN</span><span class="stat-value" id="res-score">0</span></div>
+    <div id="screen-results" class="screen results-screen hidden">
+      <div class="res-hero">
+        <div class="res-hero-top">
+          <span class="res-kicker">FIN DEL CICLO</span>
+          <div class="record-badge" id="res-record" style="display:none;">¡NUEVO RÉCORD!</div>
+        </div>
+        <div class="results-title">RESULTADOS</div>
+        <div class="res-score-big" id="res-score">0</div>
+        <div class="res-score-label">PUNTUACIÓN DEL CICLO</div>
+        <div class="results-meta" id="res-meta">SECTOR 1</div>
+      </div>
+      <div class="results-stats res-kpis">
         <div class="stat"><span class="stat-label">COMBO MÁX.</span><span class="stat-value" id="res-combo">0</span></div>
         <div class="stat"><span class="stat-label">GOLPES PERFECTOS</span><span class="stat-value" id="res-perfect">0</span></div>
         <div class="stat"><span class="stat-label">CRÉDITOS</span><span class="stat-value" id="res-credits">0</span></div>
+        <div class="stat stat-accent"><span class="stat-label">MEJOR MARCA</span><span class="stat-value" id="res-best">0</span></div>
       </div>
-      <div class="run-card" id="res-run-card"></div>
+      <div class="res-carousel" id="res-run-card" aria-roledescription="carrusel" aria-label="Informe de la run"></div>
       <div class="results-btns">
         <button class="btn btn-primary" id="btn-reintentar">REINTENTAR</button>
         <button class="btn btn-secondary" id="btn-continuar" style="display:none;">CONTINUAR</button>
@@ -282,13 +296,34 @@
     </div>
 
     <!-- Pantalla: Archivo -->
-    <div id="screen-archive" class="screen hidden">
-      <div class="settings-title">ARCHIVO</div>
+    <div id="screen-archive" class="screen archive-screen hidden">
+      <div class="archive-head">
+        <div class="settings-title">ARCHIVO</div>
+        <p class="archive-sub">Memoria local de la cabina · se actualiza al cerrar cada ciclo.</p>
+      </div>
       <div class="archive-content" id="archive-content">
         <p>No hay registros aún. Juega un ciclo para generar logs.</p>
       </div>
       <div class="settings-footer">
         <button class="btn btn-secondary" id="btn-volver-archive">VOLVER</button>
+      </div>
+    </div>
+
+    <!-- Pantalla: Guía de juego -->
+    <div id="screen-guide" class="screen guide-screen hidden" aria-labelledby="guide-title">
+      <div class="guide-head">
+        <div class="settings-title" id="guide-title">MANUAL DE CABINA</div>
+        <p class="guide-sub">Reglas, funciones y atajos para sobrevivir al Sector 9.</p>
+      </div>
+      <div class="guide-tabs" role="tablist" aria-label="Secciones de la guía">
+        <button type="button" class="guide-tab selected" role="tab" id="guide-tab-gameplay" aria-selected="true" aria-controls="guide-body" data-guide="gameplay">JUGABILIDAD</button>
+        <button type="button" class="guide-tab" role="tab" id="guide-tab-features" aria-selected="false" aria-controls="guide-body" data-guide="features">FUNCIONES</button>
+        <button type="button" class="guide-tab" role="tab" id="guide-tab-upgrades" aria-selected="false" aria-controls="guide-body" data-guide="upgrades">MEJORAS</button>
+        <button type="button" class="guide-tab" role="tab" id="guide-tab-icons" aria-selected="false" aria-controls="guide-body" data-guide="icons">ICONOS</button>
+      </div>
+      <div class="guide-body" id="guide-body" role="tabpanel" aria-labelledby="guide-tab-gameplay" tabindex="0"></div>
+      <div class="settings-footer">
+        <button class="btn btn-secondary" id="btn-volver-guide">VOLVER</button>
       </div>
     </div>
 

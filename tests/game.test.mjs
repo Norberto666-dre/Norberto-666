@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   Game, Boss, BOSS_BY_SECTOR, BOSS_STYLE, Hole, ScoreManager, Director,
   HoleState, CoreType, makeRng, dailyCode, SCREEN, ascensionRuleNames,
-  comboMultiplier, nextComboMilestone
+  comboMultiplier, nextComboMilestone, NOVA_WAVE_DELAY
 } from '../js/game.js';
 import {
   ABILITIES, ABILITY_EFFECTS, CHIPS_EXTRA, CHIP_EFFECTS,
@@ -126,11 +126,16 @@ test('PRNG diario y código compartible', () => {
 });
 
 test('Tableros iniciales: 3×3, 4×3 y 5×4 con umbrales centralizados', () => {
-  assert.deepEqual(BOARDS.map(b => b.id), ['3x3', '4x3', '5x4']);
+  assert.deepEqual(BOARDS.map(b => b.id), [
+    '3x3', '4x3', '4x4', '5x4', '5x5', '6x5', '6x6', '7x6', '8x7', '9x7'
+  ]);
   assert.equal(boardById('4x3').cols * boardById('4x3').rows, 12);
+  assert.equal(boardById('4x4').cols * boardById('4x4').rows, 16);
   assert.equal(boardById('5x4').cols * boardById('5x4').rows, 20);
+  assert.equal(boardById('9x7').cols * boardById('9x7').rows, 63);
   assert.equal(boardById('4x3').unlockScore, 100000);
   assert.equal(boardById('5x4').unlockScore, 1000000);
+  assert.equal(boardById('9x7').unlockScore, 100000000);
   assert.equal(boardById('inexistente').id, '3x3');
 });
 
@@ -156,19 +161,19 @@ test('Tras terminar en ×0, una nueva partida vuelve a arrancar en ×1', () => {
   assert.equal(g.screen, 'playing');
 });
 
-test('Golpes normal, Perfecto y enlazado suman 2/3/4 de voltaje', () => {
+test('Golpes normal, Perfecto y enlazado suman 0.5/3/4 de voltaje', () => {
   const g = start(makeGame());
   g.voltage = 40;
   const slow = active(g.holes[0], CoreType.STANDARD);
   slow.timer = 0.5; // fuera de la ventana Perfecto
   tap(g, slow);
-  near(g.voltage, 42);
+  near(g.voltage, 40.5);
   tap(g, active(g.holes[1], CoreType.STANDARD));
-  near(g.voltage, 45);
+  near(g.voltage, 43.5);
   const linked = active(g.holes[2], CoreType.STANDARD, 9);
   linked.timer = 0.5;
   tap(g, linked);
-  near(g.voltage, 49);
+  near(g.voltage, 47.5);
 });
 
 test('Voltaje drena con el tiempo y los núcleos rojos drenan más', () => {
@@ -684,26 +689,44 @@ test('Jefe: una fila aplastada bloquea spawns normales', () => {
 
 // ---------- Resonancia Nova ----------
 
-test('Nova: una sola explosión paga el valor real de los núcleos eliminados', () => {
+test('Nova: tres ondas de 0.8 s barren la tabla y suman el valor de cada núcleo', () => {
   const g = start(makeGame());
+  g.spawnTimer = 999; // aislar la prueba de apariciones automáticas
   active(g.holes[0], CoreType.NOVA);
   active(g.holes[1], CoreType.CRONO);
-  active(g.holes[2], CoreType.BOMB);
   g.detonateNova(g.holes[0], false, 0);
   assert.equal(g.novaDetonations, 1);
-  assert.equal(g.novaCoresCleared, 3);
-  const expected = BALANCE.nova.coreValues.nova + BALANCE.nova.coreValues.crono +
-    BALANCE.nova.coreValues.bomb;
-  assert.equal(g.novaPoints, expected);
+  assert.equal(g.novaCoresCleared, 2);
+  assert.equal(g.novaWaves.length, 2);
+
+  active(g.holes[2], CoreType.BOMB);
+  active(g.holes[3], CoreType.STANDARD);
+  advance(g, NOVA_WAVE_DELAY - 0.1);
+  assert.equal(g.novaCoresCleared, 2, 'la segunda onda aún no ha llegado');
+  advance(g, 0.15);
+  assert.equal(g.novaCoresCleared, 4, 'la segunda onda limpia lo aparecido');
+
+  active(g.holes[4], CoreType.STANDARD);
+  advance(g, NOVA_WAVE_DELAY - 0.1);
+  assert.equal(g.novaCoresCleared, 4, 'la tercera onda aún no ha llegado');
+  advance(g, 0.15);
+  assert.equal(g.novaCoresCleared, 5);
+
+  const v = BALANCE.nova.coreValues;
+  assert.equal(g.novaPoints, v.nova + v.crono + v.bomb + v.standard * 2);
+  assert.equal(g.novaWaves.length, 0);
   assert.equal(g.score.bombs, 0);
 });
 
-test('Nova: no limpia núcleos que aparecen después de la explosión', () => {
+test('Nova: un núcleo que aparece tras la última onda sobrevive', () => {
   const g = start(makeGame());
+  g.spawnTimer = 999;
   active(g.holes[0], CoreType.NOVA);
   g.detonateNova(g.holes[0], false, 0);
+  advance(g, NOVA_WAVE_DELAY * 3);
+  assert.equal(g.novaWaves.length, 0);
   active(g.holes[1], CoreType.STANDARD);
-  g.update(0.05);
+  advance(g, 0.1);
   assert.notEqual(g.holes[1].state, HoleState.EMPTY);
   assert.equal(g.novaDetonations, 1);
 });

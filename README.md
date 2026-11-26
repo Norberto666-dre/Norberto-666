@@ -9,7 +9,7 @@ Arcade de reflejos y progresión roguelite, con **app nativa de Windows** (Elect
 - El **voltaje es la vida**: drena con el tiempo; golpear recarga. Al llegar a 0 se cierra el ciclo y se liquidan créditos (`floor(puntuación / 10)`).
 - Llenar la barra sube un peldaño de multiplicador (`×1…×5`) y la barra vuelve al **15 %**. Si se vacía, el multiplicador baja un peldaño y la barra se recarga al **15 %** (`×3 → ×2 → ×1 → 0`); la run termina solo al vaciarse en `×0`.
 - Cada núcleo paga **20 puntos base** como mínimo (Crono 40, Nova 60, blanco 100). Los combos y jefes siguen siendo el multiplicador dominante.
-- **Nova** (estrella dorada) es una sola explosión que paga el valor real de los núcleos que elimina.
+- **Nova** (estrella dorada) lanza **3 ondas separadas 0,8 s** que barren toda la tabla y suman el valor de cada núcleo eliminado; cada onda paga su valor real y no limpia núcleos que aparezcan después.
 - **Falso Final** (núcleo blanco): una vez por ciclo, congela el voltaje 5 s y activa Pesadilla.
 - **Jefes**: uno cada 5 ciclos, sin botón manual. Son 10 tipos en rotación (Gólem, Espejo, Prisma, Crio, Sobrecarga, Sifón, Taquígrafo, Enjambre, Apagón y Cerrojo); cada vuelta completa sube su nivel. Cada golpe quita el **5 %** de la vida máxima, así que hacen falta 20 impactos.
 
@@ -93,11 +93,35 @@ El juego abre en un **launcher** con los perfiles ya vinculados. Solo se piden *
 
 ## Tableros
 
-| Tablero | Desbloqueo |
-|---|---|
+| Tablero | Desbloqueo (mejor puntuación global) |
+|---|---:|
 | `3×3` | Inicial (obligatorio en Diario) |
 | `4×3` | 100 000 puntos |
+| `4×4` | 250 000 puntos |
 | `5×4` | 1 000 000 puntos |
+| `5×5` | 2 500 000 puntos |
+| `6×5` | 5 000 000 puntos |
+| `6×6` | 10 000 000 puntos |
+| `7×6` | 25 000 000 puntos |
+| `8×7` | 50 000 000 puntos |
+| `9×7` | 100 000 000 puntos |
+
+Cada tablero guarda su propia mejor marca, por lo que puedes volver a uno pequeño para asegurar créditos. Cuanto más grande, más núcleos por pantalla, menos tamaño por núcleo y más precisión exigida.
+
+## Guía de juego
+
+El menú incluye un botón **GUÍA** (icono de ayuda) que abre el manual de cabina con cuatro pestañas, navegables con ratón, teclado (`←/→`) o táctil:
+
+- **JUGABILIDAD**: bucle principal, tipos de núcleo, tableros y dificultad, voltaje y tiers, ciclos y jefes, controles.
+- **FUNCIONES**: campaña, run diaria, ascensión, mejoras, archivo, ajustes y accesibilidad, PWA y escritorio.
+- **MEJORAS**: árbol de reflejos, cursores, chips, economía y recomendaciones de build.
+- **ICONOS**: leyendas del HUD (voltaje, precisión, combo, jefe, hielo, rojo, Nova/blanco, crono) y de navegación (tabla, archivo, usuario, ascender, progreso, récord, guía, pausa).
+
+Cada inspector de mejora en el árbol también muestra **cómo se usa**, **consejo** y **sinergia**.
+
+## Archivo
+
+La pantalla **ARCHIVO** muestra 6 KPIs (mejor puntuación, combo máximo, ciclos jugados, jefes vencidos, racha diaria y saldo), una gráfica interactiva tipo barra con modos **TABLEROS** (mejor puntuación por tablero) y **DIARIAS** (últimas runs del día), y cards de detalle: campaña, último ciclo, desbloqueos, run diaria, árbol y equipo, récords por tablero. Si aún no se ha jugado ningún ciclo, muestra un mensaje vacío y una cita del sistema.
 
 ## Pruebas y QA
 
@@ -123,6 +147,6 @@ La suite (97 pruebas) cubre voltaje, peldaños, purga de rojos, combos, tableros
 - `js/content.js` — catálogo de habilidades, chips y cursores.
 - `tests/` — suite Node, servidor estático y guiones de QA.
 - `docs/INCREMENTAL_DESIGN.md` — diseño incremental, fórmulas, ritmo y QA.
-- `docs/qa/` — capturas de verificación (Ciclos 11, 13, 15 y 16), incluidas `hud-antes-*.png` y `hud-despues-*.png`.
+- `docs/qa/` — capturas de verificación (Ciclos 11, 13, 15, 16 y 17), incluidas `hud-antes-*.png` y `hud-despues-*.png` y las nuevas pantallas de guía, archivo y resultados.
 
 Sin IAP ni multijugador. El contenedor Android se conserva en el tag `android-webview-v1` para cuando se retome.

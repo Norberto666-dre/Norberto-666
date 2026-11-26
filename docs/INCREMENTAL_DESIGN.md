@@ -437,3 +437,22 @@ Se ejecutó el juego en navegador (1112×670, 390×844 y 320×844) y en Electron
 | **P2** | Renovación PWA | Caché subida a `overclock9-v5`. | `npm test` 97/97; `tools/build.mjs --check` sin errores. |
 
 **Resultado del ciclo:** la suite canónica (`npm test`) sigue en 97/97. Conviene aclarar que `node --test tests/` no es la orden válida en este repo: intenta ejecutar `tests/serve.mjs` como test y falla; el script `test` de `package.json` enumera los seis archivos reales. Las capturas `docs/qa/hud-antes-*.png` y `hud-despues-*.png` documentan el estado. Queda pendiente la revisión visual humana de esas imágenes: en este entorno se verificó geometría, estilos computados y consola, no la interpretación de píxeles. Tampoco se añadió control del tablero por teclado: sería una capa de input nueva y queda fuera del alcance de bajo riesgo.
+
+---
+
+### 10.13 Ciclo 17: Guía, Archivo y Resultados
+
+Se ejecutó en navegador (1112×670, 390×844 y 320×844) y en Electron con consola vigilada. El motor ya exponía `game.getRunReport()`, `progress.bestScoreByBoard`, `dailyRuns`, `dailyStreak` y `getBestScore()`, pero los apartados de informe, archivo y guía no los usaban. Se añadió una pantalla de guía accesible desde el menú y se rediseñaron Archivo y Resultados con cards, gráficas interactivas y carrusel responsivo. No se tocó `balance.js`, `game.js` ni la geometría del tablero.
+
+**Plan prioritario aplicado**
+
+| Prioridad | Elemento | Decisión | Evidencia |
+|---|---|---|---|
+| **P0** | Guía de juego | Nueva pantalla `#screen-guide` con pestañas JUGABILIDAD / FUNCIONES / MEJORAS / ICONOS (patrón tablist accesible: clic, Enter y flechas ←/→). Acceso desde botón `btn-guia` en `.menu-tools` (grid 6 columnas) y retorno a `btn-volver-guide` con foco en el superior. | `renderGuide()` y `GUIDE_CONTENT` con 24 bloques de reglas; focus-visible ámbar en pestañas; sin errores de consola en los tres tamaños. |
+| **P0** | Archivo rediseñado | `#screen-archive` reescrito: 6 KPIs (mejor puntuación, combo, ciclos, jefes, racha diaria, saldo), gráfica interactiva tipo barra con modos TABLEROS / DIARIAS (10 barras, foco y aria-label por barra, lectura en vivo), y 7 cards de detalle (campaña, último ciclo, desbloqueos, run diaria, árbol y equipo, récords por tablero). Pantalla vacía con mensaje y cita cuando no hay registros. | `renderArchive()`, `archiveChartData()`, `renderArchiveChart()`, `bindArchiveChart()`; tabs con estado persistente en `this.archiveChart`. |
+| **P0** | Resultados rediseñados | Hero de puntuación (grande, cian), 4 KPIs (combo, perfectos, créditos, mejor marca) y carrusel de 6 grupos del informe (RUN, COMBATE, NOVA, ROJOS Y CLÚSTERES, ECONOMÍA, CARGA) con dots, flechas ←/→, deslizamiento táctil y contador 1/6. Conserva ids `res-record`, `res-score`, `res-combo`, `res-perfect`, `res-credits`, `res-best`, `res-meta`, `res-run-card`. `res-record` se muestra solo al batir récord; `res-best` toma el máximo histórico. | `renderResults()`/`renderRunCard()` adaptados; `resultSlide`, `resultTotal`, `showResultSlide()`/`moveResultSlide()`/`bindResultCarousel()`; anuncios de nuevos récords. |
+| **P1** | Pantalla larga | `showScreen()` pone `scrollTop = 0` en pantallas cuyo contenido excede el viewport antes de poner foco (`preventScroll: true`), para no abrir guía/archivo/resultados desplazados hasta el pie. | `screen.scrollHeight > screen.clientHeight` → `scrollTop = 0`; comprobado en guía y archivo. |
+| **P1** | CSS responsive | Reglas del ciclo 17 para guía, archivo y resultados en `@media (max-width: 420px)`, `(min-width: 560px)`, `(min-width: 760px)` y `(min-width: 1000px)`: columnas de KPI 4 en escritorio, filas de botones en horizontal, carrusel compacto en móvil y desactivación de transiciones con `prefers-reduced-motion`. | Verificado a 390×844, 320×844 y 1112×670; sin desbordamiento horizontal. |
+| **P2** | Renovación PWA | Caché del service worker subida a `overclock9-v6`. | `npm test` 97/97; `tools/build.mjs --check` sin errores; `dist` genera ejecutables. |
+
+**Resultado del ciclo:** las tres pantallas nuevas renderizan y navegan correctamente con ratón, teclado y táctil; la suite canónica sigue en **97/97**. Queda pendiente la revisión visual humana de las capturas en los tres tamaños: aquí se verificó geometría, estilos computados, consola y comportamiento de teclado, no la interpretación de píxeles.
