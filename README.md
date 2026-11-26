@@ -40,7 +40,8 @@ D:\Mis_apps\juego2dinteracivo\android
 - `minSdk 24`, `targetSdk 36`, WebView sin AndroidX ni dependencias externas.
 - Los archivos web se sirven desde `assets/web/` bajo `https://overclock9.local/`, lo que permite módulos ES y guardado local (en WebView no existe `showDirectoryPicker`, así que se usa el datasave virtual automáticamente).
 - La app abre con `?qa=1` y **COPIAR MÉTRICAS** usa el portapapeles nativo.
-- APK de depuración: `android/app/build/outputs/apk/debug/app-debug.apk`. Detalles y actualización de assets en `android/README.md`.
+- APK de depuración entregado en la raíz: `OVERCLOCK9-debug.apk` (copia de `android/app/build/outputs/apk/debug/app-debug.apk`). Detalles en `android/README.md`.
+- Desde la raíz, `build.bat` copia `index.html`, `css/` y `js/` a los assets, compila y deja el APK actualizado. `build.bat --watch` vigila cambios en el juego y en el código Android y reconstruye solo; `build.bat --install` además lo instala en el dispositivo USB conectado.
 
 ## Diseño responsive
 

@@ -69,7 +69,18 @@ Para inspeccionar la web con Chrome DevTools, la compilación `debug` habilita `
 
 ## Actualizar el juego web
 
-Tras cambiar `index.html`, `css/` o `js/` en la raíz del repositorio, vuelve a copiarlos:
+Desde la raíz del repositorio usa el script único:
+
+```bat
+build.bat
+```
+
+Ese comando sincroniza `index.html`, `css/` y `js/` a `app/src/main/assets/web/`, ejecuta `assembleDebug` y copia el resultado a `OVERCLOCK9-debug.apk`.
+
+- `build.bat --watch`: detecta cambios en `index.html`, `css/`, `js/` y en el código Android, y reconstruye el APK automáticamente.
+- `build.bat --install`: además instala el APK en el teléfono conectado por USB con `adb install -r`.
+
+Si lo haces a mano, tras cambiar archivos web recopia:
 
 ```powershell
 Copy-Item ..\index.html app\src\main\assets\web\index.html -Force

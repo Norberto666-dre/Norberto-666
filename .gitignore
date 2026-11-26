@@ -1,0 +1,10 @@
+# APK generado (se entrega con build.bat, no se versiona)
+OVERCLOCK9-debug.apk
+*.apk
+*.ap_
+*.log
+
+# Salidas de herramientas
+node_modules/
+.DS_Store
+Thumbs.db
