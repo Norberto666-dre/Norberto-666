@@ -440,6 +440,26 @@ Se ejecutó el juego en navegador (1112×670, 390×844 y 320×844) y en Electron
 
 ---
 
+### 10.14 Ciclo 18: usuario QA oculto, catálogo ampliado y efectos visuales
+
+Se ejecutó en navegador (1112×670) y en Electron con consola vigilada. El catálogo centralizado en `js/content.js` se amplió y la capa visual ganó efectos especiales sin librerías nuevas.
+
+**Plan priorizado aplicado**
+
+| Prioridad | Elemento | Decisión | Evidencia |
+|---|---|---|---|
+| **P0** | Usuario de pruebas oculto | Credenciales solo en `local/test-user.local.mjs` (carpeta ignorada por `.gitignore`, regla `local/`). El módulo versionado `js/test-user.js` carga la config vía `import()` dinámico y expone `ensureTestUser(accounts, config)`. Al iniciar crea/actualiza a **Norberto** con **20.000.000 CR**. | Login verificado en navegador: perfil y CR visibles en el menú (`PERFIL: Norberto · CRÉDITOS: 20000000`). `git grep` sobre el índice sin credenciales. |
+| **P0** | Catálogo ampliado | `ABILITIES → 30`, `CHIPS → 15`, `CURSORS → 20` con efectos en `ABILITY_EFFECTS`, `CHIP_EFFECTS` y `CURSOR_EFFECTS`. | Tests actualizados a 30/15/20: **97/97** en verde. |
+| **P0** | Iconos de chips por código | `chipIcon(id)` y `chipShape(shape)` en `js/content.js`; consumidos por `js/ui.js` en el módulo de chips (SVG inline, sin assets externos). | SVG presente en el DOM de chips y render sin errores. |
+| **P0** | Skins animadas de cursor | `UI.cursorSkin(id, ctx, tick, color)` estático con 20 skins (anillos pulsantes, arcos, copos, foco, estasis…); fallback animado. Vista previa con glow ambiental en MEJORAS. | `drawCursorPreview` usa `this.constructor.cursorSkin`; sin errores de consola. |
+| **P1** | Efectos especiales | CSS nativo: `.flash-ellipse` (destello elíptico radial), `.glint` (barrido lineal), `.sparkle` (partícula), `.ellipse-pulse` (anillo elíptico), `chipFlash`, `cursorGlow`, `synergyPulse`. Sin librerías nuevas. | Keyframes propios; sin overflow horizontal añadido. |
+| **P1** | Guía rediseñada | Tabs pill con hover/foco-visible ámbar, cards con barra superior degradada, listas sin viñetas con `▸`, iconos 40px con glow, leyenda legible. | 4 pestañas navegables; contenido y texto verificados en navegador. |
+| **P2** | Renovación PWA | `sw.js` subido a `overclock9-v7` y `js/test-user.js` añadido al PRECACHE. | `npm test` 97/97; `tools/build.mjs --check` sin errores; `sw` regex de VERSION vigente. |
+
+**Resultado del ciclo:** suite canónica en **97/97**, smoke de Electron en verde, consola limpia en navegador, usuario de pruebas operativo con 20M CR y catálogo ampliado renderizado. Pendiente: revisión visual humana de capturas (píxeles) y validación en móvil real.
+
+---
+
 ### 10.13 Ciclo 17: Guía, Archivo y Resultados
 
 Se ejecutó en navegador (1112×670, 390×844 y 320×844) y en Electron con consola vigilada. El motor ya exponía `game.getRunReport()`, `progress.bestScoreByBoard`, `dailyRuns`, `dailyStreak` y `getBestScore()`, pero los apartados de informe, archivo y guía no los usaban. Se añadió una pantalla de guía accesible desde el menú y se rediseñaron Archivo y Resultados con cards, gráficas interactivas y carrusel responsivo. No se tocó `balance.js`, `game.js` ni la geometría del tablero.

@@ -68,7 +68,11 @@ El juego abre en un **launcher** con los perfiles ya vinculados. Solo se piden *
 - La foto se recorta a `192×192`, se guarda como JPEG embebido (máx. `96 KB` decodificados) y nunca se sube a un servidor.
 - El botón **PAUSA** del HUD (o `Esc`) congela la partida, guarda una instantánea real del ciclo y permite **GUARDAR AHORA**, **CONTINUAR** o **GUARDAR Y SALIR**.
 - La barra de voltaje lleva una escalera `×1…×5` con icono, marcas persistentes en el margen del 15 % y en el rearmado por debajo del 95 %, y valor numérico. Al vaciarse, se muestra llena 0,6 s con el multiplicador perdido y el margen (`×3 → ×2 · MARGEN 15 %`). El HUD añade el total de la run junto al ciclo y los resultados avisan cuando el próximo ciclo será de jefe.
-- El menú agrupa **CAMPAÑA/CONTINUAR** y **RUN DIARIA** y una fila de accesos rápidos (**TABLA, MEJORAS, ARCHIVO, AJUSTES, USUARIO**). MEJORAS se navega con tres pestañas —**ÁRBOL DE REFLEJOS**, **10 CURSORES** y **CHIPS Y CALIBRACIÓN**— y atajos `1/2/3` y `←/→`.
+- El menú agrupa **CAMPAÑA/CONTINUAR** y **RUN DIARIA** y una fila de accesos rápidos (**TABLA, MEJORAS, ARCHIVO, AJUSTES, USUARIO**). MEJORAS se navega con tres pestañas —**ÁRBOL DE REFLEJOS**, **20 CURSORES** y **CHIPS Y CALIBRACIÓN**— y atajos `1/2/3` y `←/→`.
+
+## Usuario de pruebas (QA)
+
+Al arrancar la app se crea/actualiza automáticamente el usuario de pruebas oculto **Norberto** con **20.000.000 créditos** (`local/test-user.local.mjs`, carpeta ignorada por Git y fuera del índice). Las credenciales viven solo en el equipo local; no se versionan ni se suben a GitHub. Para resetear el saldo basta con editar ese archivo y relanzar la app.
 
 ## Diseño responsive
 
@@ -114,7 +118,7 @@ El menú incluye un botón **GUÍA** (icono de ayuda) que abre el manual de cabi
 
 - **JUGABILIDAD**: bucle principal, tipos de núcleo, tableros y dificultad, voltaje y tiers, ciclos y jefes, controles.
 - **FUNCIONES**: campaña, run diaria, ascensión, mejoras, archivo, ajustes y accesibilidad, PWA y escritorio.
-- **MEJORAS**: árbol de reflejos, cursores, chips, economía y recomendaciones de build.
+- **MEJORAS**: árbol de reflejos (30 habilidades en 4 ramas), cursores (20 con habilidad única), chips (15 equipables), economía y recomendaciones de build.
 - **ICONOS**: leyendas del HUD (voltaje, precisión, combo, jefe, hielo, rojo, Nova/blanco, crono) y de navegación (tabla, archivo, usuario, ascender, progreso, récord, guía, pausa).
 
 Cada inspector de mejora en el árbol también muestra **cómo se usa**, **consejo** y **sinergia**.
@@ -131,6 +135,8 @@ build.bat --check
 ```
 
 La suite (97 pruebas) cubre voltaje, peldaños, purga de rojos, combos, tableros, jefes y estrés NV3, economía, CRUD de cuentas, tabla online/offline, empaquetado Electron, seguridad del proceso principal, PWA y datasave. `build.bat --check` añade una prueba de humo real con captura de errores de consola.
+
+Ciclo 18: usuario de pruebas oculto (Norberto, 20M CR) sin credenciales en GitHub, catálogo ampliado a **30 habilidades / 15 chips / 20 cursores**, iconos de chips por código SVG, 20 skins animadas de cursor, efectos especiales (destellos elípticos, glint, partículas, pulsos) y guía rediseñada.
 
 `?qa=1` muestra un panel opcional con FPS, latencia y muestras; **COPIAR MÉTRICAS** exporta el resultado. Las guías de QA de escritorio están en `tests/qa/` y las capturas en `docs/qa/`.
 
