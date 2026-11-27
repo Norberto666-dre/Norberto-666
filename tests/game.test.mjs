@@ -775,14 +775,14 @@ test('Créditos: multiplicadores de desenlace y habilidad se aplican al cierre',
   assert.equal(g.creditsGained, 117); // 1000/10 * 1.1 * 1.02 * 1.05
 });
 
-test('Catálogo: 20 habilidades, 5 chips y 10 cursores con efectos únicos', () => {
-  assert.equal(ABILITIES.length, 20);
-  assert.equal(CHIPS_EXTRA.length, 5);
-  assert.equal(CURSORS.length, 10);
-  assert.equal(new Set(ABILITIES.map(a => a.id)).size, 20);
-  assert.equal(Object.keys(ABILITY_EFFECTS).length, 20);
-  assert.equal(Object.keys(CHIP_EFFECTS).length, 5);
-  assert.equal(Object.keys(CURSOR_EFFECTS).length, 10);
+test('Catálogo: 30 habilidades, 15 chips y 20 cursores con efectos únicos', () => {
+  assert.equal(ABILITIES.length, 30);
+  assert.equal(CHIPS_EXTRA.length, 15);
+  assert.equal(CURSORS.length, 20);
+  assert.equal(new Set(ABILITIES.map(a => a.id)).size, 30);
+  assert.equal(Object.keys(ABILITY_EFFECTS).length, 30);
+  assert.equal(Object.keys(CHIP_EFFECTS).length, 15);
+  assert.equal(Object.keys(CURSOR_EFFECTS).length, 20);
   assert.ok(CURSORS.every(c => c.skill && c.color));
 });
 

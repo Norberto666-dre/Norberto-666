@@ -11,6 +11,15 @@ dist/
 *.ap_
 *.log
 
+# Datos de usuario y datasave (no se suben a GitHub)
+datasave/
+*.save.json
+u_*.json
+accounts.json
+
+# Configuración privada de QA (credenciales del usuario de pruebas)
+local/
+
 # Sistema
 .DS_Store
 Thumbs.db

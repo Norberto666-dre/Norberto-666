@@ -8,6 +8,7 @@ import { Leaderboard } from './leaderboard.js';
 import { BALANCE } from './balance.js';
 import { initPWA } from './pwa.js';
 import { initDesktop } from './desktop.js';
+import { ensureTestUser } from './test-user.js';
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d', { alpha: false });
@@ -22,6 +23,7 @@ renderer.game = game;
 
 const accounts = new AccountManager();
 await accounts.init();
+await ensureTestUser(accounts);
 const leaderboard = new Leaderboard({ accounts });
 const ui = new UI({ game, audio, input, renderer, accounts, leaderboard });
 

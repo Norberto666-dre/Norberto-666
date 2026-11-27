@@ -31,6 +31,7 @@
       "index.html",
       "css/**/*",
       "js/**/*",
+      "local/**/*",
       "icons/**/*",
       "manifest.webmanifest",
       "sw.js",

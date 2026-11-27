@@ -180,3 +180,228 @@ export const CURSOR_EFFECTS = {
 export function cursorById(id) {
   return CURSORS.find(c => c.id === id) || CURSORS[0];
 }
+
+// ============================================================================
+// 10 HABILIDADES ADICIONALES (ab_11 a ab_20)
+// ============================================================================
+
+const MORE_ABILITIES = [
+  { id: 'ab_overdrive', name: 'Sobrecarga Térmica', cost: 40000, growth: 2.0, max: 3,
+    desc: '+15% daño a jefes y +10% voltaje por golpe / NV',
+    how: 'Pasiva: aumenta el daño infligido a jefes y el voltaje ganado al golpear cualquier núcleo.',
+    tip: 'Ideal para runs largas contra jefes de sector alto.',
+    synergy: 'Se apila con Rompejefes y Escudo Nova.' },
+  { id: 'ab_echo', name: 'Eco Resonante', cost: 35000, growth: 2.0, max: 3,
+    desc: '+10% créditos por ciclo y +1 slot de chip pasivo / NV',
+    how: 'Pasiva: mejora la economía al cerrar cada ciclo y amplía la capacidad de chips.',
+    tip: 'Compra temprano para amortizar el coste a lo largo de la campaña.',
+    synergy: 'Combina con Generador de Eco y Caché de Chips.' },
+  { id: 'ab_foco', name: 'Foco Láser', cost: 28000, growth: 1.9, max: 3,
+    desc: '+30% ventana Perfecto con combo ≥20 / NV',
+    how: 'Pasiva: cuando el combo supera 20, la ventana de golpe Perfecto se ensancha notablemente.',
+    tip: 'Mantén el combo alto para activar el beneficio constante.',
+    synergy: 'Suma con Pulso Rápido y Umbral Perfecto.' },
+  { id: 'ab_estasis', name: 'Estasis Crono', cost: 30000, growth: 1.9, max: 3,
+    desc: '+2 s de duración en núcleos Crono y +15% puntos / NV',
+    how: 'Pasiva: los núcleos Crono permanecen más activos y otorgan más puntos.',
+    tip: 'Prioriza golpear Crono antes que expiren.',
+    synergy: 'Con Bucle Crono y Cronómetro maximizas el control del tiempo.' },
+  { id: 'ab_aura', name: 'Aura de Voltaje', cost: 45000, growth: 2.0, max: 3,
+    desc: '+20% voltaje inicial y regeneración pasiva +0.3 V/s / NV',
+    how: 'Pasiva: empieza cada ciclo con más voltaje y lo regenera lentamente con el tiempo.',
+    tip: 'Da margen de error contra jefes agresivos y tableros con muchos rojos.',
+    synergy: 'Con Memoria Térmica y Sifón de Voltaje eres casi inmortal al drenaje.' },
+  { id: 'ab_rifle', name: 'Rifle de Precisión', cost: 25000, growth: 1.8, max: 4,
+    desc: '+6% puntuación por golpe perfecto encadenado / NV',
+    how: 'Pasiva: cada Perfecto consecutivo aumenta el valor del siguiente golpe.',
+    tip: 'Encadena perfectos sin fallar para ver crecer el multiplicador.',
+    synergy: 'Con Foco Láser y Pulso Rápido es devastador.' },
+  { id: 'ab_orbit', name: 'Órbita de Chips', cost: 50000, growth: 2.1, max: 2,
+    desc: 'Los chips activos aplican su efecto dos veces por ciclo / NV',
+    how: 'Pasiva: duplicar la activación de efectos de chips equipados durante una run.',
+    tip: 'Equipa chips de voltaje o Nova para aprovechar el doble efecto.',
+    synergy: 'Con Sifón Voltaje y Surge Nova multiplica el beneficio.' },
+  { id: 'ab_furia', name: 'Furia de Combo', cost: 22000, growth: 1.8, max: 4,
+    desc: '+1% multiplicador de combo por cada 10 de combo / NV',
+    how: 'Pasiva: el multiplicador de combo crece ligeramente más rápido a medida que sube el combo.',
+    tip: 'Cuanto más alto el combo, más vale cada golpe siguiente.',
+    synergy: 'Con Paso Fantasma y Sincronía proteges el combo alto.' },
+  { id: 'ab_void', name: 'Vacío Estelar', cost: 60000, growth: 2.2, max: 2,
+    desc: 'Nova elimina también rojos sin penalizar combo y paga ×1.5 / NV',
+    how: 'Pasiva: las ondas de Nova purgan núcleos rojos como si fueran normales y pagan más.',
+    tip: 'Úsala en tableros llenos de rojos para limpiar sin romper el combo.',
+    synergy: 'Con Escudo Nova y Surge Nova es el combo de limpieza definitiva.' },
+  { id: 'ab_prisma', name: 'Prisma Reflejo', cost: 38000, growth: 1.9, max: 3,
+    desc: '+12% puntos en golpes reflejados y +1 objetivo de rayo / NV',
+    how: 'Pasiva: mejora los golpes que rebotan y extiende el alcance del rayo encadenado.',
+    tip: 'Ideal con el cursor Prisma y chips de cadena.',
+    synergy: 'Con Cadena y Doble Toque crea reacciones en cadena masivas.' }
+];
+
+ABILITIES.push(...MORE_ABILITIES);
+
+MORE_ABILITIES.forEach(def => {
+  ABILITY_EFFECTS[def.id] = (g, l) => {
+    switch (def.id) {
+      case 'ab_overdrive':
+        g.bossDamageMultiplier *= 1 + 0.15 * l;
+        g.voltageMultiplier *= 1 + 0.10 * l;
+        break;
+      case 'ab_echo':
+        g.creditAbilityMult += 0.10 * l;
+        g.chipSlots += l;
+        break;
+      case 'ab_foco':
+        g.umbralBonus += 0.30 * l;
+        break;
+      case 'ab_estasis':
+        g.cronoBonus += 2 * l;
+        g.cronoScoreMult += 0.15 * l;
+        break;
+      case 'ab_aura':
+        g.startVoltage += 20 * l;
+        g.voltageRegen += 0.3 * l;
+        break;
+      case 'ab_rifle':
+        g.perfectChainBonus += 0.06 * l;
+        break;
+      case 'ab_orbit':
+        g.chipDoubleProc += l;
+        break;
+      case 'ab_furia':
+        g.comboGrowthBonus += 0.01 * l;
+        break;
+      case 'ab_void':
+        g.novaClearsBombs = true;
+        g.novaBombMult = 1.5;
+        break;
+      case 'ab_prisma':
+        g.reflectBonus += 0.12 * l;
+        g.chainRange += l;
+        break;
+    }
+  };
+});
+
+// ============================================================================
+// 10 CHIPS ADICIONALES (en CHIPS_EXTRA)
+// ============================================================================
+
+const MORE_CHIPS = [
+  { id: 'chip_overdrive', label: 'OVERDRIVE CHIP', cost: 30000, desc: '+20% daño a jefe, +10% voltaje' },
+  { id: 'chip_echo', label: 'ECO CHIP', cost: 28000, desc: '+12% créditos por ciclo' },
+  { id: 'chip_foco', label: 'FOCO CHIP', cost: 24000, desc: '+25% ventana con combo ≥20' },
+  { id: 'chip_estasis', label: 'ESTASIS CHIP', cost: 26000, desc: '+1.5 s Crono, +12% puntos' },
+  { id: 'chip_aura', label: 'AURA CHIP', cost: 34000, desc: '+15% voltaje inicial' },
+  { id: 'chip_rifle', label: 'RIFLE CHIP', cost: 20000, desc: '+5% puntuación por Perfecto encadenado' },
+  { id: 'chip_orbit', label: 'ÓRBITA CHIP', cost: 40000, desc: 'Chips activan dos veces por ciclo' },
+  { id: 'chip_furia', label: 'FURIA CHIP', cost: 18000, desc: 'Combo crece más rápido' },
+  { id: 'chip_void', label: 'VACÍO CHIP', cost: 50000, desc: 'Nova purga rojos sin romper combo' },
+  { id: 'chip_prisma', label: 'PRISMA CHIP', cost: 30000, desc: '+10% golpes reflejados, +1 rayo' }
+];
+
+CHIPS_EXTRA.push(...MORE_CHIPS);
+
+MORE_CHIPS.forEach(chip => {
+  CHIP_EFFECTS[chip.id] = g => {
+    switch (chip.id) {
+      case 'chip_overdrive': g.bossDamageMultiplier *= 1.20; g.voltageMultiplier *= 1.10; break;
+      case 'chip_echo': g.creditAbilityMult += 0.12; break;
+      case 'chip_foco': g.umbralBonus += 0.25; break;
+      case 'chip_estasis': g.cronoBonus += 1.5; g.cronoScoreMult += 0.12; break;
+      case 'chip_aura': g.startVoltage += 15; break;
+      case 'chip_rifle': g.perfectChainBonus += 0.05; break;
+      case 'chip_orbit': g.chipDoubleProc += 1; break;
+      case 'chip_furia': g.comboGrowthBonus += 0.01; break;
+      case 'chip_void': g.novaClearsBombs = true; g.novaBombMult = 1.5; break;
+      case 'chip_prisma': g.reflectBonus += 0.10; g.chainRange += 1; break;
+    }
+  };
+});
+
+// ============================================================================
+// 10 CURSORES ADICIONALES (en CURSORS)
+// ============================================================================
+
+const MORE_CURSORS = [
+  { id: 'cursor_overdrive', name: 'OVERDRIVE', color: '#ff3355', trail: 'blaze', cost: 40000, unlock: 'shop', skill: 'Daño a jefe +15%, voltaje +10%' },
+  { id: 'cursor_echo', name: 'ECO', color: '#00ff9d', trail: 'leaf', cost: 35000, unlock: 'shop', skill: 'Créditos +12% por ciclo' },
+  { id: 'cursor_foco', name: 'FOCO', color: '#7b8cff', trail: 'lens', cost: 28000, unlock: 'shop', skill: 'Ventana Perfecto +25% con combo ≥20' },
+  { id: 'cursor_estasis', name: 'ESTASIS', color: '#b066ff', trail: 'hourglass', cost: 30000, unlock: 'shop', skill: 'Crono +1.5 s, puntos +12%' },
+  { id: 'cursor_aura', name: 'AURA', color: '#ffcc00', trail: 'halo', cost: 38000, unlock: 'shop', skill: 'Voltaje inicial +15%' },
+  { id: 'cursor_rifle', name: 'RIFLE', color: '#00f3ff', trail: 'crosshair', cost: 25000, unlock: 'shop', skill: 'Puntuación por Perfecto encadenado +5%' },
+  { id: 'cursor_orbit', name: 'ÓRBITA', color: '#ff40d0', trail: 'ring', cost: 45000, unlock: 'shop', skill: 'Chips activan dos veces por ciclo' },
+  { id: 'cursor_furia', name: 'FURIA', color: '#ff6a00', trail: 'ember', cost: 22000, unlock: 'shop', skill: 'Combo crece más rápido' },
+  { id: 'cursor_void', name: 'VACÍO', color: '#4a148c', trail: 'void', cost: 55000, unlock: 'shop', skill: 'Nova purga rojos sin romper combo' },
+  { id: 'cursor_prisma', name: 'PRISMA X', color: '#00ff9d', trail: 'prism', cost: 32000, unlock: 'shop', skill: 'Reflejos +10%, rayo +1 objetivo' }
+];
+
+CURSORS.push(...MORE_CURSORS);
+
+MORE_CURSORS.forEach(cursor => {
+  CURSOR_EFFECTS[cursor.id] = g => {
+    switch (cursor.id) {
+      case 'cursor_overdrive': g.bossDamageMultiplier *= 1.15; g.voltageMultiplier *= 1.10; break;
+      case 'cursor_echo': g.creditAbilityMult += 0.12; break;
+      case 'cursor_foco': g.umbralBonus += 0.25; break;
+      case 'cursor_estasis': g.cronoBonus += 1.5; g.cronoScoreMult += 0.12; break;
+      case 'cursor_aura': g.startVoltage += 15; break;
+      case 'cursor_rifle': g.perfectChainBonus += 0.05; break;
+      case 'cursor_orbit': g.chipDoubleProc += 1; break;
+      case 'cursor_furia': g.comboGrowthBonus += 0.01; break;
+      case 'cursor_void': g.novaClearsBombs = true; g.novaBombMult = 1.5; break;
+      case 'cursor_prisma': g.reflectBonus += 0.10; g.chainRange += 1; break;
+    }
+  };
+});
+
+// ============================================================================
+// ICONOS SVG POR CÓDIGO PARA CADA CHIP
+// Genera un glifo SVG único basado en el id del chip, sin depender de assets externos.
+// ============================================================================
+
+const CHIP_ICON_MAP = {
+  combo_guard: 'shield',
+  nova_surge: 'star-burst',
+  shadow_step: 'door',
+  voltage_siphon: 'drop',
+  chrono_loop: 'cycle',
+  chip_overdrive: 'blaze',
+  chip_echo: 'leaf',
+  chip_foco: 'lens',
+  chip_estasis: 'hourglass',
+  chip_aura: 'halo',
+  chip_rifle: 'crosshair',
+  chip_orbit: 'orbit',
+  chip_furia: 'ember',
+  chip_void: 'void',
+  chip_prisma: 'prism'
+};
+
+export function chipIcon(id) {
+  const shape = CHIP_ICON_MAP[id] || 'chip';
+  return `<svg class="chip-icon chip-icon-${id}" viewBox="0 0 24 24" aria-hidden="true">${chipShape(shape)}</svg>`;
+}
+
+function chipShape(shape) {
+  const common = 'fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"';
+  switch (shape) {
+    case 'shield': return `<path d="M12 2L3 7v5a6 6 0 0 0 6 6h2a6 6 0 0 0 6-6V7z" ${common}/>`;
+    case 'star-burst': return `<path d="M12 3L15 9H9L12 15zM3 12l6 3V21l6-3V3L3 12z" ${common}/>`;
+    case 'door': return `<path d="M12 3v18M5 21h14V3H5z" ${common}/>`;
+    case 'drop': return `<path d="M12 22c-4 0-7-3-7-7a7 7 0 0 1 14 0c0 4-3 7-7 7z" ${common}/>`;
+    case 'cycle': return `<circle cx="12" cy="12" r="9" ${common}/><path d="M12 3v9l3 3" ${common}/>`;
+    case 'blaze': return `<path d="M12 2L8 8l4 4L16 8l-4-6z" ${common}/>`;
+    case 'leaf': return `<path d="M12 2s-4 4-4 10c0 6 8 10 8-10s4-6 4-10" ${common}/>`;
+    case 'lens': return `<circle cx="12" cy="12" r="8" ${common}/><circle cx="12" cy="12" r="4" ${common} stroke-width="1"/>`;
+    case 'hourglass': return `<path d="M3 3v6h18V3M3 15v6h18v-6" ${common}/>`;
+    case 'halo': return `<circle cx="12" cy="12" r="7" ${common} stroke-width="1.5"/><circle cx="12" cy="5" r="2" ${common} stroke-width="1"/>`;
+    case 'crosshair': return `<path d="M12 3v18M3 12h18M18.4 5.6a1.94 1.94 0 0 1 0 2.75L12 14.75l-6.4-6.4a1.94 1.94 0 0 1 0-2.75L12 2.75z" ${common}/>`;
+    case 'orbit': return `<circle cx="12" cy="12" r="7" ${common} stroke-width="1"/><path d="M5 12a7 7 0 1 0 14 0z" ${common} stroke-width="0.5"/>`;
+    case 'ember': return `<path d="M12 2L15 7H9zM12 22L9 17H15zM2 12l5 3V9L2 12zM22 12l-5 3V9L22 12z" ${common}/>`;
+    case 'void': return `<circle cx="12" cy="12" r="7" ${common} stroke-width="3"/><circle cx="12" cy="12" r="3" ${common} stroke-width="1"/>`;
+    case 'prism': return `<path d="M12 2L20 12L12 22L4 12z" ${common}/><path d="M12 2V22M4 12H20" ${common} stroke-width="1"/>`;
+    default: return `<rect x="9" y="9" width="6" height="6" rx="2" ${common}/>`;
+  }
+}
+

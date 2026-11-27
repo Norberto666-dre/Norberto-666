@@ -1,6 +1,6 @@
 import { dailyCode, ascensionRuleNames, ASCENSION_RULES } from './game.js';
 import { dailyKey as todayKey } from './leaderboard.js';
-import { ABILITIES, abilityCost, CHIPS_EXTRA, CURSORS } from './content.js';
+import { ABILITIES, abilityCost, CHIPS_EXTRA, CURSORS, chipIcon } from './content.js';
 import { BALANCE, BOARDS, boardById, comboMultiplier, nextComboMilestone } from './balance.js';
 
 // Precios heredados escalados ×10 con el resto de la tienda.
@@ -100,7 +100,7 @@ const GUIDE_CONTENT = {
     {
       icon: 'i-bolt', title: 'MEJORAS',
       items: [
-        '20 habilidades repartidas en 4 ramas, 10 cursores con habilidad única y 10 chips equipables.',
+        '30 habilidades repartidas en 4 ramas, 20 cursores con habilidad única y 15 chips equipables.',
         'Todo se compra con créditos ganados al cerrar ciclos; los niveles son permanentes.',
         'El inspector del árbol explica cómo se usa cada nodo, un consejo y su sinergia.'
       ]
@@ -142,7 +142,7 @@ const GUIDE_CONTENT = {
     {
       icon: 'i-target', title: 'CURSORES',
       items: [
-        '10 cursores con una habilidad única (Pulso, Tesla, Precisión, Espejo y más).',
+        '20 cursores con una habilidad única (Pulso, Tesla, Aura, Vacío y más).',
         'Se compran en MEJORAS → 10 CURSORES y se equipan en la pantalla de Preparación.',
         'Cada cursor cambia el modificador de su habilidad: prueba combinaciones con tus chips.'
       ]
@@ -150,7 +150,7 @@ const GUIDE_CONTENT = {
     {
       icon: 'i-grid', title: 'CHIPS',
       items: [
-        '5 chips base desbloqueables + 5 avanzados de alto rendimiento.',
+        '5 chips base desbloqueables + 10 avanzados de alto rendimiento.',
         'Ocupan ranuras; Caché de Chips añade slots para combinar sinergias.',
         'Los chips compatibles con tu cursor muestran SINERGIA ACTIVA en el carrusel.'
       ]
@@ -845,7 +845,7 @@ export class UI {
     this.writeProgress(false);
   }
 
-  // Genera las opciones desde el catálogo único (content.js): 10 cursores y 10 chips.
+  // Genera las opciones desde el catálogo único (content.js): 20 cursores y 15 chips.
   buildPrepOptions() {
     const hammers = document.getElementById('prep-hammers');
     if (hammers) {
@@ -1731,7 +1731,7 @@ export class UI {
     this.renderCatalogUpgrades(credits);
   }
 
-  // ---------- Catálogo ampliado: 20 habilidades, 10 cursores, 5 chips ----------
+  // ---------- Catálogo ampliado: 30 habilidades, 20 cursores, 15 chips ----------
 
   // ===== Rediseño cyber-tech de MEJORAS =====
 
@@ -2047,7 +2047,7 @@ export class UI {
           <span class="up-mini-badge">${chip.category === 'BASE' ? 'CHIP BASE' : 'CHIP AVANZADO'}</span>
           ${synergy ? '<span class="up-synergy">✦ SINERGIA ACTIVA</span>' : ''}
         </div>
-        <div class="up-chip-graphic"><span>⬡</span></div>
+        <div class="up-chip-graphic">${chipIcon(chip.id)}</div>
         <h3>${chip.label}</h3>
         <p class="up-chip-effect">${chip.desc}</p>
         ${action}
@@ -2224,45 +2224,284 @@ export class UI {
     const cx = canvas.width / 2;
     const cy = canvas.height / 2;
     let tick = 0;
+    const color = cursor.color;
+    const skin = this.constructor.cursorSkin(cursor.id);
     const draw = () => {
       const screen = document.getElementById('screen-upgrades');
       if (!screen || screen.classList.contains('hidden') || this.upgradeTab !== 'cursors' || !canvas.isConnected) return;
-      tick += 0.04;
+      tick += 0.05;
+      // Fondo opaco de cabina
       ctx.fillStyle = '#07080f';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.strokeStyle = cursor.color;
-      ctx.fillStyle = cursor.color;
-      ctx.shadowBlur = 12;
-      ctx.shadowColor = cursor.color;
-      const x = cx + Math.cos(tick) * 58;
-      const y = cy + Math.sin(tick * 1.4) * 24;
-      if (cursor.trail === 'arc') {
-        ctx.beginPath();
-        ctx.moveTo(x, y);
-        ctx.lineTo(canvas.width * 0.78, cy + Math.sin(tick * 3) * 12);
-        ctx.stroke();
-      } else if (cursor.trail === 'shield') {
-        ctx.beginPath();
-        for (let i = 0; i < 6; i += 1) {
-          const a = (Math.PI / 3) * i + tick;
-          const px = x + Math.cos(a) * 22;
-          const py = y + Math.sin(a) * 22;
-          if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
-        }
-        ctx.closePath();
-        ctx.stroke();
-      } else {
-        ctx.beginPath();
-        ctx.arc(x, y, 8 + Math.sin(tick * 2) * 5, 0, Math.PI * 2);
-        ctx.stroke();
-      }
-      ctx.beginPath();
-      ctx.arc(x, y, 4, 0, Math.PI * 2);
-      ctx.fill();
+      // Brillo ambiental suave que pulsa
+      const pulse = 0.5 + Math.sin(tick * 0.8) * 0.3;
+      ctx.fillStyle = `rgba(${parseInt(color.slice(1,3),16)},${parseInt(color.slice(3,5),16)},${parseInt(color.slice(5,7),16)},${0.12 * pulse})`;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.save();
+      ctx.translate(cx, cy);
+      // Efecto de piel/skin del cursor
+      skin(ctx, tick, color);
+      ctx.restore();
       ctx.shadowBlur = 0;
       requestAnimationFrame(draw);
     };
     requestAnimationFrame(draw);
+  }
+
+  static cursorSkin(id, ctx, tick, color) {
+    const skins = {
+      pulso: (c, t, col) => {
+        // Anillo pulsante con estela circular corta
+        const r = 20 + Math.sin(t * 3) * 6;
+        c.strokeStyle = col;
+        c.lineWidth = 3;
+        c.beginPath(); c.arc(0, 0, r, 0, Math.PI * 2); c.stroke();
+        c.fillStyle = col; c.beginPath(); c.arc(0, 0, 5, 0, Math.PI * 2); c.fill();
+        c.lineWidth = 1; c.strokeStyle = col;
+        c.beginPath(); c.arc(0, 0, r + 10, 0, Math.PI * 2); c.stroke();
+      },
+      tesla: (c, t, col) => {
+        // Arco violeta con chispas zigzag
+        c.lineWidth = 3;
+        c.strokeStyle = col;
+        c.beginPath();
+        for (let i = 0; i <= 8; i++) {
+          const a = (Math.PI / 4) * i;
+          const x = Math.cos(a) * (24 + Math.sin(t * 5 + i) * 4);
+          const y = Math.sin(a) * (24 + Math.cos(t * 5 + i) * 4);
+          if (i === 0) c.moveTo(x, y); else c.lineTo(x, y);
+        }
+        c.stroke();
+        // Chispas
+        c.fillStyle = col;
+        for (let i = 0; i < 5; i++) {
+          const sx = Math.cos(t * 7 + i) * 30;
+          const sy = Math.sin(t * 7 + i) * 20;
+          c.fillRect(sx, sy, 3, 3);
+        }
+      },
+      aegis: (c, t, col) => {
+        // Escudo dorado con anillo al impactar
+        c.lineWidth = 4;
+        c.strokeStyle = col;
+        c.beginPath();
+        c.moveTo(0, -20); c.lineTo(14, -6); c.lineTo(10, 16); c.lineTo(-10, 16); c.lineTo(-14, -6); c.closePath();
+        c.stroke();
+        c.lineWidth = 2;
+        c.beginPath(); c.arc(0, 0, 14 + Math.sin(t * 4) * 3, 0, Math.PI * 2); c.stroke();
+      },
+      cronos: (c, t, col) => {
+        // Reloj morado con manecillas
+        c.lineWidth = 3;
+        c.strokeStyle = col;
+        c.beginPath(); c.arc(0, 0, 22, 0, Math.PI * 2); c.stroke();
+        const a1 = t * 2;
+        const a2 = t * 0.7 + Math.PI / 2;
+        c.beginPath(); c.moveTo(0, 0); c.lineTo(Math.cos(a1) * 18, Math.sin(a1) * 18); c.stroke();
+        c.beginPath(); c.moveTo(0, 0); c.lineTo(Math.cos(a2) * 12, Math.sin(a2) * 12); c.stroke();
+        c.fillStyle = col; c.beginPath(); c.arc(0, 0, 4, 0, Math.PI * 2); c.fill();
+      },
+      nova: (c, t, col) => {
+        // Estrella dorada con cola de chispas cálidas
+        c.lineWidth = 2;
+        c.strokeStyle = col;
+        c.beginPath();
+        for (let i = 0; i < 10; i++) {
+          const a = (Math.PI / 5) * i - Math.PI / 2;
+          const r = i % 2 === 0 ? 22 : 10;
+          const x = Math.cos(a) * r;
+          const y = Math.sin(a) * r;
+          if (i === 0) c.moveTo(x, y); else c.lineTo(x, y);
+        }
+        c.closePath();
+        c.stroke();
+        c.fillStyle = col;
+        // Cola de chispas
+        for (let i = 0; i < 6; i++) {
+          const sx = Math.cos(t * 6 + i) * (14 + i * 4);
+          const sy = Math.sin(t * 6 + i) * (10 + i * 3);
+          c.fillRect(sx, sy, 4, 4);
+        }
+      },
+      prisma: (c, t, col) => {
+        // Rombo magenta con reflejo especular
+        c.lineWidth = 3;
+        c.strokeStyle = col;
+        c.beginPath();
+        c.moveTo(0, -24); c.lineTo(20, 0); c.lineTo(0, 24); c.lineTo(-20, 0); c.closePath();
+        c.stroke();
+        // Reflejo interno que se mueve
+        const rx = Math.sin(t * 3) * 12;
+        c.fillStyle = `rgba(${parseInt(col.slice(1,3),16)},${parseInt(col.slice(3,5),16)},${parseInt(col.slice(5,7),16)},0.4)`;
+        c.beginPath();
+        c.moveTo(rx - 6, -18); c.lineTo(rx + 6, -6); c.lineTo(rx + 2, 6); c.lineTo(rx - 10, -6); c.closePath();
+        c.fill();
+      },
+      criogenico: (c, t, col) => {
+        // Copo azul con escarcha al toque
+        c.lineWidth = 3;
+        c.strokeStyle = col;
+        c.beginPath();
+        for (let i = 0; i < 6; i++) {
+          const a = (Math.PI / 3) * i;
+          c.moveTo(0, 0);
+          c.lineTo(Math.cos(a) * 20, Math.sin(a) * 20);
+        }
+        c.stroke();
+        c.beginPath(); c.arc(0, 0, 16, 0, Math.PI * 2); c.stroke();
+        c.fillStyle = col;
+        c.beginPath(); c.arc(0, 0, 5, 0, Math.PI * 2); c.fill();
+        // Escarcha
+        c.lineWidth = 1;
+        for (let i = 0; i < 8; i++) {
+          const a = (Math.PI / 4) * i + t;
+          c.beginPath();
+          c.moveTo(Math.cos(a) * 8, Math.sin(a) * 8);
+          c.lineTo(Math.cos(a) * 14, Math.sin(a) * 14);
+          c.stroke();
+        }
+      },
+      nucleo: (c, t, col) => {
+        // Core blanco/dorado con halo pulsante
+        const glow = 10 + Math.sin(t * 4) * 6;
+        c.fillStyle = `rgba(255,255,255,0.9)`;
+        c.beginPath(); c.arc(0, 0, 6 + Math.sin(t * 5) * 2, 0, Math.PI * 2); c.fill();
+        c.lineWidth = 2; c.strokeStyle = col;
+        c.beginPath(); c.arc(0, 0, glow, 0, Math.PI * 2); c.stroke();
+        c.beginPath(); c.arc(0, 0, glow + 8, 0, Math.PI * 2); c.stroke();
+      },
+      fantasma: (c, t, col) => {
+        // Silueta fantasmal con estela difuminada
+        const alpha = 0.4 + Math.sin(t * 3) * 0.3;
+        c.fillStyle = `rgba(${parseInt(col.slice(1,3),16)},${parseInt(col.slice(3,5),16)},${parseInt(col.slice(5,7),16)},${alpha})`;
+        c.beginPath();
+        c.moveTo(0, -18); c.lineTo(12, 6); c.lineTo(6, 18); c.lineTo(-6, 18); c.lineTo(-12, 6); c.closePath();
+        c.fill();
+        c.strokeStyle = col; c.lineWidth = 2;
+        c.beginPath(); c.arc(0, -6, 8, 0, Math.PI * 2); c.stroke();
+      },
+      overclock: (c, t, col) => {
+        // Estela arcoíris con rotación rápida
+        c.lineWidth = 4;
+        for (let i = 0; i < 6; i++) {
+          const a = t * 2 + (Math.PI / 3) * i;
+          const hue = (t * 60 + i * 60) % 360;
+          c.strokeStyle = `hsl(${hue},100%,60%)`;
+          c.beginPath();
+          c.arc(0, 0, 18 + i * 3, a, a + Math.PI / 3);
+          c.stroke();
+        }
+        c.fillStyle = '#fff';
+        c.beginPath(); c.arc(0, 0, 5, 0, Math.PI * 2); c.fill();
+      },
+      // Cursores adicionales
+      cursor_overdrive: (c, t, col) => {
+        c.lineWidth = 4; c.strokeStyle = col;
+        c.beginPath(); c.arc(0, 0, 20 + Math.sin(t * 5) * 4, 0, Math.PI * 2); c.stroke();
+        c.fillStyle = col; c.beginPath(); c.arc(0, 0, 8, 0, Math.PI * 2); c.fill();
+        c.lineWidth = 2;
+        for (let i = 0; i < 4; i++) {
+          const a = t * 3 + (Math.PI / 2) * i;
+          c.beginPath(); c.moveTo(Math.cos(a) * 10, Math.sin(a) * 10); c.lineTo(Math.cos(a) * 22, Math.sin(a) * 22); c.stroke();
+        }
+      },
+      cursor_echo: (c, t, col) => {
+        c.lineWidth = 3; c.strokeStyle = col;
+        c.beginPath();
+        for (let i = 0; i < 3; i++) {
+          const a = (Math.PI * 2 / 3) * i;
+          c.moveTo(Math.cos(a) * 12, Math.sin(a) * 12);
+          c.lineTo(Math.cos(a) * 22, Math.sin(a) * 22);
+        }
+        c.stroke();
+        c.fillStyle = col; c.beginPath(); c.arc(0, 0, 6, 0, Math.PI * 2); c.fill();
+      },
+      cursor_foco: (c, t, col) => {
+        c.lineWidth = 3; c.strokeStyle = col;
+        c.beginPath(); c.arc(0, 0, 18, 0, Math.PI * 2); c.stroke();
+        c.beginPath(); c.arc(0, 0, 8, 0, Math.PI * 2); c.stroke();
+        c.fillStyle = col; c.beginPath(); c.arc(0, 0, 4, 0, Math.PI * 2); c.fill();
+        const a = t * 4;
+        c.lineWidth = 2;
+        c.beginPath(); c.moveTo(Math.cos(a) * 6, Math.sin(a) * 6); c.lineTo(Math.cos(a) * 16, Math.sin(a) * 16); c.stroke();
+      },
+      cursor_estasis: (c, t, col) => {
+        c.lineWidth = 3; c.strokeStyle = col;
+        c.beginPath();
+        for (let i = 0; i < 12; i++) {
+          const a = (Math.PI / 6) * i + t;
+          c.moveTo(Math.cos(a) * 10, Math.sin(a) * 10);
+          c.lineTo(Math.cos(a) * 20, Math.sin(a) * 20);
+        }
+        c.stroke();
+        c.fillStyle = col; c.beginPath(); c.arc(0, 0, 5, 0, Math.PI * 2); c.fill();
+      },
+      cursor_aura: (c, t, col) => {
+        const glow = 14 + Math.sin(t * 3) * 5;
+        c.fillStyle = col;
+        c.beginPath(); c.arc(0, 0, 7 + Math.sin(t * 4) * 2, 0, Math.PI * 2); c.fill();
+        c.lineWidth = 2; c.strokeStyle = col;
+        c.beginPath(); c.arc(0, 0, glow, 0, Math.PI * 2); c.stroke();
+        c.beginPath(); c.arc(0, 0, glow + 10, 0, Math.PI * 2); c.stroke();
+      },
+      cursor_rifle: (c, t, col) => {
+        c.lineWidth = 4; c.strokeStyle = col;
+        c.beginPath(); c.moveTo(-16, 0); c.lineTo(16, 0); c.stroke();
+        c.beginPath(); c.moveTo(0, -12); c.lineTo(0, 12); c.stroke();
+        c.fillStyle = col; c.beginPath(); c.arc(0, 0, 6, 0, Math.PI * 2); c.fill();
+        c.lineWidth = 1;
+        for (let i = 0; i < 4; i++) {
+          const a = (Math.PI / 2) * i;
+          c.beginPath(); c.moveTo(Math.cos(a) * 4, Math.sin(a) * 4); c.lineTo(Math.cos(a) * 10, Math.sin(a) * 10); c.stroke();
+        }
+      },
+      cursor_orbit: (c, t, col) => {
+        c.lineWidth = 3; c.strokeStyle = col;
+        c.beginPath(); c.arc(0, 0, 16, 0, Math.PI * 2); c.stroke();
+        const a = t * 2;
+        c.beginPath(); c.arc(Math.cos(a) * 14, Math.sin(a) * 14, 5, 0, Math.PI * 2); c.stroke();
+        c.fillStyle = col; c.beginPath(); c.arc(Math.cos(a) * 14, Math.sin(a) * 14, 2, 0, Math.PI * 2); c.fill();
+      },
+      cursor_furia: (c, t, col) => {
+        c.lineWidth = 4; c.strokeStyle = col;
+        c.beginPath();
+        c.moveTo(0, -18); c.lineTo(10, 6); c.lineTo(6, 14); c.lineTo(-6, 14); c.lineTo(-10, 6); c.closePath();
+        c.stroke();
+        c.fillStyle = col; c.beginPath(); c.arc(0, 0, 6, 0, Math.PI * 2); c.fill();
+        c.lineWidth = 2;
+        for (let i = 0; i < 5; i++) {
+          const a = t * 5 + (Math.PI * 2 / 5) * i;
+          c.beginPath(); c.moveTo(Math.cos(a) * 8, Math.sin(a) * 8); c.lineTo(Math.cos(a) * 16, Math.sin(a) * 16); c.stroke();
+        }
+      },
+      cursor_void: (c, t, col) => {
+        c.fillStyle = '#04040a';
+        c.beginPath(); c.arc(0, 0, 22, 0, Math.PI * 2); c.fill();
+        c.lineWidth = 4; c.strokeStyle = col;
+        c.beginPath(); c.arc(0, 0, 14, 0, Math.PI * 2); c.stroke();
+        c.beginPath(); c.arc(0, 0, 6, 0, Math.PI * 2); c.stroke();
+        c.fillStyle = col; c.beginPath(); c.arc(0, 0, 3, 0, Math.PI * 2); c.fill();
+      },
+      cursor_prisma: (c, t, col) => {
+        c.lineWidth = 3; c.strokeStyle = col;
+        c.beginPath();
+        c.moveTo(0, -20); c.lineTo(16, 0); c.lineTo(0, 20); c.lineTo(-16, 0); c.closePath();
+        c.stroke();
+        const rx = Math.sin(t * 3) * 10;
+        c.fillStyle = `rgba(${parseInt(col.slice(1,3),16)},${parseInt(col.slice(3,5),16)},${parseInt(col.slice(5,7),16)},0.3)`;
+        c.beginPath();
+        c.moveTo(rx - 5, -14); c.lineTo(rx + 5, -4); c.lineTo(rx, 4); c.lineTo(rx - 10, -4); c.closePath();
+        c.fill();
+      }
+    };
+    const fn = skins[id];
+    if (fn) fn(c, t, col);
+    else {
+      // Fallback genérico animado
+      c.lineWidth = 3; c.strokeStyle = col;
+      c.beginPath(); c.arc(0, 0, 16 + Math.sin(t * 3) * 3, 0, Math.PI * 2); c.stroke();
+      c.fillStyle = col; c.beginPath(); c.arc(0, 0, 6, 0, Math.PI * 2); c.fill();
+    }
   }
 
   addUpgradeRow(root, text, btnText, attrs, disabled) {
