@@ -143,7 +143,7 @@ const GUIDE_CONTENT = {
       icon: 'i-target', title: 'CURSORES',
       items: [
         '20 cursores con una habilidad única (Pulso, Tesla, Aura, Vacío y más).',
-        'Se compran en MEJORAS → 10 CURSORES y se equipan en la pantalla de Preparación.',
+        'Se compran en MEJORAS → 20 CURSORES y se equipan en la pantalla de Preparación.',
         'Cada cursor cambia el modificador de su habilidad: prueba combinaciones con tus chips.'
       ]
     },
@@ -2248,7 +2248,7 @@ export class UI {
     requestAnimationFrame(draw);
   }
 
-  static cursorSkin(id, ctx, tick, color) {
+  static cursorSkin(id) {
     const skins = {
       pulso: (c, t, col) => {
         // Anillo pulsante con estela circular corta
@@ -2495,13 +2495,13 @@ export class UI {
       }
     };
     const fn = skins[id];
-    if (fn) fn(c, t, col);
-    else {
+    if (fn) return fn;
+    return (c, t, col) => {
       // Fallback genérico animado
       c.lineWidth = 3; c.strokeStyle = col;
       c.beginPath(); c.arc(0, 0, 16 + Math.sin(t * 3) * 3, 0, Math.PI * 2); c.stroke();
       c.fillStyle = col; c.beginPath(); c.arc(0, 0, 6, 0, Math.PI * 2); c.fill();
-    }
+    };
   }
 
   addUpgradeRow(root, text, btnText, attrs, disabled) {
