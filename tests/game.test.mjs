@@ -133,9 +133,9 @@ test('Tableros iniciales: 3×3, 4×3 y 5×4 con umbrales centralizados', () => {
   assert.equal(boardById('4x4').cols * boardById('4x4').rows, 16);
   assert.equal(boardById('5x4').cols * boardById('5x4').rows, 20);
   assert.equal(boardById('9x7').cols * boardById('9x7').rows, 63);
-  assert.equal(boardById('4x3').unlockScore, 100000);
-  assert.equal(boardById('5x4').unlockScore, 1000000);
-  assert.equal(boardById('9x7').unlockScore, 100000000);
+  assert.equal(boardById('4x3').unlockCost, 25000);
+  assert.equal(boardById('5x4').unlockCost, 100000);
+  assert.equal(boardById('9x7').unlockCost, 3000000);
   assert.equal(boardById('inexistente').id, '3x3');
 });
 

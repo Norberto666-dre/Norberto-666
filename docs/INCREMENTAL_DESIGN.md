@@ -61,11 +61,11 @@ creditos    = floor(cycleScore × 0.1)
 
 **Tableros y comparabilidad**
 
-| Tablero | Desbloqueo (mejor score global en una run) | Uso previsto |
+| Tablero | Desbloqueo (créditos) | Uso previsto |
 |---|---:|---|
 | `3×3` | 0 | Diario forzado; menguante y comparación pura |
-| `4×3` | 100 000 | Preferido en teléfono/Android |
-| `5×4` | 1 000 000 | Máxima visibilidad en móvil; Nova y clústers lucen aquí |
+| `4×3` | 25 000 | Preferido en teléfono/Android |
+| `5×4` | 100 000 | Máxima visibilidad en móvil; Nova y clústers lucen aquí |
 
 El Diario además fuerza `pulso / sin chips / sin mejoras / sin habilidades`, sin jefe y sin núcleo blanco, con semilla derivada de la fecha. Es **una sola run oficial por fecha**: al terminar se publica la puntuación y el botón de reintento se sustituye por la tabla. La campaña queda como espacio de práctica y récords locales; no hay modo infinito.
 
@@ -125,8 +125,8 @@ Un jugador activo obtiene ≈120 ciclos/hora; el Eco aporta ≈6×mejorCiclo/hor
 | Horizonte | Estado esperado | Hitos |
 |---|---|---|
 | Primeros 15 s | Menú → selector de tablero → primer núcleo cian | HUD diegético `V×1 · C1/999`, barra de voltaje visible, texto de arrastre rojo |
-| Primera hora | Sectores 1–2, 8–12 ciclos, `V×2`–`V×3` | 4×3 desbloqueado a 100 000, primer jefe móvil, primer Falso Final |
-| Primer día | Sector 3, jefe de Espejo batido, 4×3 cómodo | 5×4 desbloqueado a 1 000 000, Nova vista, Eco I |
+| Primera hora | Sectores 1–2, 8–12 ciclos, `V×2`–`V×3` | 4×3 desbloqueado a 25 000 CR, primer jefe móvil, primer Falso Final |
+| Primer día | Sector 3, jefe de Espejo batido, 4×3 cómodo | 5×4 desbloqueado a 100 000 CR, Nova vista, Eco I |
 | Primera semana | Sector 5, Ascensión NV1, run larga hacia 999 | Duelo de sobrecarga, `V×5`, clústers de 3, hitos ≥100 de combo |
 
 El jugador experto, no el incremental, decide cuánto dura la run: cada ciclo drena voltaje y solo los golpes precisos lo reponen.

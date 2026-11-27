@@ -100,16 +100,16 @@ export function nextComboMilestone(combo) {
 }
 
 export const BOARDS = [
-  { id: '3x3', cols: 3, rows: 3, unlockScore: 0, label: '3×3' },
-  { id: '4x3', cols: 4, rows: 3, unlockScore: 100000, label: '4×3' },
-  { id: '4x4', cols: 4, rows: 4, unlockScore: 250000, label: '4×4' },
-  { id: '5x4', cols: 5, rows: 4, unlockScore: 1000000, label: '5×4' },
-  { id: '5x5', cols: 5, rows: 5, unlockScore: 2500000, label: '5×5' },
-  { id: '6x5', cols: 6, rows: 5, unlockScore: 5000000, label: '6×5' },
-  { id: '6x6', cols: 6, rows: 6, unlockScore: 10000000, label: '6×6' },
-  { id: '7x6', cols: 7, rows: 6, unlockScore: 25000000, label: '7×6' },
-  { id: '8x7', cols: 8, rows: 7, unlockScore: 50000000, label: '8×7' },
-  { id: '9x7', cols: 9, rows: 7, unlockScore: 100000000, label: '9×7' }
+  { id: '3x3', cols: 3, rows: 3, unlockCost: 0, label: '3×3' },
+  { id: '4x3', cols: 4, rows: 3, unlockCost: 25000, label: '4×3' },
+  { id: '4x4', cols: 4, rows: 4, unlockCost: 50000, label: '4×4' },
+  { id: '5x4', cols: 5, rows: 4, unlockCost: 100000, label: '5×4' },
+  { id: '5x5', cols: 5, rows: 5, unlockCost: 150000, label: '5×5' },
+  { id: '6x5', cols: 6, rows: 5, unlockCost: 300000, label: '6×5' },
+  { id: '6x6', cols: 6, rows: 6, unlockCost: 500000, label: '6×6' },
+  { id: '7x6', cols: 7, rows: 6, unlockCost: 1000000, label: '7×6' },
+  { id: '8x7', cols: 8, rows: 7, unlockCost: 1500000, label: '8×7' },
+  { id: '9x7', cols: 9, rows: 7, unlockCost: 3000000, label: '9×7' }
 ];
 
 export function boardById(id) {

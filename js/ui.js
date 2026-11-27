@@ -39,7 +39,7 @@ const GUIDE_CONTENT = {
     {
       icon: 'i-chart', title: 'TABLEROS Y DIFICULTAD',
       items: [
-        'Empiezas en 3×3. Los tableros nuevos se desbloquean al superar la mejor puntuación indicada.',
+        'Empiezas en 3×3. Los tableros nuevos se desbloquean comprando créditos en MEJORAS.',
         'Escala completa: 3×3, 4×3, 4×4, 5×4, 5×5, 6×5, 6×6, 7×6, 8×7 y 9×7.',
         'Más grande no solo añade hoyos: reduce el tamaño de cada núcleo y exige más precisión.',
         'Los récords se guardan por tablero, así que puedes volver a uno pequeño para asegurar créditos.'
@@ -78,7 +78,7 @@ const GUIDE_CONTENT = {
       items: [
         '25 ciclos repartidos en 5 sectores, con un jefe al final de cada sector.',
         'Conservas mejoras, cursores y chips entre runs; el récord y los créditos son permanentes.',
-        'Cada tablero guarda su propia mejor marca y desbloquea el siguiente tamaño.'
+        'Cada tablero guarda su propia mejor marca; el siguiente tamaño se desbloquea comprando créditos.'
       ]
     },
     {
@@ -884,14 +884,23 @@ export class UI {
         const el = document.createElement('div');
         el.className = 'prep-chip';
         el.dataset.board = b.id;
-        el.textContent = b.label;
-        el.title = b.unlockScore
-          ? `Se desbloquea con ${b.unlockScore.toLocaleString('es-ES')} puntos de mejor puntuación`
+        const unlocked = this.isBoardUnlocked(b.id);
+        el.textContent = unlocked ? b.label : `🔒 ${b.label}`;
+        el.title = b.unlockCost
+          ? `Coste ${b.unlockCost.toLocaleString('es-ES')} CR · desbloquea comprando créditos`
           : 'Tablero inicial';
         el.tabIndex = 0;
         el.setAttribute('role', 'radio');
         el.setAttribute('aria-label', `Tablero ${b.label}. ${el.title}`);
         boards.appendChild(el);
+        if (!unlocked) {
+          const buy = document.createElement('button');
+          buy.type = 'button';
+          buy.className = 'btn btn-secondary prep-buy';
+          buy.textContent = `COMPRAR · ${b.unlockCost.toLocaleString('es-ES')} CR`;
+          buy.addEventListener('click', () => this.buyBoard(b.id));
+          el.appendChild(buy);
+        }
       });
     }
   }
@@ -903,19 +912,36 @@ export class UI {
 
   isBoardUnlocked(id) {
     const def = boardById(id);
-    return this.bestScoreAll() >= def.unlockScore;
+    const cost = Number(def.unlockCost) || 0;
+    if (cost <= 0) return true; // Tablero inicial gratuito.
+    return (Number(this.game.credits) || 0) >= cost;
   }
 
   selectBoard(id, silent = false) {
     const def = boardById(id);
     if (!this.isBoardUnlocked(def.id)) {
-      if (!silent) this.showToast(`${def.label} BLOQUEADO · ${def.unlockScore.toLocaleString('es-ES')} PUNTOS`);
+      if (!silent) this.showToast(`${def.label} BLOQUEADO · ${def.unlockCost.toLocaleString('es-ES')} CR`);
       return;
     }
     this.selectedBoard = def.id;
     this.progress.boardId = def.id;
     this.writeProgress(false);
     this.renderPrep();
+  }
+
+  buyBoard(id) {
+    const def = boardById(id);
+    const cost = Number(def.unlockCost) || 0;
+    const credits = Number(this.game.credits) || 0;
+    if (cost <= 0) { this.selectBoard(id, true); return true; }
+    if (credits < cost) { this.showToast('Créditos insuficientes'); return false; }
+    this.game.credits = credits - cost;
+    this.progress.ownedBoards = this.progress.ownedBoards || [];
+    if (!this.progress.ownedBoards.includes(def.id)) this.progress.ownedBoards.push(def.id);
+    this.writeProgress(false);
+    this.renderPrep();
+    this.showToast(`${def.label} DESBLOQUEADO · −${cost.toLocaleString('es-ES')} CR`);
+    return true;
   }
 
   isCursorUnlocked(cursor) {
@@ -1627,6 +1653,17 @@ export class UI {
       el.setAttribute('aria-disabled', unlocked ? 'false' : 'true');
       const def = boardById(el.dataset.board);
       el.textContent = unlocked ? def.label : `🔒 ${def.label}`;
+      el.title = def.unlockCost
+        ? `Coste ${def.unlockCost.toLocaleString('es-ES')} CR · desbloquea comprando créditos`
+        : 'Tablero inicial';
+      if (!unlocked) {
+        const buy = document.createElement('button');
+        buy.type = 'button';
+        buy.className = 'btn btn-secondary prep-buy';
+        buy.textContent = `COMPRAR · ${def.unlockCost.toLocaleString('es-ES')} CR`;
+        buy.addEventListener('click', () => this.buyBoard(def.id));
+        el.appendChild(buy);
+      }
     });
     const sector = this.progress.sector || 1;
     const asc = this.progress.ascension || 0;
@@ -2920,8 +2957,8 @@ export class UI {
       label: b.label,
       title: `Tablero ${b.label}`,
       value: Number(best[b.id]) || 0,
-      sub: b.unlockScore
-        ? `se desbloquea con ${b.unlockScore.toLocaleString('es-ES')} pts`
+      sub: b.unlockCost
+        ? `se desbloquea con ${b.unlockCost.toLocaleString('es-ES')} CR`
         : 'tablero inicial'
     }));
   }

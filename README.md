@@ -97,20 +97,20 @@ Al arrancar la app se crea/actualiza automáticamente el usuario de pruebas ocul
 
 ## Tableros
 
-| Tablero | Desbloqueo (mejor puntuación global) |
+| Tablero | Desbloqueo (créditos) |
 |---|---:|
-| `3×3` | Inicial (obligatorio en Diario) |
-| `4×3` | 100 000 puntos |
-| `4×4` | 250 000 puntos |
-| `5×4` | 1 000 000 puntos |
-| `5×5` | 2 500 000 puntos |
-| `6×5` | 5 000 000 puntos |
-| `6×6` | 10 000 000 puntos |
-| `7×6` | 25 000 000 puntos |
-| `8×7` | 50 000 000 puntos |
-| `9×7` | 100 000 000 puntos |
+| `3×3` | Inicial (gratis, obligatorio en Diario) |
+| `4×3` | 25 000 CR |
+| `4×4` | 50 000 CR |
+| `5×4` | 100 000 CR |
+| `5×5` | 150 000 CR |
+| `6×5` | 300 000 CR |
+| `6×6` | 500 000 CR |
+| `7×6` | 1 000 000 CR |
+| `8×7` | 1 500 000 CR |
+| `9×7` | 3 000 000 CR |
 
-Cada tablero guarda su propia mejor marca, por lo que puedes volver a uno pequeño para asegurar créditos. Cuanto más grande, más núcleos por pantalla, menos tamaño por núcleo y más precisión exigida.
+Cada tablero se desbloquea comprando créditos en la pantalla **MEJORAS** (con botón **COMPRAR** en el selector de tableros). Cada tablero guarda su propia mejor marca, por lo que puedes volver a uno pequeño para asegurar créditos. Cuanto más grande, más núcleos por pantalla, menos tamaño por núcleo y más precisión exigida.
 
 ## Guía de juego
 
